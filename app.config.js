@@ -5,6 +5,7 @@ export default {
     name: "Wizo",
     slug: "Wizo",
     scheme: "Wizo",
+    jsEngine: "jsc",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
@@ -17,13 +18,14 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.o7empower.app",
+      bundleIdentifier: "com.o7.rn1",
     },
     android: {
+      package: "com.o7.rn1", // 👈 move it here
+      edgeToEdge: true,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff",
-        package: "com.o7empower.app",
       },
     },
     web: {
