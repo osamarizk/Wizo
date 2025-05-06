@@ -12,14 +12,19 @@ import React, { useState } from "react";
 import ReceiptFull from "./ReceiptFull";
 import { extractReceiptData } from "../lib/extractReceiptData";
 import images from "../constants/images";
+import { createReceipt, getCurrentUser } from "../lib/appwrite";
 import Checkbox from "expo-checkbox"; // Make sure expo-checkbox is installed
+import { useGlobalContext } from "../context/GlobalProvider";
+import { router } from "expo-router";
 
 const ReceiptProcess = ({ imageUri, onCancel }) => {
   const [showFullImage, setShowFullImage] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
   const [extractedData, setExtractedData] = useState(null);
   const [consentGiven, setConsentGiven] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
+  const { user } = useGlobalContext();
 
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
@@ -45,21 +50,54 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
     }
   };
 
-  const handleSave = () => {
-    // if (!consentGiven) {
-    //   Alert.alert(
-    //     "Consent Required",
-    //     "Please check the box to give your consent before saving."
-    //   );
-    //   return;
-    // }
-    Alert.alert("Saved", "Your receipt data has been saved!");
-    // Handle actual saving logic here
+  const handleSave = async () => {
+    if (!consentGiven) {
+      Alert.alert(
+        "Consent Required",
+        "Please agree to save your data before proceeding."
+      );
+      return;
+    }
+
+    if (!extractedData || !imageUri || !user) {
+      Alert.alert("Error", "Missing receipt data or image.");
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+
+      const receiptData = {
+        user_id: user.$id,
+        merchant: extractedData.merchant || "Unknown",
+        location: extractedData.location || "Unknown",
+        datetime: extractedData.datetime || new Date().toISOString(),
+        currency: "EGP",
+        subtotal: parseFloat(extractedData.subtotal) || 0,
+        vat: parseFloat(extractedData.vat) || 0,
+        total: parseFloat(extractedData.total) || 0,
+        items: JSON.stringify(extractedData.items || []),
+        image_url: imageUri,
+      };
+
+      const response = await createReceipt(receiptData);
+
+      if (response && response.$id) {
+        Alert.alert("Success", "Receipt saved successfully!");
+      } else {
+        console.error("Invalid response from createReceipt:", response);
+        Alert.alert("Error", "Receipt was not saved. Please try again.");
+      }
+    } catch (error) {
+      console.error("Save error:", error);
+      Alert.alert("Error", "Could not save receipt.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
-    
-    <View className="bg-transparent rounded-3xl px-2 pt-2 pb-1   max-h-[90vh] border-b-2 border-t-2 border-[#b94040]">
+    <View className="bg-transparent rounded-3xl px-2 pt-2 pb-1   max-h-[90vh] ">
       <ScrollView
         contentContainerStyle={{
           alignItems: "center",
@@ -259,16 +297,17 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
             )}
 
             {/* Consent checkbox */}
-            {/* <View className="flex-row items-center mt-2 gap-2 px-2">
+            <View className="flex-row items-center mt-4 gap-2 px-4">
               <Checkbox
                 value={consentGiven}
                 onValueChange={setConsentGiven}
                 color={consentGiven ? "#22c55e" : undefined}
               />
-              <Text className="text-base text-black/70 font-psemibold ">
-                I agree to save this data securely.
+              <Text className="text-base text-black/90 font-pregular ">
+              Your data is saved securely and may be shared anonymized with trusted third
+              parties..
               </Text>
-            </View> */}
+            </View>
 
             {/* Buttons */}
             <View className="flex-row justify-center items-center gap-6 mt-0 mb-1">
@@ -302,6 +341,20 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
             </View>
           </>
         )}
+        {/* 
+        {extractedData && isProcessing && (
+          <View className="items-center mt-4 mb-6 px-4">
+            <ActivityIndicator size="large" color="#ef6969" />
+            <Text className="text-center mt-2 text-black/70 font-pregular">
+              Your data is saved securely and may be shared with trusted third
+              parties.
+            </Text>
+            <Text className="text-center text-black/70 font-pregular">
+              We value your trust. All shared data is anonymized and requires
+              your consent.
+            </Text>
+          </View>
+        )} */}
       </ScrollView>
 
       <ReceiptFull
