@@ -12,10 +12,18 @@ import React, { useState } from "react";
 import ReceiptFull from "./ReceiptFull";
 import { extractReceiptData } from "../lib/extractReceiptData";
 import images from "../constants/images";
-import { createReceipt, getCurrentUser } from "../lib/appwrite";
+import {
+  projectId,
+  createReceipt,
+  getCurrentUser,
+  uploadReceiptImage,
+  isDuplicateReceipt,
+} from "../lib/appwrite";
 import Checkbox from "expo-checkbox"; // Make sure expo-checkbox is installed
 import { useGlobalContext } from "../context/GlobalProvider";
 import { router } from "expo-router";
+import * as FileSystem from "expo-file-system"; // for reading the image as blob
+import mime from "mime"; // helps get MIME type from file extension
 
 const ReceiptProcess = ({ imageUri, onCancel }) => {
   const [showFullImage, setShowFullImage] = useState(false);
@@ -39,8 +47,18 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
     try {
       setIsProcessing(true);
       const data = await extractReceiptData(imageUri);
-      setExtractedData(data);
 
+      // Check if it's not a receipt
+      if (!data.isReceipt) {
+        Alert.alert(
+          "Not a Receipt",
+          data.message || "This image is not a receipt."
+        );
+        return;
+      }
+
+      // Set the extracted data if it is a receipt
+      setExtractedData(data.data); // access the inner `data` field
       Alert.alert("Success", "Receipt processed successfully!");
     } catch (error) {
       Alert.alert("Error", "Failed to extract receipt data.");
@@ -64,9 +82,39 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
       return;
     }
 
+    const isDuplicate = await isDuplicateReceipt(
+      user.$id,
+      extractedData.merchant || "Unknown",
+      extractedData.datetime || new Date().toISOString(),
+      extractedData.total || 0
+    );
+
+    if (isDuplicate) {
+      Alert.alert(
+        "Duplicate Receipt",
+        "This receipt already exists and won't be saved again."
+      );
+      return;
+    }
+
     try {
       setIsProcessing(true);
 
+      // 1. Get file info and MIME type
+      const fileInfo = await FileSystem.getInfoAsync(imageUri);
+      const fileUri = fileInfo.uri;
+      const fileName = fileUri.split("/").pop();
+      const mimeType = mime.getType(fileName);
+
+      // 2. Convert to blob (Appwrite requires Blob/File)
+      const fileBlob = await fetch(fileUri).then((res) => res.blob());
+
+      // 3. Upload to Appwrite Storage
+      const uploadedFile = await uploadReceiptImage(
+        new File([fileBlob], fileName, { type: mimeType })
+      );
+      console.log("Image data", uploadedFile);
+      // 4. Prepare receipt data with storage reference
       const receiptData = {
         user_id: user.$id,
         merchant: extractedData.merchant || "Unknown",
@@ -77,13 +125,23 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
         vat: parseFloat(extractedData.vat) || 0,
         total: parseFloat(extractedData.total) || 0,
         items: JSON.stringify(extractedData.items || []),
-        image_url: imageUri,
+
+        // ✅ Storage reference fields
+
+        // image_bucket_id: uploadedFile.bucketId,
+
+        image_file_id: uploadedFile.$id,
+        image_type: uploadedFile.mimeType, // if you want
+        image_size: uploadedFile.sizeOriginal || 0,
+        image_url: `https://cloud.appwrite.io/v1/storage/buckets/${uploadedFile.bucketId}/files/${uploadedFile.$id}/view?project=${projectId}`,
       };
 
+      // 5. Save receipt metadata in database
       const response = await createReceipt(receiptData);
 
       if (response && response.$id) {
         Alert.alert("Success", "Receipt saved successfully!");
+        onCancel(); // close the modal
       } else {
         console.error("Invalid response from createReceipt:", response);
         Alert.alert("Error", "Receipt was not saved. Please try again.");
@@ -304,8 +362,8 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
                 color={consentGiven ? "#22c55e" : undefined}
               />
               <Text className="text-base text-black/90 font-pregular ">
-              Your data is saved securely and may be shared anonymized with trusted third
-              parties..
+                Your data is saved securely and may be shared anonymized with
+                trusted third parties..
               </Text>
             </View>
 
