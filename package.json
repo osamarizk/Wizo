@@ -11,10 +11,14 @@
   },
   "dependencies": {
     "@google/genai": "^0.12.0",
+    "apollo-upload-client": "^18.0.1",
     "appwrite": "^13.0.0",
+    "base64-arraybuffer": "^1.0.2",
+    "buffer": "^6.0.3",
     "expo": "~53.0.7",
     "expo-checkbox": "^4.1.4",
     "expo-constants": "~17.1.5",
+    "expo-file-system": "~18.1.9",
     "expo-image-picker": "^16.1.4",
     "expo-linear-gradient": "^14.1.4",
     "expo-linking": "~7.1.4",
@@ -27,8 +31,7 @@
     "react-native-otp-entry": "^1.8.4",
     "react-native-reanimated": "^3.16.2",
     "react-native-safe-area-context": "5.4.0",
-    "react-native-url-polyfill": "^2.0.0",
-    "expo-file-system": "~18.1.9"
+    "react-native-url-polyfill": "^2.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

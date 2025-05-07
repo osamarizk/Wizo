@@ -100,20 +100,17 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
     try {
       setIsProcessing(true);
 
-      // 1. Get file info and MIME type
       const fileInfo = await FileSystem.getInfoAsync(imageUri);
       const fileUri = fileInfo.uri;
       const fileName = fileUri.split("/").pop();
-      const mimeType = mime.getType(fileName);
+      const mimeType = mime.getType(fileName); // e.g., "image/jpeg"
 
-      // 2. Convert to blob (Appwrite requires Blob/File)
-      const fileBlob = await fetch(fileUri).then((res) => res.blob());
-
-      // 3. Upload to Appwrite Storage
       const uploadedFile = await uploadReceiptImage(
-        new File([fileBlob], fileName, { type: mimeType })
+        fileUri,
+        fileName,
+        mimeType
       );
-      console.log("Image data", uploadedFile);
+
       // 4. Prepare receipt data with storage reference
       const receiptData = {
         user_id: user.$id,
@@ -155,7 +152,7 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
   };
 
   return (
-    <View className="bg-transparent rounded-3xl px-2 pt-2 pb-1   max-h-[90vh] ">
+    <View className="bg-orange-50 rounded-3xl px-2 pt-2 pb-1   max-h-[90vh] ">
       <ScrollView
         contentContainerStyle={{
           alignItems: "center",
@@ -399,7 +396,7 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
             </View>
           </>
         )}
-        {/* 
+
         {extractedData && isProcessing && (
           <View className="items-center mt-4 mb-6 px-4">
             <ActivityIndicator size="large" color="#ef6969" />
@@ -412,7 +409,7 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
               your consent.
             </Text>
           </View>
-        )} */}
+        )}
       </ScrollView>
 
       <ReceiptFull
