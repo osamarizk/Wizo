@@ -6,11 +6,11 @@ import {
   TouchableOpacity,
   Image,
   Pressable,
-  ScrollView,
 } from "react-native";
 import icons from "../constants/icons";
 import { pickImageFromCamera, pickImageFromGallery } from "../lib/imagePicker";
-import ReceiptProcess from "../components/ReceiptProcess"
+import ReceiptProcess from "../components/ReceiptProcess";
+
 const UploadModal = ({ visible, onClose }) => {
   const [selectedImageUri, setSelectedImageUri] = useState(null);
 
@@ -27,17 +27,29 @@ const UploadModal = ({ visible, onClose }) => {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-    
-
-      <Pressable className="flex-1 bg-transparent justify-end -top-[17vh] opacity-95 px-3" >
-      
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
+      {/* Background that listens to taps to dismiss */}
+      <Pressable
+        onPress={handleCancel}
+        className="flex-1 bg-black/40 justify-end"
+      >
+        {/* This blocks background tap propagation */}
+        <Pressable
+          onPress={() => {}}
+          className="mt-auto mb-[17vh] px-3 pt-2 "
+        >
           {!selectedImageUri ? (
-            <>
-            <View className="bg-[#F0F0F2] rounded-xl px-4 pt-2 pb-2 shadow-lg shadow-gray-100 border-2 border-secondary opacity-85">
-              <View className="px-4 border-2 border-[#F0F0F2] rounded-lg mb-5">
+            <View className="bg-onboarding rounded-xl px-4 pt-2 pb-2 shadow-lg shadow-gray-100 border-2 border-secondary opacity-95">
+              <View className="px-4 border-2 border-gradient-dark rounded-lg mb-5">
                 <View className="flex-row items-center justify-between h-[7vh] gap-2 px-4">
-                  <Text className="font-psemibold text-base">Uploaded Receipts</Text>
+                  <Text className="font-psemibold text-base">
+                    Uploaded Receipts
+                  </Text>
                   <Text className="font-pextrabold text-lg"> ####</Text>
                 </View>
               </View>
@@ -51,7 +63,11 @@ const UploadModal = ({ visible, onClose }) => {
                   onPress={() => handleSelect(pickImageFromCamera)}
                   className="flex-row items-center justify-center bg-gray-50 rounded-xl p-1 w-44 gap-1 border-2 border-[#F0F0F2]"
                 >
-                  <Image source={icons.camera} resizeMode="contain" className="w-10 h-10 mb-2" />
+                  <Image
+                    source={icons.camera}
+                    resizeMode="contain"
+                    className="w-10 h-10 mb-2"
+                  />
                   <Text className="font-psemibold text-gray-700">Camera</Text>
                 </TouchableOpacity>
 
@@ -59,20 +75,23 @@ const UploadModal = ({ visible, onClose }) => {
                   onPress={() => handleSelect(pickImageFromGallery)}
                   className="flex-row items-center justify-center bg-gray-50 w-40 rounded-xl p-1 gap-1 border-2 border-[#F0F0F2]"
                 >
-                  <Image source={icons.gallery} resizeMode="contain" className="w-10 h-10 mb-2" />
+                  <Image
+                    source={icons.gallery}
+                    resizeMode="contain"
+                    className="w-10 h-10 mb-2"
+                  />
                   <Text className="font-psemibold text-gray-700">Gallery</Text>
                 </TouchableOpacity>
               </View>
-              </View>
-            </>
+            </View>
           ) : (
-            
-            <ReceiptProcess imageUri={selectedImageUri} onCancel={handleCancel} />
-           
+            <ReceiptProcess
+              imageUri={selectedImageUri}
+              onCancel={handleCancel}
+            />
           )}
-         
+        </Pressable>
       </Pressable>
-      
     </Modal>
   );
 };

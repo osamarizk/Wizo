@@ -6,7 +6,7 @@ import CustomButton from "../components/CustomButton";
 import { StatusBar } from "expo-status-bar";
 import { Redirect, router } from "expo-router";
 import images from "../constants/images";
- import { useGlobalContext } from "../context/GlobalProvider";
+import { useGlobalContext } from "../context/GlobalProvider";
 import { Dimensions } from "react-native";
 import GradientBackground from "../components/GradientBackground";
 const Index = () => {

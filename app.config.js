@@ -21,7 +21,7 @@ export default {
       bundleIdentifier: "com.o7.rn1",
     },
     android: {
-      package: "com.o7.rn1", // 👈 move it here
+      package: "com.o7.rn1",
       edgeToEdge: true,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
@@ -31,10 +31,9 @@ export default {
     web: {
       favicon: "./assets/favicon.png",
     },
-    // plugins: ["expo-router"],
+    plugins: ["expo-router"],
     extra: {
       GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     },
-    deepLinking: true,
   },
 };
