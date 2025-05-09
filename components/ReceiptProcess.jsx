@@ -18,6 +18,8 @@ import {
   getCurrentUser,
   uploadReceiptImage,
   isDuplicateReceipt,
+  createNotification,
+  countUnreadNotifications,
 } from "../lib/appwrite";
 import Checkbox from "expo-checkbox"; // Make sure expo-checkbox is installed
 import { useGlobalContext } from "../context/GlobalProvider";
@@ -32,7 +34,8 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
   const [extractedData, setExtractedData] = useState(null);
   const [consentGiven, setConsentGiven] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
-  const { user } = useGlobalContext();
+  const { user, updateUnreadCount } = useGlobalContext();
+  
 
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
@@ -111,7 +114,7 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
         mimeType
       );
 
-      // 4. Prepare receipt data with storage reference
+      // Prepare receipt data with storage reference
       const receiptData = {
         user_id: user.$id,
         merchant: extractedData.merchant || "Unknown",
@@ -122,23 +125,30 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
         vat: parseFloat(extractedData.vat) || 0,
         total: parseFloat(extractedData.total) || 0,
         items: JSON.stringify(extractedData.items || []),
-
-        // ✅ Storage reference fields
-
-        // image_bucket_id: uploadedFile.bucketId,
-
         image_file_id: uploadedFile.$id,
-        image_type: uploadedFile.mimeType, // if you want
+        image_type: uploadedFile.mimeType,
         image_size: uploadedFile.sizeOriginal || 0,
         image_url: `https://cloud.appwrite.io/v1/storage/buckets/${uploadedFile.bucketId}/files/${uploadedFile.$id}/view?project=${projectId}`,
       };
 
-      // 5. Save receipt metadata in database
+      // Save receipt metadata in the database
       const response = await createReceipt(receiptData);
 
       if (response && response.$id) {
         Alert.alert("Success", "Receipt saved successfully!");
-        onCancel(); // close the modal
+
+        // Create notification
+        await createNotification({
+          user_id: user.$id,
+          title: "Receipt Uploaded",
+          message: "Your receipt was successfully uploaded.",
+          receipt_id: response.$id, // ✅ Link the notification to the uploaded receipt
+        });
+        // Update the unread notification count in the context
+        const updatedUnreadCount = await countUnreadNotifications(user.$id); // Fetch updated unread count
+        updateUnreadCount(updatedUnreadCount); // Update context with new unread count
+
+        onCancel(); // Close the modal
       } else {
         console.error("Invalid response from createReceipt:", response);
         Alert.alert("Error", "Receipt was not saved. Please try again.");
@@ -200,7 +210,7 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
             {isProcessing ? (
               <View className="items-center mt-6 mb-6">
                 <ActivityIndicator size="large" color="#ef6969" />
-                <Text className="mt-2 font-pregular text-black/70">
+                <Text className="mt-2 font-psemibold text-black/70">
                   {`Processing...\n Our platform uses advanced AI to automatically extract key details from your uploaded receipt.`}
                 </Text>
               </View>
@@ -404,10 +414,10 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
               Your data is saved securely and may be shared with trusted third
               parties.
             </Text>
-            <Text className="text-center text-black/70 font-pregular">
+            {/* <Text className="text-center text-black/70 font-pregular">
               We value your trust. All shared data is anonymized and requires
               your consent.
-            </Text>
+            </Text> */}
           </View>
         )}
       </ScrollView>

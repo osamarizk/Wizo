@@ -16,7 +16,9 @@ import post from "../assets/icons/post.png";
 import camera from "../assets/icons/camera.png";
 import gallery from "../assets/icons/gallery.png";
 import wallet from "../assets/icons/wallet.png";
-
+import notification from "../assets/icons/notification.png";
+import dots from "../assets/icons/dots.png";
+import close from "../assets/icons/close.png";
 export default {
   play,
   bookmark,
@@ -36,4 +38,7 @@ export default {
   camera,
   gallery,
   wallet,
+  notification,
+  dots,
+  close,
 };
