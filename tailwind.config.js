@@ -12,6 +12,7 @@ module.exports = {
           100: "#FF9001",
           200: "#FF8E01",
         },
+        maroon: { DEFAULT: "#9F54B6" },
         gradient: {
           light: "#EDF1F4",
           medium: "#C8D1E7",

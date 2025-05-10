@@ -11,12 +11,12 @@ import icons from "../constants/icons";
 import { pickImageFromCamera, pickImageFromGallery } from "../lib/imagePicker";
 import ReceiptProcess from "../components/ReceiptProcess";
 
-const UploadModal = ({ visible, onClose }) => {
+const UploadModal = ({ visible, onClose, onRefresh }) => {
   const [selectedImageUri, setSelectedImageUri] = useState(null);
 
   const handleCancel = () => {
     setSelectedImageUri(null);
-    onClose();
+    onClose(); // Close the modal and reset state via onClose callback
   };
 
   const handleSelect = async (pickerFunc) => {
@@ -39,10 +39,7 @@ const UploadModal = ({ visible, onClose }) => {
         className="flex-1 bg-black/40 justify-end"
       >
         {/* This blocks background tap propagation */}
-        <Pressable
-          onPress={() => {}}
-          className="mt-auto mb-[17vh] px-3 pt-2 "
-        >
+        <Pressable onPress={() => {}} className="mt-auto mb-[17vh] px-3 pt-2 ">
           {!selectedImageUri ? (
             <View className="bg-onboarding rounded-xl px-4 pt-2 pb-2 shadow-lg shadow-gray-100 border-2 border-secondary opacity-95">
               <View className="px-4 border-2 border-gradient-dark rounded-lg mb-5">
@@ -88,6 +85,7 @@ const UploadModal = ({ visible, onClose }) => {
             <ReceiptProcess
               imageUri={selectedImageUri}
               onCancel={handleCancel}
+              onRefresh={onRefresh}
             />
           )}
         </Pressable>

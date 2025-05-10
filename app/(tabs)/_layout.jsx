@@ -3,11 +3,19 @@ import React, { useState } from "react";
 import { Tabs } from "expo-router";
 import TabIcons from "../../components/TabIcons";
 import icons from "../../constants/icons";
-
 import UploadModal from "../../components/UploadModal";
+import { useGlobalContext } from "../../context/GlobalProvider";
+
 const TabsLayout = () => {
-  const [showUploadModal, setShowUploadModal] = useState(false);
+  const { showUploadModal, setShowUploadModal } = useGlobalContext();
   const [activeTab, setActiveTab] = useState("home");
+
+  // Function to refresh the Home screen when modal is closed
+  const handleModalClose = () => {
+    setShowUploadModal(false);
+    setActiveTab("home"); // Switch back to home tab
+  };
+
   return (
     <>
       <Tabs
@@ -23,8 +31,6 @@ const TabsLayout = () => {
             height: 84,
             borderRadius: 10,
             borderCurve: 50,
-            // Keep the tab bar at the bottom
-            // Ensure it's at the bottom of the screen
           },
         }}
       >
@@ -81,7 +87,7 @@ const TabsLayout = () => {
                 {...props}
                 onPress={() => {
                   setShowUploadModal(true);
-                  setActiveTab("upload"); // 👈 Mark upload as active when pressed
+                  setActiveTab("upload");
                 }}
               />
             ),
@@ -119,7 +125,7 @@ const TabsLayout = () => {
           }}
         />
 
-        {/* Home Tab */}
+        {/* Account Tab */}
         <Tabs.Screen
           name="account"
           options={{
@@ -142,14 +148,14 @@ const TabsLayout = () => {
         />
       </Tabs>
 
-      {/* Upload Modal */}
-      <UploadModal
-        visible={showUploadModal}
-        onClose={() => {
-          setShowUploadModal(false);
-          setActiveTab("home");
-        }}
-      />
+      {/* Upload Modal will be shown when showUploadModal is true */}
+      {showUploadModal && (
+        <UploadModal
+          visible={showUploadModal}
+          onClose={() => setShowUploadModal(false)} // Close the modal
+          // onRefresh={onRefresh} // Trigger refresh when modal is closed
+        />
+      )}
     </>
   );
 };

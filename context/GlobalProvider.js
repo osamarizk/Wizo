@@ -9,6 +9,7 @@ const GlobalProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0); // Track unread notifications count
+  const [showUploadModal, setShowUploadModal] = useState(false); // New state for modal visibility
 
   useEffect(() => {
     getCurrentUser()
@@ -54,8 +55,10 @@ const GlobalProvider = ({ children }) => {
         user,
         setUser,
         loading,
-        unreadCount, // Provide unreadCount in context
-        updateUnreadCount, // Method to update unreadCount
+        unreadCount,
+        updateUnreadCount,
+        showUploadModal, // Provide the modal visibility in context
+        setShowUploadModal, // Method to update modal visibility
       }}
     >
       {children}

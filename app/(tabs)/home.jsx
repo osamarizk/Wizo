@@ -4,29 +4,30 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import GradientBackground from "../../components/GradientBackground";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import icons from "../../constants/icons";
-import { countUnreadNotifications } from "../../lib/appwrite";
+import {
+  countUnreadNotifications,
+  countUserReceipts,
+  getReceiptStats,
+} from "../../lib/appwrite";
 import { router } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
+import UploadModal from "../../components/UploadModal";
 
 const Home = () => {
   const hours = new Date().getHours();
-  const { user } = useGlobalContext();
+  const { user, showUploadModal, setShowUploadModal } = useGlobalContext();
+
   const [unreadCount, setUnreadCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    if (user?.$id) {
-      try {
-        const count = await countUnreadNotifications(user.$id);
-        setUnreadCount(count);
-      } catch (error) {
-        console.error("Error refreshing notifications:", error);
-      }
-    }
-    setRefreshing(false);
-  };
+  const [receiptCount, setReceiptCount] = useState(0);
+  const [receiptStats, setReceiptStats] = useState({
+    totalCount: 0,
+    thisMonthCount: 0,
+    monthlySpending: 0,
+    latestDate: "N/A",
+  });
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const greeting =
     hours < 12
@@ -60,20 +61,43 @@ const Home = () => {
     </View>
   );
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+
+    if (user?.$id) {
+      try {
+        const [count, stats] = await Promise.all([
+          countUnreadNotifications(user.$id),
+          getReceiptStats(user.$id),
+        ]);
+        setUnreadCount(count);
+        setReceiptStats(stats);
+      } catch (error) {
+        console.error("Error refreshing data:", error);
+      }
+    }
+
+    setRefreshing(false);
+  };
+
   useFocusEffect(
     useCallback(() => {
-      const fetchUnreadCount = async () => {
+      const fetchData = async () => {
         if (user?.$id) {
           try {
-            const count = await countUnreadNotifications(user.$id);
+            const [count, stats] = await Promise.all([
+              countUnreadNotifications(user.$id),
+              getReceiptStats(user.$id),
+            ]);
             setUnreadCount(count);
+            setReceiptStats(stats);
           } catch (error) {
-            console.error("Error fetching unread notifications:", error);
+            console.error("Error fetching data:", error);
           }
         }
       };
 
-      fetchUnreadCount();
+      fetchData();
     }, [user])
   );
 
@@ -124,18 +148,30 @@ const Home = () => {
               </View>
 
               {/* Receipt Summary */}
-              <View className="bg-onboarding p-4 rounded-2xl mb-8 border-2 border-secondary">
-                <Text className="text-center text-gray-900 mb-2 text-base font-pextralight">
+              <View className="bg-onboarding p-4 rounded-xl mb-8 border-2 border-secondary">
+                <Text className="text-center text-black mb-2 text-base font-pregular">
                   Total Receipts
                 </Text>
                 <Text className="text-center text-3xl font-pbold text-gray-800">
-                  Receipt 300
+                  Receipts : {receiptStats.totalCount}
                 </Text>
-                <Text className="text-center text-xs text-gray-400">
-                  100 Receipts out of 150
+                <Text className="text-center text-base font-pregular text-black">
+                  <Text className="text-center text-base font-pregular  text-[#4E17B3] mt-1 underline">
+                    {"("}{receiptStats.thisMonthCount}{") "}
+                  </Text>
+                  R this month | Monthly Spending EGP:{" "}
+                  <Text className="text-center text-base font-pregular  text-[#4E17B3] mt-1 underline">
+                    {receiptStats.monthlySpending.toFixed(2)}
+                  </Text>
+                </Text>
+                <Text className="text-center text-base font-pregular text-black mt-1">
+                  Last Receipt:
+                  <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
+                    {" "}
+                    {receiptStats.latestDate}
+                  </Text>
                 </Text>
               </View>
-
               {/* Spending Categories */}
               <View className="bg-onboarding p-4 rounded-2xl border-2 border-secondary mb-8">
                 <View className="flex-row justify-between items-center mb-2">
@@ -186,6 +222,15 @@ const Home = () => {
             </>
           }
         />
+
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <UploadModal
+            visible={showUploadModal}
+            onClose={() => setShowUploadModal(false)} // Close the modal when it is closed
+            onRefresh={onRefresh} // Refresh content when modal is closed
+          />
+        )}
       </SafeAreaView>
     </GradientBackground>
   );

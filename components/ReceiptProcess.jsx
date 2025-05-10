@@ -27,7 +27,7 @@ import { router } from "expo-router";
 import * as FileSystem from "expo-file-system"; // for reading the image as blob
 import mime from "mime"; // helps get MIME type from file extension
 
-const ReceiptProcess = ({ imageUri, onCancel }) => {
+const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
   const [showFullImage, setShowFullImage] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -35,7 +35,6 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
   const [consentGiven, setConsentGiven] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
   const { user, updateUnreadCount } = useGlobalContext();
-  
 
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
@@ -115,11 +114,21 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
       );
 
       // Prepare receipt data with storage reference
+      let isoDatetime;
+      if (extractedData.datetime) {
+        const parsedDate = new Date(extractedData.datetime);
+        isoDatetime = isNaN(parsedDate)
+          ? new Date().toISOString()
+          : parsedDate.toISOString();
+      } else {
+        isoDatetime = new Date().toISOString();
+      }
+
       const receiptData = {
         user_id: user.$id,
         merchant: extractedData.merchant || "Unknown",
         location: extractedData.location || "Unknown",
-        datetime: extractedData.datetime || new Date().toISOString(),
+        datetime: isoDatetime,
         currency: "EGP",
         subtotal: parseFloat(extractedData.subtotal) || 0,
         vat: parseFloat(extractedData.vat) || 0,
@@ -130,7 +139,6 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
         image_size: uploadedFile.sizeOriginal || 0,
         image_url: `https://cloud.appwrite.io/v1/storage/buckets/${uploadedFile.bucketId}/files/${uploadedFile.$id}/view?project=${projectId}`,
       };
-
       // Save receipt metadata in the database
       const response = await createReceipt(receiptData);
 
@@ -148,6 +156,7 @@ const ReceiptProcess = ({ imageUri, onCancel }) => {
         const updatedUnreadCount = await countUnreadNotifications(user.$id); // Fetch updated unread count
         updateUnreadCount(updatedUnreadCount); // Update context with new unread count
 
+        onRefresh();
         onCancel(); // Close the modal
       } else {
         console.error("Invalid response from createReceipt:", response);
