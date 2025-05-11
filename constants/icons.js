@@ -19,6 +19,8 @@ import wallet from "../assets/icons/wallet.png";
 import notification from "../assets/icons/notification.png";
 import dots from "../assets/icons/dots.png";
 import close from "../assets/icons/close.png";
+import bill from "../assets/icons/bill.png";
+// import receipt from "../assets/icons/receipt";
 export default {
   play,
   bookmark,
@@ -41,4 +43,5 @@ export default {
   notification,
   dots,
   close,
+  bill,
 };
