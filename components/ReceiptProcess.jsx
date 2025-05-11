@@ -127,7 +127,9 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
       const receiptData = {
         user_id: user.$id,
         merchant: extractedData.merchant || "Unknown",
-        location: extractedData.location || "Unknown",
+        location: extractedData.location
+          ? `${extractedData.location.address}, ${extractedData.location.city}, ${extractedData.location.country}`
+          : "Unknown",
         datetime: isoDatetime,
         currency: "EGP",
         subtotal: parseFloat(extractedData.subtotal) || 0,
@@ -275,8 +277,16 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
                 <Text className="text-blue-900 font-psemibold mb-3 text-base">
                   <Text className="text-black font-pbold text-base">
                     📍 Location →
-                  </Text>{" "}
-                  {extractedData.location}
+                  </Text>
+                  <Text>
+                    {extractedData.location.address
+                      ? extractedData.location.address + ", "
+                      : ""}
+                    {extractedData.location.city
+                      ? extractedData.location.city + ", "
+                      : ""}
+                    {extractedData.location.country}
+                  </Text>
                 </Text>
               )}
 

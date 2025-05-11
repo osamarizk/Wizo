@@ -20,6 +20,9 @@ import notification from "../assets/icons/notification.png";
 import dots from "../assets/icons/dots.png";
 import close from "../assets/icons/close.png";
 import bill from "../assets/icons/bill.png";
+import car from "../assets/icons/car.png";
+import food from "../assets/icons/food.png";
+import shopping from "../assets/icons/shopping.png";
 // import receipt from "../assets/icons/receipt";
 export default {
   play,
@@ -44,4 +47,7 @@ export default {
   dots,
   close,
   bill,
+  car,
+  food,
+  shopping
 };
