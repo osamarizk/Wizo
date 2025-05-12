@@ -23,11 +23,11 @@ const RootLayout = () => {
     UIManager.setLayoutAnimationEnabledExperimental(true);
   }
   return (
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"} // Moves content up when keyboard appears
-        style={{ flex: 1 }}
-      >
+    // <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+    //   <KeyboardAvoidingView
+    //     behavior={Platform.OS === "ios" ? "padding" : "height"} // Moves content up when keyboard appears
+    //     style={{ flex: 1 }}
+    //   >
         <GlobalProvider>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -39,8 +39,8 @@ const RootLayout = () => {
             />
           </Stack>
         </GlobalProvider>
-      </KeyboardAvoidingView>
-    </TouchableWithoutFeedback>
+      // </KeyboardAvoidingView>
+    // </TouchableWithoutFeedback>
   );
 };
 

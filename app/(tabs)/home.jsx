@@ -148,7 +148,7 @@ const Home = () => {
 
   return (
     <GradientBackground>
-      <SafeAreaView className="flex-1">
+      <SafeAreaView className="flex-1 ">
         <FlashList // Use FlashList here
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -156,7 +156,7 @@ const Home = () => {
           contentContainerStyle={{
             paddingHorizontal: 28,
             paddingTop: 45,
-            paddingBottom: 20,
+            paddingBottom: 80,
           }}
           ListHeaderComponent={
             <>
