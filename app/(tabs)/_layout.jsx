@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Modal, Pressable } from "react-native";
+import { View, Text, TouchableOpacity, Modal, Pressable,ScrollView } from "react-native";
 import React, { useState } from "react";
 import { Tabs } from "expo-router";
 import TabIcons from "../../components/TabIcons";
@@ -30,7 +30,7 @@ const TabsLayout = () => {
             borderTopColor: "#F4F0F0",
             height: 84,
             borderRadius: 10,
-            borderCurve: 50,
+            borderCurve: 90,
           },
         }}
       >
