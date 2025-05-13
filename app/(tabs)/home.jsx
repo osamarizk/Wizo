@@ -16,6 +16,10 @@ import {
   countUnreadNotifications,
   getReceiptStats,
   fetchUserReceipts,
+  categoriesData,
+  subcategoriesData,
+  createCategories,
+  createSubcategories,
 } from "../../lib/appwrite";
 import { router, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -41,6 +45,7 @@ const Home = () => {
     showUploadModal,
     setShowUploadModal,
     loading: globalLoading,
+    checkBudgetInitialization,
   } = useGlobalContext();
   const [latestReceipts, setLatestReceipts] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -54,6 +59,7 @@ const Home = () => {
   const [categorySpendingData, setCategorySpendingData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigation = useNavigation();
+  const [showBudgetPrompt, setShowBudgetPrompt] = useState(false); // State for budget prompt
 
   const greeting =
     hours < 12
@@ -116,6 +122,9 @@ const Home = () => {
 
         const latest = await fetchUserReceipts(user.$id, 5);
         setLatestReceipts(latest);
+
+        const isBudgetInitialized = await checkBudgetInitialization(user.$id);
+        setShowBudgetPrompt(!isBudgetInitialized); //set budget prompt here
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -124,9 +133,36 @@ const Home = () => {
     }
   }, [user]);
 
+  // Upload Initial Data one Time:
+
+  const uploadInitialData = async () => {
+    try {
+      // Only upload if the user is an admin
+      if (user?.email === "osama@gmail.com") {
+        //  <- Replace with your actual admin check
+        console.log("Home: User is admin, proceeding with data upload.");
+        await createCategories(categoriesData);
+        await createSubcategories(subcategoriesData, categoriesData);
+        console.log("Home: Initial category and subcategory data uploaded.");
+      } else {
+        console.log("Home: User is not admin, skipping data upload.");
+      }
+    } catch (error) {
+      console.error("Home: Error uploading initial data:", error);
+      // Handle the error appropriately in your app (e.g., show an alert)
+    }
+  };
+
+  // New handleSetupBudget function
+  const handleSetupBudget = () => {
+    navigation.navigate("SetupBudget"); // Navigate to SetupBudgetScreen
+    setShowBudgetPrompt(false);
+  };
+
   useEffect(() => {
     if (user?.$id && !globalLoading) {
       fetchData();
+      // uploadInitialData();
     }
   }, [user, fetchData, globalLoading]);
 
@@ -405,6 +441,21 @@ const Home = () => {
             </View>
           }
         />
+
+        {/* Budget Setup Prompt */}
+        {showBudgetPrompt && (
+          <View className=" flex flex-col justify-center items-center z-1000text-center p-4  mb-4 border-2 rounded-md border-[#182e4a]">
+            <Text className="text-white text-lg mb-4">
+              Set up your budget to get the most out of O7.
+            </Text>
+            <TouchableOpacity
+              onPress={handleSetupBudget}
+              className="bg-green-500 text-white px-6 py-3 rounded-md text-base"
+            >
+              <Text>Set Up Budget</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Upload Modal */}
         {showUploadModal && (

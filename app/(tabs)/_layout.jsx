@@ -1,6 +1,13 @@
-import { View, Text, TouchableOpacity, Modal, Pressable,ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  Pressable,
+  ScrollView,
+} from "react-native";
 import React, { useState } from "react";
-import { Tabs } from "expo-router";
+import { Tabs } from "expo-router"; // Import useNavigation
 import TabIcons from "../../components/TabIcons";
 import icons from "../../constants/icons";
 import UploadModal from "../../components/UploadModal";
@@ -153,7 +160,6 @@ const TabsLayout = () => {
         <UploadModal
           visible={showUploadModal}
           onClose={() => setShowUploadModal(false)} // Close the modal
-          // onRefresh={onRefresh} // Trigger refresh when modal is closed
         />
       )}
     </>
