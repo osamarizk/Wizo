@@ -30,12 +30,13 @@ import { FlashList } from "@shopify/flash-list"; // Import FlashList
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
   "#D03957",
-  "#9F54B6",
+  "#F4A261",
   "#2A9D8F",
+  "#4E17B3",
   "#8AC926",
+  "#9F54B6",
   "#D24726",
   "#6D83F2",
-  "#F4A261",
 ];
 
 const Home = () => {
@@ -139,7 +140,7 @@ const Home = () => {
     try {
       // Only upload if the user is an admin
       if (user?.email === "osama@gmail.com") {
-        //  <- Replace with your actual admin check
+        //  <- Replace with your actual admin check
         console.log("Home: User is admin, proceeding with data upload.");
         await createCategories(categoriesData);
         await createSubcategories(subcategoriesData, categoriesData);
@@ -190,14 +191,33 @@ const Home = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           contentContainerStyle={{
-            paddingHorizontal: 28,
-            paddingTop: 45,
-            paddingBottom: 80,
+            paddingHorizontal: 25,
+            paddingTop: 3,
+            paddingBottom: 40,
           }}
           ListHeaderComponent={
             <>
+              {/* Budget Setup Prompt */}
+              {showBudgetPrompt && (
+                <View className="flex items-center justify-center">
+                  <TouchableOpacity
+                    onPress={handleSetupBudget}
+                    className=" flex px-8 py-8 items-center justify-center w-36 h-36 border-x-4 border-[#9F54B6] rounded-full"
+                  >
+                    <Image
+                      source={icons.budget}
+                      className="w-14 h-14 "
+                      resizeMode="contain"
+                    />
+                    <Text className="text-black text-center font-pbold text-base mt-2">
+                      Set Up Your Budget
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {/* Header */}
-              <View className="flex-row justify-between items-center mb-5">
+              <View className="flex-row justify-between items-center mb-5 mt-3">
                 <View>
                   <Text className="text-base text-gray-500 font-pregular">
                     {greeting}
@@ -230,14 +250,14 @@ const Home = () => {
               </View>
 
               {/* Receipt Summary */}
-              <View className=" p-4  mb-4 border-2 rounded-md border-[#182e4a]">
-                <Text className="text-center text-black mb-2 text-lg font-pregular">
+              <View className=" p-4  mb-4 border-2 rounded-md border-[#9F54B6]">
+                <Text className="text-center text-gray-600 mb-2 text-base font-pregular">
                   Total Receipts
                 </Text>
                 <Text className="text-center text-2xl font-bold text-gray-800 font-pbold">
                   Receipts : {receiptStats.totalCount}
                 </Text>
-                <Text className="text-center text-base font-pregular text-gray-600">
+                <Text className="text-center text-md font-pregular text-gray-600">
                   <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
                     {"("}
                     {receiptStats.thisMonthCount}
@@ -257,10 +277,78 @@ const Home = () => {
                 </Text>
               </View>
 
+              {/* Latest Receipts Section */}
+              <View className="p-4 border-2 rounded-md border-[#9F54B6] mb-4">
+                <Text className="text-lg font-semibold text-gray-800 mb-2">
+                  Latest Receipts
+                </Text>
+                {latestReceipts.length > 0 ? (
+                  latestReceipts.map((item) => (
+                    <View
+                      key={item.$id}
+                      className="flex-row items-center justify-between py-2 border-b border-gray-200 last:border-none"
+                    >
+                      <View className="flex-row items-center flex-1">
+                        <View className="rounded-md p-2 mr-2">
+                          <Image
+                            source={icons.bill}
+                            resizeMode="contain"
+                            className="w-7 h-7"
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text
+                            className="text-lg font-semibold text-gray-800 font-psemibold"
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
+                            {item.merchant || "Unknown Merchant"}
+                          </Text>
+                          {item.datetime && (
+                            <Text className="text-sm text-gray-600">
+                              {new Date(item.datetime).toLocaleDateString()} |
+                              {item.total
+                                ? ` EGP ${parseFloat(item.total).toFixed(2)}`
+                                : ""}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() =>
+                          console.log(`Options for receipt ${item.$id}`)
+                        }
+                      >
+                        <Image source={icons.dots} className="w-6 h-6" />
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                ) : (
+                  <View className="py-4 items-center">
+                    <Text className="text-gray-500 italic mb-3">
+                      ✨ No receipts uploaded yet. Let's get started! ✨
+                    </Text>
+                    <TouchableOpacity
+                      className="bg-white rounded-full shadow-md items-center justify-center w-24 h-24 border-2 border-primary-500"
+                      onPress={() => setShowUploadModal(true)}
+                    >
+                      <Image
+                        source={icons.camera}
+                        className="w-8 h-8 tint-primary"
+                        resizeMode="contain"
+                      />
+                      <Text className="text-primary-500 text-sm mt-2 font-semibold">
+                        Upload
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
               {/* Top Spending Insights */}
               {receiptStats.highestSpendingCategory && (
-                <View className=" p-4  border-2 rounded-md border-[#902583] mb-4">
-                  <Text className="text-lg font-pregular text-gray-700 mb-2">
+                <View className=" p-4  border-2 rounded-md border-[#9F54B6] mb-4">
+                  <Text className="text-base font-pregular text-gray-700 mb-2">
                     Top Spending Insight
                   </Text>
                   <View className="flex-row items-center justify-between">
@@ -298,7 +386,7 @@ const Home = () => {
                       {receiptStats.highestSpendingCategory.amount.toFixed(2)}
                     </Text>
                   </View>
-                  <Text className="text-sm text-gray-600 mt-1">
+                  <Text className="text-md text-gray-600 mt-1">
                     (
                     {receiptStats.highestSpendingCategory.percentage.toFixed(1)}
                     % of total)
@@ -307,10 +395,11 @@ const Home = () => {
               )}
 
               {/* Spending Categories */}
-              <View className=" p-4  border-2 rounded-md border-[#373612] mb-4">
+              <View className=" p-4  border-2 rounded-md border-[#9F54B6] mb-4">
                 <Text className="text-lg font-pregular text-gray-700 -mb-2">
                   Spending Categories |
                   <Text className="text-lg font-bold text-black font-pbold">
+                    {" "}
                     Total: EGP {receiptStats.monthlySpending.toFixed(2)}
                   </Text>
                 </Text>
@@ -383,79 +472,11 @@ const Home = () => {
             </>
           }
           data={latestReceipts}
-          renderItem={({ item }) => (
-            <View className="flex-row items-center justify-between py-2 border-2 rounded-md border-[#e4e13a]">
-              <View className="flex-row items-center flex-1">
-                <View className="rounded-md p-2 mr-2">
-                  <Image
-                    source={icons.bill}
-                    resizeMode="contain"
-                    className="w-7 h-7"
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text
-                    className="text-lg font-semibold text-gray-800 font-psemibold"
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {item.merchant || "Unknown Merchant"}
-                  </Text>
-                  {item.datetime && (
-                    <Text className="text-sm text-gray-600">
-                      {new Date(item.datetime).toLocaleDateString()} |
-                      {item.total
-                        ? ` EGP ${parseFloat(item.total).toFixed(2)}`
-                        : ""}
-                    </Text>
-                  )}
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={() => console.log(`Options for receipt ${item.$id}`)}
-              >
-                <Image source={icons.dots} className="w-6 h-6" />
-              </TouchableOpacity>
-            </View>
-          )}
+          renderItem={({ item }) => null}
           keyExtractor={(item) => item.$id}
-          estimatedItemSize={100} // Add estimatedItemSize prop for FlashList
-          ListEmptyComponent={
-            <View className="py-4 items-center">
-              <Text className="text-gray-500 italic mb-3">
-                ✨ No receipts uploaded yet. Let's get started! ✨
-              </Text>
-              <TouchableOpacity
-                className="bg-white rounded-full shadow-md items-center justify-center w-24 h-24 border-2 border-primary-500"
-                onPress={() => setShowUploadModal(true)}
-              >
-                <Image
-                  source={icons.camera}
-                  className="w-8 h-8 tint-primary"
-                  resizeMode="contain"
-                />
-                <Text className="text-primary-500 text-sm mt-2 font-semibold">
-                  Upload
-                </Text>
-              </TouchableOpacity>
-            </View>
-          }
+          estimatedItemSize={100}
+          ListEmptyComponent={null}
         />
-
-        {/* Budget Setup Prompt */}
-        {showBudgetPrompt && (
-          <View className=" flex flex-col justify-center items-center z-1000text-center p-4  mb-4 border-2 rounded-md border-[#182e4a]">
-            <Text className="text-white text-lg mb-4">
-              Set up your budget to get the most out of O7.
-            </Text>
-            <TouchableOpacity
-              onPress={handleSetupBudget}
-              className="bg-green-500 text-white px-6 py-3 rounded-md text-base"
-            >
-              <Text>Set Up Budget</Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         {/* Upload Modal */}
         {showUploadModal && (

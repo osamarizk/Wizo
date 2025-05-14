@@ -1,137 +1,120 @@
 import React, { useState, useEffect } from "react";
-import { ScrollView, View, Text } from "react-native";
-import { useGlobalContext } from "../context/GlobalProvider";
 import {
-  createBudget,
-  getBudget,
-  updateBudget,
-  getAllBudgets,
-} from "../lib/appwrite";
-import { useNavigation } from "@react-navigation/native";
-import FormField from "../components/FormField"; // Import your FormField component
-import CustomButton from "../components/CustomButton"; // Import your CustomButton component
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import GradientBackground from "../components/GradientBackground"; // Assuming this is in the correct relative path
+import FormField from "../components/FormField"; // Assuming this is in the correct relative path
+import CustomButton from "../components/CustomButton"; // Assuming this is in the correct relative path
+import { useGlobalContext } from "../context/GlobalProvider"; // Adjust the path if needed
+import { createBudget, getUserBudgets, updateBudget } from "../lib/appwrite"; // Adjust the path if needed
 
-const SetupBudget = () => {
-  const { user } = useGlobalContext();
-  const [categories, setCategories] = useState([]);
-  const [budgets, setBudgets] = useState({}); // { [categoryId]: amount }
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const navigation = useNavigation();
+const SetupBudgetScreen = ({ navigation }) => {
+  // Destructure navigation
+  const { user, setHasBudget } = useGlobalContext(); // Destructure setHasBudget
+  const [budgetAmount, setBudgetAmount] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isExistingBudget, setIsExistingBudget] = useState(false); // Track if budget exists
 
   useEffect(() => {
-    const fetchInitialData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Fetch categories from Appwrite
-        const fetchedCategories = await databases.listDocuments(
-          config.databaseId,
-          config.categoryCollectionId
-        );
-        setCategories(fetchedCategories.documents);
-
-        if (user) {
-          // Fetch existing budgets for the user
-          const existingBudgets = await getAllBudgets(user.$id);
-          const budgetMap = {};
-          existingBudgets.forEach((budget) => {
-            budgetMap[budget.categoryId] = budget.amount;
-          });
-          setBudgets(budgetMap);
+    const fetchBudget = async () => {
+      if (user) {
+        setLoading(true);
+        try {
+          const budget = await getUserBudgets(user.$id);
+          console.log("Budget is",budget ,isExistingBudget)
+          if (budget) {
+            setBudgetAmount(String(budget.budgetAmount)); // Convert to string for TextInput
+            setIsExistingBudget(true);
+          }
+        } catch (error) {
+          console.error("Error fetching budget:", error);
+          // Handle error:  Show message to user, or redirect
+          if (error.message === "Budget does not exist") {
+            setIsExistingBudget(false); // Set to false, explicitly
+            setBudgetAmount("");
+          }
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        setError(err.message || "Failed to fetch initial data.");
-      } finally {
-        setLoading(false);
       }
     };
-
-    fetchInitialData();
+    fetchBudget();
   }, [user]);
 
-  const handleAmountChange = (categoryId, amount) => {
-    setBudgets((prevBudgets) => ({
-      ...prevBudgets,
-      [categoryId]: amount,
-    }));
-  };
+  const handleSaveBudget = async () => {
+    if (!budgetAmount.trim()) {
+      Alert.alert("Error", "Please enter a budget amount.");
+      return;
+    }
 
-  const handleSaveBudgets = async () => {
+    const amount = parseFloat(budgetAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert(
+        "Error",
+        "Please enter a valid positive number for your budget."
+      );
+      return;
+    }
+
     setLoading(true);
-    setError(null);
     try {
-      if (!user) {
-        throw new Error("User not logged in.");
+      if (isExistingBudget) {
+        // Update existing budget
+        await updateBudget(user.$id, amount);
+        Alert.alert("Success", "Budget updated successfully.");
+      } else {
+        // Create new budget
+        await createBudget(user.$id, amount);
+        Alert.alert("Success", "Budget created successfully.");
       }
 
-      // Iterate through the budgets and create/update them
-      for (const categoryId of Object.keys(budgets)) {
-        const amount = budgets[categoryId];
-        const existingBudget = await getBudget(user.$id, categoryId);
-
-        if (existingBudget) {
-          // Update existing budget
-          await updateBudget(existingBudget.$id, amount);
-        } else {
-          // Create new budget
-          await createBudget(user.$id, categoryId, amount);
-        }
-      }
-      navigation.goBack(); // Navigate back after saving
-      console.log("Budgets saved successfully!");
-    } catch (err) {
-      setError(err.message || "Failed to save budgets.");
+      setHasBudget(true); // Update global state
+      navigation.goBack(); // Go back
+    } catch (error) {
+      console.error("Error saving budget:", error);
+      Alert.alert("Error", "Failed to save budget. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <View className="flex-1 justify-center items-center">
-        <Text className="text-lg">Loading Budget Setup...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View className="flex-1 justify-center items-center">
-        <Text className="text-red-500 text-lg">Error: {error}</Text>
-        {/* You might want a retry button here */}
-      </View>
-    );
-  }
-
   return (
-    <ScrollView className="flex-1 p-4">
-      <Text className="text-2xl font-bold mb-4">Set Up Your Budget</Text>
-      <Text className="text-md mb-4">Enter your budget for each category.</Text>
+    <GradientBackground className="flex-1 items-center justify-center p-4">
+      <SafeAreaView className="w-full max-w-md">
+        <Text className="text-2xl font-bold text-white mb-6 text-center">
+          {isExistingBudget ? "Update Your Budget" : "Set Up Your Budget"}
+        </Text>
 
-      {categories.map((category) => (
-        <View key={category.$id} className="mb-6">
-          <Text className="text-lg font-semibold mb-2">{category.name}</Text>
-          <FormField
-            type="number"
-            value={budgets[category.$id] || ""}
-            handleChangeText={(text) =>
-              handleAmountChange(category.$id, parseFloat(text))
-            }
-            placeholder="Amount"
-            otherStyles="w-full"
-          />
-        </View>
-      ))}
+        <FormField
+          placeholder="Enter your budget amount"
+          value={budgetAmount}
+          onChangeText={setBudgetAmount}
+          keyboardType="numeric"
+          className="mb-4"
+        />
 
-      <CustomButton
-        title="Save Budgets"
-        handlePress={handleSaveBudgets}
-        isLoading={loading}
-        containerStyle="w-full"
-      />
-    </ScrollView>
+        <CustomButton
+          onPress={handleSaveBudget}
+          title={loading ? "Saving..." : "Save Budget"}
+          disabled={loading}
+          className="mt-4"
+        />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          className="mt-4 text-center"
+          disabled={loading}
+        >
+          <Text className="text-white underline">Cancel</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    </GradientBackground>
   );
 };
 
-export default SetupBudget;
+export default SetupBudgetScreen;

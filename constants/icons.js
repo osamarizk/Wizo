@@ -23,6 +23,8 @@ import bill from "../assets/icons/bill.png";
 import car from "../assets/icons/car.png";
 import food from "../assets/icons/food.png";
 import shopping from "../assets/icons/shopping.png";
+import budget from "../assets/icons/budget.png";
+// budget.png
 // import receipt from "../assets/icons/receipt";
 export default {
   play,
@@ -49,5 +51,6 @@ export default {
   bill,
   car,
   food,
-  shopping
+  shopping,
+  budget,
 };
