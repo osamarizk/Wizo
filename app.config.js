@@ -31,7 +31,15 @@ export default {
     web: {
       favicon: "./assets/favicon.png",
     },
-    plugins: ["expo-router"],
+    plugins: [
+      "expo-router",
+      [
+        "expo-calendar",
+        {
+          calendarPermission: "The app needs to access your calendar.",
+        },
+      ],
+    ],
     extra: {
       GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     },

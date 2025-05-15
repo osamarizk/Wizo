@@ -156,7 +156,7 @@ const Home = () => {
 
   // New handleSetupBudget function
   const handleSetupBudget = () => {
-    navigation.navigate("SetupBudget"); // Navigate to SetupBudgetScreen
+    router.push("/budget"); // Navigate to SetupBudgetScreen
     setShowBudgetPrompt(false);
   };
 

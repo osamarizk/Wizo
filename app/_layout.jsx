@@ -28,18 +28,19 @@ const RootLayout = () => {
     //     behavior={Platform.OS === "ios" ? "padding" : "height"} // Moves content up when keyboard appears
     //     style={{ flex: 1 }}
     //   >
-        <GlobalProvider>
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="notification"
-              options={{ presentation: "modal", headerShown: false }}
-            />
-          </Stack>
-        </GlobalProvider>
-      // </KeyboardAvoidingView>
+    <GlobalProvider>
+      <Stack>
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="notification"
+          options={{ presentation: "modal", headerShown: false }}
+        />
+        <Stack.Screen name="budget" options={{ headerShown: false }} />
+      </Stack>
+    </GlobalProvider>
+    // </KeyboardAvoidingView>
     // </TouchableWithoutFeedback>
   );
 };

@@ -16,6 +16,7 @@ const GlobalProvider = ({ children }) => {
   const [globalLoading, setGlobalLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [hasBudget, setHasBudget] = useState(false); // Add hasBudget state
 
   useEffect(() => {
     getCurrentUser()
@@ -52,6 +53,7 @@ const GlobalProvider = ({ children }) => {
     setGlobalLoading(true);
     try {
       const isInitialized = await chkBudgetInitialization(userId);
+      setHasBudget(isInitialized);
       return isInitialized;
     } catch (error) {
       console.error("Error checking budget initialization", error);
@@ -80,6 +82,8 @@ const GlobalProvider = ({ children }) => {
         setShowUploadModal,
         checkBudgetInitialization, // Use the function in the value
         globalLoading,
+        hasBudget, // Include hasBudget in the context value
+        setHasBudget, // Include setHasBudget in the context value
       }}
     >
       {children}
