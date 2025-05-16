@@ -20,14 +20,16 @@ import {
   getCategories,
   getAllCategories,
   getSubcategoriesByCategory,
+  createNotification,
+  countUnreadNotifications,
 } from "../lib/appwrite";
 import { Dropdown } from "react-native-element-dropdown";
 import { Calendar } from "react-native-calendars";
 import { format } from "date-fns";
 import { router } from "expo-router";
 
-const Budget = ({ navigation }) => {
-  const { user, setHasBudget } = useGlobalContext();
+const BudgetSetup = () => {
+  const { user, setHasBudget, updateUnreadCount } = useGlobalContext();
   const [budgetAmount, setBudgetAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [isExistingBudget, setIsExistingBudget] = useState(false);
@@ -129,10 +131,11 @@ const Budget = ({ navigation }) => {
 
     setLoading(true);
     try {
+      let budgetId;
       const budgets = await getUserBudgets(user.$id);
       if (budgets && budgets.length > 0) {
         // Update existing budget
-        const budgetId = budgets[0].$id;
+        budgetId = budgets[0].$id;
         await updateBudget(
           budgetId,
           amount,
@@ -144,7 +147,7 @@ const Budget = ({ navigation }) => {
         Alert.alert("Success", "Budget updated successfully.");
       } else {
         // Create new budget
-        await createBudget(
+        const newBudget = await createBudget(
           user.$id,
           selectedCategory,
           amount,
@@ -152,9 +155,26 @@ const Budget = ({ navigation }) => {
           endDate.toISOString(),
           selectedSubcategory
         );
+        budgetId = newBudget.$id; // Get the ID from the returned budget object
         Alert.alert("Success", "Budget created successfully.");
       }
       setHasBudget(true);
+
+      // Create notification
+      await createNotification({
+        // Changed from createNotificationBudget to createNotification
+        user_id: user.$id,
+        title: isExistingBudget ? "Budget Updated" : "Budget Created", //set title
+        message: isExistingBudget
+          ? "Your budget has been updated successfully."
+          : "Your budget has been created successfully.",
+        budget_id: budgetId, // Use budgetId here
+      });
+
+      // Update the unread notification count
+      const updatedUnreadCount = await countUnreadNotifications(user.$id);
+      updateUnreadCount(updatedUnreadCount);
+
       router.push("/home");
     } catch (error) {
       console.error("Error saving budget:", error);
@@ -393,4 +413,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Budget;
+export default BudgetSetup;

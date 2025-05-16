@@ -20,6 +20,7 @@ import {
   subcategoriesData,
   createCategories,
   createSubcategories,
+  getUserBudgets,
 } from "../../lib/appwrite";
 import { router, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -59,8 +60,8 @@ const Home = () => {
   });
   const [categorySpendingData, setCategorySpendingData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const navigation = useNavigation();
   const [showBudgetPrompt, setShowBudgetPrompt] = useState(false); // State for budget prompt
+  const [userBudget, setUserBudget] = useState(null);
 
   const greeting =
     hours < 12
@@ -74,16 +75,17 @@ const Home = () => {
     await fetchData();
     setRefreshing(false);
   };
-
   const fetchData = useCallback(async () => {
     if (user?.$id) {
       setIsLoading(true);
       try {
-        const [count, stats, allReceipts] = await Promise.all([
-          countUnreadNotifications(user.$id),
-          getReceiptStats(user.$id),
-          fetchUserReceipts(user.$id),
-        ]);
+        const [count, stats, allReceipts, isBudgetInitialized] =
+          await Promise.all([
+            countUnreadNotifications(user.$id),
+            getReceiptStats(user.$id),
+            fetchUserReceipts(user.$id),
+            checkBudgetInitialization(user.$id), // Fetch budget status
+          ]);
         setUnreadCount(count);
         setReceiptStats(stats);
 
@@ -121,11 +123,15 @@ const Home = () => {
         );
         setCategorySpendingData(chartData);
 
-        const latest = await fetchUserReceipts(user.$id, 5);
+        const latest = await fetchUserReceipts(user.$id, 3);
         setLatestReceipts(latest);
 
-        const isBudgetInitialized = await checkBudgetInitialization(user.$id);
-        setShowBudgetPrompt(!isBudgetInitialized); //set budget prompt here
+        // const isBudgetInitialized = await checkBudgetInitialization(user.$id);
+        const hasReceipts = allReceipts.length > 0; // Check if there are any receipts
+        setShowBudgetPrompt(!isBudgetInitialized && hasReceipts); // set budget prompt here
+
+        fetchBudget();
+        console.log(showBudgetPrompt);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -155,11 +161,30 @@ const Home = () => {
   };
 
   // New handleSetupBudget function
-  const handleSetupBudget = () => {
-    router.push("/budget"); // Navigate to SetupBudgetScreen
+  const SetupBudget = () => {
+    router.push("/budgetSetup"); // Navigate to SetupBudgetScreen
     setShowBudgetPrompt(false);
   };
 
+  const ViewBudget = () => {
+    router.push("/BudgetDetials"); // Navigate to the new screen
+  };
+
+  const fetchBudget = useCallback(async () => {
+    if (user) {
+      try {
+        const budgets = await getUserBudgets(user.$id);
+        if (budgets && budgets.length > 0) {
+          setUserBudget(budgets[0]); // Get the first budget
+        } else {
+          setUserBudget(null); // No budget found
+        }
+      } catch (error) {
+        console.error("Error fetching budget:", error);
+        setUserBudget(null);
+      }
+    }
+  }, [user]);
   useEffect(() => {
     if (user?.$id && !globalLoading) {
       fetchData();
@@ -197,25 +222,6 @@ const Home = () => {
           }}
           ListHeaderComponent={
             <>
-              {/* Budget Setup Prompt */}
-              {showBudgetPrompt && (
-                <View className="flex items-center justify-center">
-                  <TouchableOpacity
-                    onPress={handleSetupBudget}
-                    className=" flex px-8 py-8 items-center justify-center w-36 h-36 border-x-4 border-[#9F54B6] rounded-full"
-                  >
-                    <Image
-                      source={icons.budget}
-                      className="w-14 h-14 "
-                      resizeMode="contain"
-                    />
-                    <Text className="text-black text-center font-pbold text-base mt-2">
-                      Set Up Your Budget
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
               {/* Header */}
               <View className="flex-row justify-between items-center mb-5 mt-3">
                 <View>
@@ -247,6 +253,40 @@ const Home = () => {
                     </View>
                   )}
                 </TouchableOpacity>
+              </View>
+
+              {/* Budget Display/Prompt */}
+              <View className="flex items-center justify-center mb-5">
+                {userBudget ? (
+                  <TouchableOpacity
+                    onPress={ViewBudget} // Navigate to BudgetDetailsScreen (-[#9F54B6] )
+                    className="bg-[#9F54B6]  backdrop-brightness-100 p-4 rounded-xl shadow-xl shadow-[#9F54B6] w-full max-w-md"
+                  >
+                    <Text className="text-white text-center font-pbold text-xl">
+                      Your Budget: ${userBudget.budgetAmount.toFixed(2)}
+                    </Text>
+                    <Text className="text-gray-200 text-center text-sm">
+                      View Details
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  showBudgetPrompt && (
+                    <TouchableOpacity
+                      onPress={SetupBudget}
+                      className=" flex px-4 py-2 items-center justify-center w-28 h-28 border-x-4 border-[#9F54B6] rounded-full"
+                    >
+                      <Image
+                        source={icons.pie}
+                        className="w-12 h-12 "
+                        resizeMode="contain"
+                        tintColor="#D24726"
+                      />
+                      <Text className="text-black text-center font-psemibold text-base mt-2">
+                        Set Up Budget
+                      </Text>
+                    </TouchableOpacity>
+                  )
+                )}
               </View>
 
               {/* Receipt Summary */}

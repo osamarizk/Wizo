@@ -13,7 +13,7 @@ const TabIcons = ({ icon, color, name, focused }) => {
       <View
         className={`${
           isUpload ? (focused ? "bg-[#D24726]" : "bg-[#F3F3F3]") : ""
-        } ${isUpload ? "p-7 rounded-full shadow-md" : ""}`}
+        } ${isUpload ? "p-6 rounded-full shadow-md" : ""}`}
         style={{
           shadowColor: focused ? "#D24726" : "##CDCDE0", // Adjust the shadow color here
           shadowOffset: { width: 0, height: 4 }, // You can adjust the shadow offset

@@ -37,7 +37,7 @@ const RootLayout = () => {
           name="notification"
           options={{ presentation: "modal", headerShown: false }}
         />
-        <Stack.Screen name="budget" options={{ headerShown: false }} />
+        {/* <Stack.Screen name="budget" options={{ headerShown: false }} /> */}
       </Stack>
     </GlobalProvider>
     // </KeyboardAvoidingView>

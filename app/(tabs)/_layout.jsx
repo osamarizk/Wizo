@@ -110,7 +110,28 @@ const TabsLayout = () => {
           }}
         />
 
-        {/* BookMark Tab */}
+        {/* Budget Tab */}
+        {/* <Tabs.Screen
+          name="budget"
+          options={{
+            title: "Budget",
+            headerShown: false,
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcons
+                icon={icons.pie}
+                color={color}
+                name="Budget"
+                focused={activeTab === "budget"}
+              />
+            ),
+          }}
+          listeners={{
+            tabPress: () => {
+              setActiveTab("budget");
+            },
+          }}
+        /> */}
+        {/* Wallet Tab */}
         <Tabs.Screen
           name="wallet"
           options={{
