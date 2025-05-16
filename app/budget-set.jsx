@@ -59,6 +59,7 @@ const BudgetSetup = () => {
             setBudgetAmount(String(budget.budgetAmount));
             setSelectedCategory(budget.categoryId);
             setSelectedSubcategory(budget.subcategoryId || null);
+            console.log("budget.subcategoryId",budget.subcategoryId,selectedSubcategory)
             setStartDate(
               budget.startDate ? new Date(budget.startDate) : undefined
             );

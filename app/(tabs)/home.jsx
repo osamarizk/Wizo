@@ -162,12 +162,12 @@ const Home = () => {
 
   // New handleSetupBudget function
   const SetupBudget = () => {
-    router.push("/budgetSetup"); // Navigate to SetupBudgetScreen
+    router.push("/budget-set"); // Navigate to SetupBudgetScreen
     setShowBudgetPrompt(false);
   };
 
   const ViewBudget = () => {
-    router.push("/BudgetDetials"); // Navigate to the new screen
+    router.push("/budget-dtl"); // Navigate to the new screen
   };
 
   const fetchBudget = useCallback(async () => {
