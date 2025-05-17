@@ -162,12 +162,18 @@ const Home = () => {
 
   // New handleSetupBudget function
   const SetupBudget = () => {
-    router.push("/budget-set"); // Navigate to SetupBudgetScreen
+    router.push({
+      pathname: "/budget-set",
+      params: { newBudgetCateogy: true },
+    });
     setShowBudgetPrompt(false);
   };
 
-  const ViewBudget = () => {
-    router.push("/budget-dtl"); // Navigate to the new screen
+  const ViewBudget = (budgetId) => {
+    router.push({
+      pathname: "/budget-dtl",
+      params: { budgetId: budgetId },
+    }); // Navigate to the new screen
   };
 
   const fetchBudget = useCallback(async () => {
@@ -175,7 +181,7 @@ const Home = () => {
       try {
         const budgets = await getUserBudgets(user.$id);
         if (budgets && budgets.length > 0) {
-          setUserBudget(budgets[0]); // Get the first budget
+          setUserBudget(budgets); // Get the first budget
         } else {
           setUserBudget(null); // No budget found
         }
@@ -257,18 +263,36 @@ const Home = () => {
 
               {/* Budget Display/Prompt */}
               <View className="flex items-center justify-center mb-5">
-                {userBudget ? (
-                  <TouchableOpacity
-                    onPress={ViewBudget} // Navigate to BudgetDetailsScreen (-[#9F54B6] )
-                    className="bg-[#9F54B6]  backdrop-brightness-100 p-4 rounded-xl shadow-xl shadow-[#9F54B6] w-full max-w-md"
-                  >
-                    <Text className="text-white text-center font-pbold text-xl">
-                      Your Budget: ${userBudget.budgetAmount.toFixed(2)}
+                {userBudget && userBudget.length > 0 ? (
+                  <View className="w-full max-w-md">
+                    <Text className="text-white text-center font-pbold text-lg mb-4">
+                      Your Budgets
                     </Text>
-                    <Text className="text-gray-200 text-center text-sm">
-                      View Details
-                    </Text>
-                  </TouchableOpacity>
+                    {userBudget.map((budget) => (
+                      <TouchableOpacity
+                        key={budget.$id}
+                        onPress={() => ViewBudget(budget.$id)}
+                        className="bg-[#9F54B6] backdrop-brightness-100 p-4 rounded-xl shadow-xl shadow-[#9F54B6] mb-2"
+                      >
+                        <Text className="text-white text-center font-pbold text-xl">
+                          {/* Display category or identifier */}
+                          Budget for {budget.categoryid}: EGP {}
+                          {budget.budgetAmount.toFixed(2)}
+                        </Text>
+                        <Text className="text-gray-200 text-center text-sm">
+                          View Details
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      onPress={SetupBudget}
+                      className="mt-4 bg-white/20 backdrop-blur-md p-4 rounded-xl shadow-md w-full"
+                    >
+                      <Text className="text-white text-center font-pbold text-lg">
+                        Add New Budget
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 ) : (
                   showBudgetPrompt && (
                     <TouchableOpacity

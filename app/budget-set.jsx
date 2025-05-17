@@ -26,7 +26,7 @@ import {
 import { Dropdown } from "react-native-element-dropdown";
 import { Calendar } from "react-native-calendars";
 import { format } from "date-fns";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 const BudgetSetup = () => {
   const { user, setHasBudget, updateUnreadCount } = useGlobalContext();
@@ -41,6 +41,7 @@ const BudgetSetup = () => {
   const [endDate, setEndDate] = useState();
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const { newBudgetCateogy } = useLocalSearchParams();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,24 +54,31 @@ const BudgetSetup = () => {
           // console.log("Categories", categories, "User-ID", user.$id);
 
           // Fetch existing budget
-          const budgets = await getUserBudgets(user.$id);
-          if (budgets && budgets.length > 0) {
-            const budget = budgets[0];
-            setBudgetAmount(String(budget.budgetAmount));
-            setSelectedCategory(budget.categoryId);
-            setSelectedSubcategory(budget.subcategoryId || null);
-            console.log("budget.subcategoryId",budget.subcategoryId,selectedSubcategory)
-            setStartDate(
-              budget.startDate ? new Date(budget.startDate) : undefined
-            );
-            setEndDate(budget.endDate ? new Date(budget.endDate) : undefined);
-            setIsExistingBudget(true);
-
-            if (budget.categoryId) {
-              const fetchedSubcategories = await getSubcategoriesByCategory(
-                budget.categoryId
+          if (!newBudgetCateogy) {
+            const budgets = await getUserBudgets(user.$id);
+            console.log("newBudgetCateogy", !newBudgetCateogy);
+            if (budgets && budgets.length > 0) {
+              const budget = budgets[0];
+              setBudgetAmount(String(budget.budgetAmount));
+              setSelectedCategory(budget.categoryId);
+              setSelectedSubcategory(budget.subcategoryId || null);
+              console.log(
+                "budget.subcategoryId",
+                budget.subcategoryId,
+                selectedSubcategory
               );
-              setSubcategories(fetchedSubcategories);
+              setStartDate(
+                budget.startDate ? new Date(budget.startDate) : undefined
+              );
+              setEndDate(budget.endDate ? new Date(budget.endDate) : undefined);
+              setIsExistingBudget(true);
+
+              if (budget.categoryId) {
+                const fetchedSubcategories = await getSubcategoriesByCategory(
+                  budget.categoryId
+                );
+                setSubcategories(fetchedSubcategories);
+              }
             }
           }
         } catch (error) {
@@ -94,7 +102,20 @@ const BudgetSetup = () => {
             selectedCategory
           );
           setSubcategories(fetchedSubcategories);
-          setSelectedSubcategory(null);
+        } catch (error) {
+          console.error("Error fetching subcategories:", error);
+          Alert.alert("Error", "Failed to load subcategories.");
+        } finally {
+          setLoading(false);
+        }
+      } else if (isExistingBudget && selectedCategory) {
+        // Fetch subcategories using the initial selectedCategory from the existing budget
+        setLoading(true);
+        try {
+          const fetchedSubcategories = await getSubcategoriesByCategory(
+            selectedCategory
+          );
+          setSubcategories(fetchedSubcategories);
         } catch (error) {
           console.error("Error fetching subcategories:", error);
           Alert.alert("Error", "Failed to load subcategories.");
@@ -107,7 +128,7 @@ const BudgetSetup = () => {
       }
     };
     fetchSubcategories();
-  }, [selectedCategory]);
+  }, [selectedCategory, isExistingBudget]);
   const handleSaveBudget = async () => {
     console.log("handleSaveBudget called"); // Add this
 
@@ -133,8 +154,9 @@ const BudgetSetup = () => {
     setLoading(true);
     try {
       let budgetId;
+      console.log("newBudgetCateogy");
       const budgets = await getUserBudgets(user.$id);
-      if (budgets && budgets.length > 0) {
+      if (budgets && budgets.length > 0 && !newBudgetCateogy) {
         // Update existing budget
         budgetId = budgets[0].$id;
         await updateBudget(
