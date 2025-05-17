@@ -21,12 +21,14 @@ import {
   createCategories,
   createSubcategories,
   getUserBudgets,
+  getAllCategories,
 } from "../../lib/appwrite";
 import { router, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import UploadModal from "../../components/UploadModal";
 import { PieChart } from "react-native-chart-kit";
 import { FlashList } from "@shopify/flash-list"; // Import FlashList
+import Collapsible from "react-native-collapsible"; // Import the collapsible component
 
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
@@ -62,6 +64,8 @@ const Home = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showBudgetPrompt, setShowBudgetPrompt] = useState(false); // State for budget prompt
   const [userBudget, setUserBudget] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [isExpanded, setIsExpanded] = useState(false); // State to manage expansion
 
   const greeting =
     hours < 12
@@ -131,7 +135,8 @@ const Home = () => {
         setShowBudgetPrompt(!isBudgetInitialized && hasReceipts); // set budget prompt here
 
         fetchBudget();
-        console.log(showBudgetPrompt);
+        fetchCategories();
+        // console.log(showBudgetPrompt);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -140,6 +145,20 @@ const Home = () => {
     }
   }, [user]);
 
+  const fetchCategories = async () => {
+    try {
+      const fetchedCategories = await getAllCategories();
+      // console.log("fetchedCategories",fetchedCategories)
+      setCategories(fetchedCategories);
+    } catch (error) {
+      console.error("Failed to fetch categories", error);
+    }
+  };
+
+  const getCategoryName = (categoryId) => {
+    const category = categories.find((cat) => cat.$id === categoryId);
+    return category ? category.name : "Unknown Category";
+  };
   // Upload Initial Data one Time:
 
   const uploadInitialData = async () => {
@@ -182,6 +201,7 @@ const Home = () => {
         const budgets = await getUserBudgets(user.$id);
         if (budgets && budgets.length > 0) {
           setUserBudget(budgets); // Get the first budget
+          // console.log("budget", budgets);
         } else {
           setUserBudget(null); // No budget found
         }
@@ -213,6 +233,10 @@ const Home = () => {
       </GradientBackground>
     );
   }
+
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+  };
 
   return (
     <GradientBackground>
@@ -261,34 +285,90 @@ const Home = () => {
                 </TouchableOpacity>
               </View>
 
+              {/* Receipt Summary */}
+              <View className=" p-4  mb-4 border-2 rounded-md border-[#9F54B6]">
+                <Text className="text-center text-gray-600 mb-2 text-base font-pregular">
+                  Total Receipts
+                </Text>
+                <Text className="text-center text-2xl font-bold text-gray-800 ">
+                  Receipts : {receiptStats.totalCount}
+                </Text>
+                <Text className="text-center text-md font-pregular text-gray-600">
+                  <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
+                    {"("}
+                    {receiptStats.thisMonthCount}
+                    {") "}
+                  </Text>
+                  R this month | Monthly Spending EGP:
+                  <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
+                    {receiptStats.monthlySpending.toFixed(2)}
+                  </Text>
+                </Text>
+                <Text className="text-center text-base font-pregular text-black mt-1">
+                  Last Receipt:
+                  <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
+                    {" "}
+                    {receiptStats.latestDate}
+                  </Text>
+                </Text>
+              </View>
+
               {/* Budget Display/Prompt */}
-              <View className="flex items-center justify-center mb-5">
+              <View className="p-4  mb-4   backdrop-blur-sm shadow-md shadow-[#878fe7]  rounded-xl  border-2 border-[#9F54B6] ">
                 {userBudget && userBudget.length > 0 ? (
-                  <View className="w-full max-w-md">
-                    <Text className="text-white text-center font-pbold text-lg mb-4">
-                      Your Budgets
-                    </Text>
-                    {userBudget.map((budget) => (
-                      <TouchableOpacity
-                        key={budget.$id}
-                        onPress={() => ViewBudget(budget.$id)}
-                        className="bg-[#9F54B6] backdrop-brightness-100 p-4 rounded-xl shadow-xl shadow-[#9F54B6] mb-2"
-                      >
-                        <Text className="text-white text-center font-pbold text-xl">
-                          {/* Display category or identifier */}
-                          Budget for {budget.categoryid}: EGP {}
-                          {budget.budgetAmount.toFixed(2)}
-                        </Text>
-                        <Text className="text-gray-200 text-center text-sm">
-                          View Details
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                  <View className="w-full max-w-md justify-center items-center">
+                    <TouchableOpacity
+                      onPress={toggleExpanded} // Toggle expansion on press
+                      className="w-full flex flex-row items-center justify-between"
+                    >
+                      <Text className="text-center text-xl font-pbold text-gray-800  mb-4">
+                        Expand to Check Your Budgets
+                      </Text>
+                      {isExpanded ? (
+                        <>
+                          <Image
+                            source={icons.up}
+                            className="w-7 h-7"
+                            tintColor="#9F54B6"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <Image
+                            source={icons.down}
+                            className="w-7 h-7"
+                            tintColor="#9F54B6"
+                          />
+                        </>
+                      )}
+                    </TouchableOpacity>
+                    <Collapsible collapsed={!isExpanded}>
+                      {isExpanded && (
+                        <View>
+                          {userBudget.map((budget) => (
+                            <TouchableOpacity
+                              key={budget.$id}
+                              onPress={() => ViewBudget(budget.$id)}
+                              className="p-4  mb-4 border-2 rounded-md border-[#9F54B6]"
+                            >
+                              <Text className="text-gray-700 text-center font-pregular text-base">
+                                {/* Display category or identifier */}
+                                Budget for {getCategoryName(budget.categoryId)}:
+                                EGP {budget.budgetAmount.toFixed(2)}
+                              </Text>
+                              <Text className="text-blue-800 text-center text-sm">
+                                View Details
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </Collapsible>
                     <TouchableOpacity
                       onPress={SetupBudget}
-                      className="mt-4 bg-white/20 backdrop-blur-md p-4 rounded-xl shadow-md w-full"
+                      className=" flex px-4 py-2 items-center justify-center w-28 h-28 border-x-4 border-[#9F54B6] rounded-full mt-2"
                     >
-                      <Text className="text-white text-center font-pbold text-lg">
+                      <Text className="text-blue-700 text-center font-semibold text-base">
                         Add New Budget
                       </Text>
                     </TouchableOpacity>
@@ -311,34 +391,6 @@ const Home = () => {
                     </TouchableOpacity>
                   )
                 )}
-              </View>
-
-              {/* Receipt Summary */}
-              <View className=" p-4  mb-4 border-2 rounded-md border-[#9F54B6]">
-                <Text className="text-center text-gray-600 mb-2 text-base font-pregular">
-                  Total Receipts
-                </Text>
-                <Text className="text-center text-2xl font-bold text-gray-800 font-pbold">
-                  Receipts : {receiptStats.totalCount}
-                </Text>
-                <Text className="text-center text-md font-pregular text-gray-600">
-                  <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
-                    {"("}
-                    {receiptStats.thisMonthCount}
-                    {") "}
-                  </Text>
-                  R this month | Monthly Spending EGP:
-                  <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
-                    {receiptStats.monthlySpending.toFixed(2)}
-                  </Text>
-                </Text>
-                <Text className="text-center text-base font-pregular text-black mt-1">
-                  Last Receipt:
-                  <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
-                    {" "}
-                    {receiptStats.latestDate}
-                  </Text>
-                </Text>
               </View>
 
               {/* Latest Receipts Section */}

@@ -25,6 +25,8 @@ import food from "../assets/icons/food.png";
 import shopping from "../assets/icons/shopping.png";
 import budget from "../assets/icons/budget.png";
 import pie from "../assets/icons/pie.png";
+import down from "../assets/icons/down.png";
+import up from "../assets/icons/up.png";
 // budget.png
 // import receipt from "../assets/icons/receipt";
 export default {
@@ -55,4 +57,6 @@ export default {
   shopping,
   budget,
   pie,
+  down,
+  up,
 };
