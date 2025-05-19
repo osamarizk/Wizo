@@ -20,6 +20,8 @@ import {
   isDuplicateReceipt,
   createNotification,
   countUnreadNotifications,
+  getCategoriesByName,
+  getSubcategoriesByName,
 } from "../lib/appwrite";
 import Checkbox from "expo-checkbox"; // Make sure expo-checkbox is installed
 import { useGlobalContext } from "../context/GlobalProvider";
@@ -124,6 +126,19 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
         isoDatetime = new Date().toISOString();
       }
 
+      // 2. Process items to include IDs
+      const itemsWithIds = await Promise.all(
+        extractedData.items.map(async (item) => {
+          const categoryId = await getCategoryByName(item.category);
+          const subcategoryId = await getSubcategoryByName(item.subcategory);
+          return {
+            ...item,
+            category_id: categoryId,
+            subcategory_id: subcategoryId,
+          };
+        })
+      );
+
       const receiptData = {
         user_id: user.$id,
         merchant: extractedData.merchant || "Unknown",
@@ -135,7 +150,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
         subtotal: parseFloat(extractedData.subtotal) || 0,
         vat: parseFloat(extractedData.vat) || 0,
         total: parseFloat(extractedData.total) || 0,
-        items: JSON.stringify(extractedData.items || []),
+        items: JSON.stringify(itemsWithIds || []),
         image_file_id: uploadedFile.$id,
         image_type: uploadedFile.mimeType,
         image_size: uploadedFile.sizeOriginal || 0,
@@ -169,6 +184,26 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
       Alert.alert("Error", "Could not save receipt.");
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const getCategoryByName = async (categoryName) => {
+    try {
+      const category = await getCategoriesByName(categoryName); // Changed to getCategoriesByName
+      return category?.[0]?.$id || null; // Access the first item if found
+    } catch (e) {
+      console.log("getCategoriesByName error", e);
+      return null;
+    }
+  };
+
+  const getSubcategoryByName = async (subcategoryName) => {
+    try {
+      const subcategory = await getSubcategoriesByName(subcategoryName); // Changed to getSubcategoriesByName
+      return subcategory?.[0]?.$id || null; // Access the first item if found
+    } catch (e) {
+      console.log("getSubcategoriesByName error", e);
+      return null;
     }
   };
 

@@ -247,7 +247,7 @@ const Home = () => {
           }
           contentContainerStyle={{
             paddingHorizontal: 25,
-            paddingTop: 3,
+            paddingTop: 25,
             paddingBottom: 40,
           }}
           ListHeaderComponent={
@@ -311,154 +311,6 @@ const Home = () => {
                     {receiptStats.latestDate}
                   </Text>
                 </Text>
-              </View>
-
-              {/* Budget Display/Prompt */}
-              <View className="p-4  mb-4   backdrop-blur-sm shadow-md shadow-[#878fe7]  rounded-xl  border-2 border-[#9F54B6] ">
-                {userBudget && userBudget.length > 0 ? (
-                  <View className="w-full max-w-md justify-center items-center">
-                    <TouchableOpacity
-                      onPress={toggleExpanded} // Toggle expansion on press
-                      className="w-full flex flex-row items-center justify-between"
-                    >
-                      <Text className="text-center text-xl font-pbold text-gray-800  mb-4">
-                        Expand to Check Your Budgets
-                      </Text>
-                      {isExpanded ? (
-                        <>
-                          <Image
-                            source={icons.up}
-                            className="w-7 h-7"
-                            tintColor="#9F54B6"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <Image
-                            source={icons.down}
-                            className="w-7 h-7"
-                            tintColor="#9F54B6"
-                          />
-                        </>
-                      )}
-                    </TouchableOpacity>
-                    <Collapsible collapsed={!isExpanded}>
-                      {isExpanded && (
-                        <View>
-                          {userBudget.map((budget) => (
-                            <TouchableOpacity
-                              key={budget.$id}
-                              onPress={() => ViewBudget(budget.$id)}
-                              className="p-4  mb-4 border-2 rounded-md border-[#9F54B6]"
-                            >
-                              <Text className="text-gray-700 text-center font-pregular text-base">
-                                {/* Display category or identifier */}
-                                Budget for {getCategoryName(budget.categoryId)}:
-                                EGP {budget.budgetAmount.toFixed(2)}
-                              </Text>
-                              <Text className="text-blue-800 text-center text-sm">
-                                View Details
-                              </Text>
-                            </TouchableOpacity>
-                          ))}
-                        </View>
-                      )}
-                    </Collapsible>
-                    <TouchableOpacity
-                      onPress={SetupBudget}
-                      className=" flex px-4 py-2 items-center justify-center w-28 h-28 border-x-4 border-[#9F54B6] rounded-full mt-2"
-                    >
-                      <Text className="text-blue-700 text-center font-semibold text-base">
-                        Add New Budget
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  showBudgetPrompt && (
-                    <TouchableOpacity
-                      onPress={SetupBudget}
-                      className=" flex px-4 py-2 items-center justify-center w-28 h-28 border-x-4 border-[#9F54B6] rounded-full"
-                    >
-                      <Image
-                        source={icons.pie}
-                        className="w-12 h-12 "
-                        resizeMode="contain"
-                        tintColor="#D24726"
-                      />
-                      <Text className="text-black text-center font-psemibold text-base mt-2">
-                        Set Up Budget
-                      </Text>
-                    </TouchableOpacity>
-                  )
-                )}
-              </View>
-
-              {/* Latest Receipts Section */}
-              <View className="p-4 border-2 rounded-md border-[#9F54B6] mb-4">
-                <Text className="text-lg font-semibold text-gray-800 mb-2">
-                  Latest Receipts
-                </Text>
-                {latestReceipts.length > 0 ? (
-                  latestReceipts.map((item) => (
-                    <View
-                      key={item.$id}
-                      className="flex-row items-center justify-between py-2 border-b border-gray-200 last:border-none"
-                    >
-                      <View className="flex-row items-center flex-1">
-                        <View className="rounded-md p-2 mr-2">
-                          <Image
-                            source={icons.bill}
-                            resizeMode="contain"
-                            className="w-7 h-7"
-                          />
-                        </View>
-                        <View className="flex-1">
-                          <Text
-                            className="text-lg font-semibold text-gray-800 font-psemibold"
-                            numberOfLines={1}
-                            ellipsizeMode="tail"
-                          >
-                            {item.merchant || "Unknown Merchant"}
-                          </Text>
-                          {item.datetime && (
-                            <Text className="text-sm text-gray-600">
-                              {new Date(item.datetime).toLocaleDateString()} |
-                              {item.total
-                                ? ` EGP ${parseFloat(item.total).toFixed(2)}`
-                                : ""}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-                      <TouchableOpacity
-                        onPress={() =>
-                          console.log(`Options for receipt ${item.$id}`)
-                        }
-                      >
-                        <Image source={icons.dots} className="w-6 h-6" />
-                      </TouchableOpacity>
-                    </View>
-                  ))
-                ) : (
-                  <View className="py-4 items-center">
-                    <Text className="text-gray-500 italic mb-3">
-                      ✨ No receipts uploaded yet. Let's get started! ✨
-                    </Text>
-                    <TouchableOpacity
-                      className="bg-white rounded-full shadow-md items-center justify-center w-24 h-24 border-2 border-primary-500"
-                      onPress={() => setShowUploadModal(true)}
-                    >
-                      <Image
-                        source={icons.camera}
-                        className="w-8 h-8 tint-primary"
-                        resizeMode="contain"
-                      />
-                      <Text className="text-primary-500 text-sm mt-2 font-semibold">
-                        Upload
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </View>
 
               {/* Top Spending Insights */}
@@ -583,6 +435,154 @@ const Home = () => {
                   <Text className="text-gray-500 italic mt-4">
                     No spending data available.
                   </Text>
+                )}
+              </View>
+
+              {/* Latest Receipts Section */}
+              <View className="p-4 border-2 rounded-md border-[#9F54B6] mb-4">
+                <Text className="text-lg font-semibold text-gray-800 mb-2">
+                  Latest Receipts
+                </Text>
+                {latestReceipts.length > 0 ? (
+                  latestReceipts.map((item) => (
+                    <View
+                      key={item.$id}
+                      className="flex-row items-center justify-between py-2 border-b border-gray-200 last:border-none"
+                    >
+                      <View className="flex-row items-center flex-1">
+                        <View className="rounded-md p-2 mr-2">
+                          <Image
+                            source={icons.bill}
+                            resizeMode="contain"
+                            className="w-7 h-7"
+                          />
+                        </View>
+                        <View className="flex-1">
+                          <Text
+                            className="text-lg font-semibold text-gray-800 font-psemibold"
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
+                            {item.merchant || "Unknown Merchant"}
+                          </Text>
+                          {item.datetime && (
+                            <Text className="text-sm text-gray-600">
+                              {new Date(item.datetime).toLocaleDateString()} |
+                              {item.total
+                                ? ` EGP ${parseFloat(item.total).toFixed(2)}`
+                                : ""}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() =>
+                          console.log(`Options for receipt ${item.$id}`)
+                        }
+                      >
+                        <Image source={icons.dots} className="w-6 h-6" />
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                ) : (
+                  <View className="py-4 items-center">
+                    <Text className="text-gray-500 italic mb-3">
+                      ✨ No receipts uploaded yet. Let's get started! ✨
+                    </Text>
+                    <TouchableOpacity
+                      className="bg-white rounded-full shadow-md items-center justify-center w-24 h-24 border-2 border-primary-500"
+                      onPress={() => setShowUploadModal(true)}
+                    >
+                      <Image
+                        source={icons.camera}
+                        className="w-8 h-8 tint-primary"
+                        resizeMode="contain"
+                      />
+                      <Text className="text-primary-500 text-sm mt-2 font-semibold">
+                        Upload
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
+              {/* Budget Display/Prompt */}
+              <View className="p-4  mb-4   backdrop-blur-sm shadow-md shadow-[#878fe7]  rounded-xl  border-2 border-[#9F54B6] ">
+                {userBudget && userBudget.length > 0 ? (
+                  <View className="w-full max-w-md justify-center items-center">
+                    <TouchableOpacity
+                      onPress={toggleExpanded} // Toggle expansion on press
+                      className="w-full flex flex-row items-center justify-between"
+                    >
+                      <Text className="text-center text-xl font-pbold text-gray-800  mb-4">
+                        Expand to Check Your Budgets
+                      </Text>
+                      {isExpanded ? (
+                        <>
+                          <Image
+                            source={icons.up}
+                            className="w-7 h-7"
+                            tintColor="#9F54B6"
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <Image
+                            source={icons.down}
+                            className="w-7 h-7"
+                            tintColor="#9F54B6"
+                          />
+                        </>
+                      )}
+                    </TouchableOpacity>
+                    <Collapsible collapsed={!isExpanded}>
+                      {isExpanded && (
+                        <View>
+                          {userBudget.map((budget) => (
+                            <TouchableOpacity
+                              key={budget.$id}
+                              onPress={() => ViewBudget(budget.$id)}
+                              className="p-4  mb-4 border-2 rounded-md border-[#9F54B6]"
+                            >
+                              <Text className="text-gray-700 text-center font-pregular text-base">
+                                {/* Display category or identifier */}
+                                Budget for {getCategoryName(budget.categoryId)}:
+                                EGP {budget.budgetAmount.toFixed(2)}
+                              </Text>
+                              <Text className="text-blue-800 text-center text-sm">
+                                View Details
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      )}
+                    </Collapsible>
+                    <TouchableOpacity
+                      onPress={SetupBudget}
+                      className=" flex px-4 py-2 items-center justify-center w-28 h-28 border-x-4 border-[#9F54B6] rounded-full mt-2"
+                    >
+                      <Text className="text-blue-700 text-center font-semibold text-base">
+                        Add New Budget
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  showBudgetPrompt && (
+                    <TouchableOpacity
+                      onPress={SetupBudget}
+                      className=" flex px-4 py-2 items-center justify-center w-28 h-28 border-x-4 border-[#9F54B6] rounded-full"
+                    >
+                      <Image
+                        source={icons.pie}
+                        className="w-12 h-12 "
+                        resizeMode="contain"
+                        tintColor="#D24726"
+                      />
+                      <Text className="text-black text-center font-psemibold text-base mt-2">
+                        Set Up Budget
+                      </Text>
+                    </TouchableOpacity>
+                  )
                 )}
               </View>
             </>
