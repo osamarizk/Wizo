@@ -29,6 +29,11 @@ import UploadModal from "../../components/UploadModal";
 import { PieChart } from "react-native-chart-kit";
 import { FlashList } from "@shopify/flash-list"; // Import FlashList
 import Collapsible from "react-native-collapsible"; // Import the collapsible component
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+} from "react-native-reanimated"; // Added
 
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
@@ -40,6 +45,13 @@ const gradientColors = [
   "#9F54B6",
   "#D24726",
   "#6D83F2",
+  "#D24726",
+  "#2A9D8F",
+  "#4E17B3",
+  "#8AC926",
+  "#D03957",
+  "#F4A261",
+  "#2A9D8F",
 ];
 
 const Home = () => {
@@ -66,6 +78,9 @@ const Home = () => {
   const [userBudget, setUserBudget] = useState(null);
   const [categories, setCategories] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false); // State to manage expansion
+  const [selectedSlice, setSelectedSlice] = useState(null); // State to store the selected slice
+  const [chartData, setChartData] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null); // new state for selected category
 
   const greeting =
     hours < 12
@@ -73,6 +88,12 @@ const Home = () => {
       : hours < 18
       ? "Good Afternoon"
       : "Good Evening";
+
+  const [tooltipData, setTooltipData] = useState(null); // Added for tooltip
+  const tooltipX = useSharedValue(0);
+  const tooltipY = useSharedValue(0);
+  const tooltipOpacity = useSharedValue(0);
+  const selectedRadius = useSharedValue(90); // Added for animation
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -112,19 +133,40 @@ const Home = () => {
           }
         });
 
+        // const chartData = Object.keys(spendingByCategory).map(
+        //   (category, index) => ({
+        //     name: category,
+        //     population: spendingByCategory[category],
+        //     color: gradientColors[index % gradientColors.length],
+        //     legendFontColor: "#7F7F7F",
+        //     legendFontSize: 12,
+        //     percent:
+        //       totalItemsPrice > 0
+        //         ? (spendingByCategory[category] / totalItemsPrice) * 100
+        //         : 0,
+        //   })
+        // );
+        // setCategorySpendingData(chartData);
         const chartData = Object.keys(spendingByCategory).map(
-          (category, index) => ({
-            name: category,
-            population: spendingByCategory[category],
-            color: gradientColors[index % gradientColors.length],
-            legendFontColor: "#7F7F7F",
-            legendFontSize: 12,
-            percent:
-              totalItemsPrice > 0
-                ? (spendingByCategory[category] / totalItemsPrice) * 100
-                : 0,
-          })
+          (category, index) => {
+            // const categoryData = categories.find((c) => c.$id === category);  <-- REMOVE THIS LINE
+            return {
+              name: category, // Use the category name directly
+              population: spendingByCategory[category],
+              color: gradientColors[index % gradientColors.length], //  Get color
+              legendFontColor: "#7F7F7F",
+              legendFontSize: 12,
+              percent:
+                totalItemsPrice > 0
+                  ? (spendingByCategory[category] / totalItemsPrice) * 100
+                  : 0,
+              id: category,
+            };
+          }
         );
+
+        // console.log(chartData);
+        setChartData(chartData);
         setCategorySpendingData(chartData);
 
         const latest = await fetchUserReceipts(user.$id, 3);
@@ -238,6 +280,57 @@ const Home = () => {
     setIsExpanded(!isExpanded);
   };
 
+  const handlePieChartPress = (slice) => {
+    setSelectedCategory(slice); // Store the selected category data
+    console.log("Clicked slice:", slice);
+  };
+
+  const renderPieChart = () => {
+    // console.log("categorySpendingData", categorySpendingData);
+    if (categorySpendingData.length === 0) {
+      return (
+        <Text className="text-gray-500 italic mt-4">
+          No spending data available.
+        </Text>
+      );
+    }
+    const data = categorySpendingData;
+
+    return (
+      <View className="flex-1 ml-16">
+        {/* <TouchableWithoutFeedback> */}
+
+        <PieChart
+          data={data}
+          width={180}
+          height={150}
+          chartConfig={{
+            color: (opacity = 1, index) =>
+              data[index]?.color || `rgba(26, 142, 255, ${opacity})`,
+
+            strokeWidth: 3,
+            useShadowColorFromDataset: false,
+            decimalPlaces: 1,
+          }}
+          accessor={"population"}
+          backgroundColor={"transparent"}
+          paddingLeft={0}
+          center={[0, 0]}
+          hasLegend={false}
+          innerRadius={90}
+          outerRadius={100}
+          stroke={"#E0E0E0"}
+          strokeWidth={2}
+          style={{ marginRight: 0 }}
+          // animatedRadius={animatedRadius} // Apply animated radius
+        />
+        {/* </TouchableOpacity> */}
+
+        {/* </TouchableWithoutFeedback> */}
+      </View>
+    );
+  };
+
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1 ">
@@ -287,30 +380,35 @@ const Home = () => {
 
               {/* Receipt Summary */}
               <View className=" p-4  mb-4 border-2 rounded-md border-[#9F54B6]">
-                <Text className="text-center text-gray-600 mb-2 text-base font-pregular">
-                  Total Receipts
-                </Text>
-                <Text className="text-center text-2xl font-bold text-gray-800 ">
-                  Receipts : {receiptStats.totalCount}
-                </Text>
-                <Text className="text-center text-md font-pregular text-gray-600">
-                  <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
-                    {"("}
-                    {receiptStats.thisMonthCount}
-                    {") "}
+                <TouchableOpacity
+                  onPress={() => router.push("/notification")}
+                  className="relative p-2 rounded-full mt-1"
+                >
+                  <Text className="text-center text-gray-600 mb-2 text-base font-pregular">
+                    Total Receipts
                   </Text>
-                  R this month | Monthly Spending EGP:
-                  <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
-                    {receiptStats.monthlySpending.toFixed(2)}
+                  <Text className="text-center text-2xl font-bold text-gray-800 ">
+                    Receipts : {receiptStats.totalCount}
                   </Text>
-                </Text>
-                <Text className="text-center text-base font-pregular text-black mt-1">
-                  Last Receipt:
-                  <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
-                    {" "}
-                    {receiptStats.latestDate}
+                  <Text className="text-center text-md font-pregular text-gray-600">
+                    <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
+                      {"("}
+                      {receiptStats.thisMonthCount}
+                      {") "}
+                    </Text>
+                    R this month | Monthly Spending EGP:
+                    <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
+                      {receiptStats.monthlySpending.toFixed(2)}
+                    </Text>
                   </Text>
-                </Text>
+                  <Text className="text-center text-base font-pregular text-black mt-1">
+                    Last Receipt:
+                    <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
+                      {" "}
+                      {receiptStats.latestDate}
+                    </Text>
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               {/* Top Spending Insights */}
@@ -362,7 +460,7 @@ const Home = () => {
                 </View>
               )}
 
-              {/* Spending Categories */}
+              {/* Spending Categories Charts */}
               <View className=" p-4  border-2 rounded-md border-[#9F54B6] mb-4">
                 <Text className="text-lg font-pregular text-gray-700 -mb-2">
                   Spending Categories |
@@ -373,61 +471,33 @@ const Home = () => {
                 </Text>
 
                 {categorySpendingData.length > 0 ? (
-                  <View className="flex-row items-center justify-center">
-                    <View className="w-[220px] h-[150px] justify-center items-center ">
-                      <PieChart
-                        data={categorySpendingData.map((data) => ({
-                          ...data,
-                          percent:
-                            typeof data.population === "number" &&
-                            typeof receiptStats.monthlySpending === "number" &&
-                            receiptStats.monthlySpending !== 0
-                              ? (data.population /
-                                  receiptStats.monthlySpending) *
-                                100
-                              : 0,
-                        }))}
-                        width={160}
-                        height={160}
-                        chartConfig={{
-                          color: (opacity = 1, index) =>
-                            categorySpendingData[index]?.color ||
-                            `rgba(26, 142, 255, ${opacity})`,
-                          strokeWidth: 2,
-                          useShadowColorFromDataset: false,
-                          decimalPlaces: 1,
-                        }}
-                        accessor={"population"}
-                        backgroundColor={"transparent"}
-                        paddingLeft={0}
-                        center={[0, 0]}
-                        hasLegend={false}
-                        innerRadius={70}
-                        outerRadius={90}
-                        stroke={"#E0E0E0"}
-                        strokeWidth={2}
-                        style={{ marginRight: 0 }}
-                      />
+                  <View className="flex-row items-center justify-center gap-2">
+                    <View className="w-[150px] h-[150px] justify-center items-center ">
+                      {renderPieChart()}
                     </View>
 
                     <View className="flex-1 flex-col">
+                      <Text className="font-psemibold mb-2 text-blue-600 text-base">
+                        👇 Click below 👇
+                      </Text>
                       {categorySpendingData.map((item) => (
-                        <View
-                          key={item.name}
-                          className="flex-row items-center mb-2"
+                        <TouchableOpacity
+                          key={item.id}
+                          onPress={() => handlePieChartPress(item)}
+                          className="flex-row items-center mb-2 "
                         >
                           <View
                             className="w-3 h-3 rounded-full mr-2"
                             style={{ backgroundColor: item.color || "gray" }}
                           />
-                          <Text className="text-md font-pregular text-gray-700">
+                          <Text className="text-md font-pregular text-gray-700 underline">
                             {item.name} (
                             {typeof item.percent === "number"
                               ? item.percent.toFixed(1)
                               : "0"}
                             %)
                           </Text>
-                        </View>
+                        </TouchableOpacity>
                       ))}
                     </View>
                   </View>
@@ -438,6 +508,53 @@ const Home = () => {
                 )}
               </View>
 
+              {/* Category Details Modal */}
+              {selectedCategory && (
+                <View
+                  style={{
+                    // simple modal implementation
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    height: "100%",
+                    backgroundColor: "transparent",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    zIndex: 10,
+                  }}
+                >
+                  <View
+                    style={{
+                      backgroundColor: "white",
+                      padding: 20,
+                      borderRadius: 8,
+                      width: "80%",
+                      maxHeight: "60%",
+                      overflowY: "auto",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 20,
+                        fontWeight: "bold",
+                        marginBottom: 10,
+                      }}
+                    >
+                      {selectedCategory.name} Details
+                    </Text>
+                    <Text>Total Spending: {selectedCategory.value}</Text>
+                    {/* You can add more details here, e.g., a breakdown of spending over time */}
+                    <TouchableOpacity
+                      onPress={() => setSelectedCategory(null)} // close the modal
+                      
+                      className="mt-5 py-2.5 px-5 bg-[#4E17B3] rounded-md"
+                    >
+                      <Text className="text-white text-center">Close</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
               {/* Latest Receipts Section */}
               <View className="p-4 border-2 rounded-md border-[#9F54B6] mb-4">
                 <Text className="text-lg font-semibold text-gray-800 mb-2">
