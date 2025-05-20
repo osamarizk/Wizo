@@ -26,7 +26,7 @@ import {
 import { router, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import UploadModal from "../../components/UploadModal";
-import { PieChart } from "react-native-chart-kit";
+import { PieChart, BarChart, LineChart } from "react-native-chart-kit";
 import { FlashList } from "@shopify/flash-list"; // Import FlashList
 import Collapsible from "react-native-collapsible"; // Import the collapsible component
 import Animated, {
@@ -78,9 +78,14 @@ const Home = () => {
   const [userBudget, setUserBudget] = useState(null);
   const [categories, setCategories] = useState([]);
   const [isExpanded, setIsExpanded] = useState(false); // State to manage expansion
-  const [selectedSlice, setSelectedSlice] = useState(null); // State to store the selected slice
-  const [chartData, setChartData] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null); // new state for selected category
+  const [chartData, setChartData] = useState([]);
+  const [allReceipts, setAllReceipts] = useState([]); // State to store all receipts
+  const [categoryMonthlySpending, setCategoryMonthlySpending] = useState({
+    // New state for monthly spending data
+    labels: [],
+    datasets: [{ data: [] }],
+  });
 
   const greeting =
     hours < 12
@@ -88,12 +93,6 @@ const Home = () => {
       : hours < 18
       ? "Good Afternoon"
       : "Good Evening";
-
-  const [tooltipData, setTooltipData] = useState(null); // Added for tooltip
-  const tooltipX = useSharedValue(0);
-  const tooltipY = useSharedValue(0);
-  const tooltipOpacity = useSharedValue(0);
-  const selectedRadius = useSharedValue(90); // Added for animation
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -113,6 +112,9 @@ const Home = () => {
           ]);
         setUnreadCount(count);
         setReceiptStats(stats);
+        setAllReceipts(allReceipts); // Set all receipts to state
+
+        // console.log("allReceipts", allReceipts);
 
         const spendingByCategory = {};
         let totalItemsPrice = 0;
@@ -147,6 +149,7 @@ const Home = () => {
         //   })
         // );
         // setCategorySpendingData(chartData);
+        console.log("spendingByCategory", spendingByCategory);
         const chartData = Object.keys(spendingByCategory).map(
           (category, index) => {
             // const categoryData = categories.find((c) => c.$id === category);  <-- REMOVE THIS LINE
@@ -280,11 +283,50 @@ const Home = () => {
     setIsExpanded(!isExpanded);
   };
 
-  const handlePieChartPress = (slice) => {
-    setSelectedCategory(slice); // Store the selected category data
-    console.log("Clicked slice:", slice);
-  };
+  const handlePieChartPress = (item) => {
+    setSelectedCategory(item); // Store the selected category data
 
+    // Process data for the bar chart
+    const monthlyData = {};
+    allReceipts.forEach((receipt) => {
+      try {
+        const items = JSON.parse(receipt.items);
+        const receiptDate = new Date(receipt.datetime);
+        const monthYear = `${receiptDate.getFullYear()}-${(
+          receiptDate.getMonth() + 1
+        )
+          .toString()
+          .padStart(2, "0")}`;
+
+        items.forEach((receiptItem) => {
+          if (receiptItem.category === item.name) {
+            // Match by category name
+            const price = parseFloat(receiptItem.price);
+            if (!isNaN(price)) {
+              monthlyData[monthYear] = (monthlyData[monthYear] || 0) + price;
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Error parsing items for monthly data:", error);
+      }
+    });
+
+    // Sort months and prepare data for BarChart
+    const sortedMonths = Object.keys(monthlyData).sort();
+    const labels = sortedMonths.map((month) => {
+      const [year, monthNum] = month.split("-");
+      return new Date(year, monthNum - 1).toLocaleString("default", {
+        month: "short",
+      });
+    });
+    const dataPoints = sortedMonths.map((month) => monthlyData[month]);
+
+    setCategoryMonthlySpending({
+      labels: labels,
+      datasets: [{ data: dataPoints }],
+    });
+  };
   const renderPieChart = () => {
     // console.log("categorySpendingData", categorySpendingData);
     if (categorySpendingData.length === 0) {
@@ -328,6 +370,49 @@ const Home = () => {
 
         {/* </TouchableWithoutFeedback> */}
       </View>
+    );
+  };
+
+  const renderCategoryLineChart = () => {
+    // Renamed from renderCategoryBarChart
+    if (categoryMonthlySpending.labels.length === 0) {
+      return (
+        <Text className="text-gray-500 italic mt-4">
+          No monthly spending data for this category.
+        </Text>
+      );
+    }
+
+    const chartConfig = {
+      backgroundColor: "#ffffff",
+      backgroundGradientFrom: "#ffffff",
+      backgroundGradientTo: "#ffffff",
+      decimalPlaces: 2, // optional, defaults to 2dp
+      color: (opacity = 1) => `rgba(78, 23, 179, ${opacity})`, // Example purple color
+      labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+      style: {
+        borderRadius: 16,
+      },
+      propsForDots: {
+        r: "6",
+        strokeWidth: "2",
+        stroke: "#ffa726",
+      },
+    };
+
+    return (
+      <LineChart // Changed to LineChart
+        data={categoryMonthlySpending}
+        width={screenWidth * 0.7} // Adjust width as needed for modal
+        height={200}
+        yAxisLabel="EGP "
+        chartConfig={chartConfig}
+        bezier // Makes the line smooth
+        style={{
+          marginVertical: 8,
+          borderRadius: 16,
+        }}
+      />
     );
   };
 
@@ -543,11 +628,17 @@ const Home = () => {
                     >
                       {selectedCategory.name} Details
                     </Text>
-                    <Text>Total Spending: {selectedCategory.value}</Text>
+                    <Text className="font-pregular text-base">
+                      Total Spending:{" "}
+                      {parseFloat(selectedCategory.population).toFixed(2)} EGP
+                    </Text>
                     {/* You can add more details here, e.g., a breakdown of spending over time */}
+                    <Text className="text-lg font-bold mb-2">
+                      Monthly Breakdown
+                    </Text>
+                    {renderCategoryLineChart()}
                     <TouchableOpacity
                       onPress={() => setSelectedCategory(null)} // close the modal
-                      
                       className="mt-5 py-2.5 px-5 bg-[#4E17B3] rounded-md"
                     >
                       <Text className="text-white text-center">Close</Text>
@@ -607,15 +698,16 @@ const Home = () => {
                       ✨ No receipts uploaded yet. Let's get started! ✨
                     </Text>
                     <TouchableOpacity
-                      className="bg-white rounded-full shadow-md items-center justify-center w-24 h-24 border-2 border-primary-500"
+                      className=" rounded-full   items-center justify-center w-24 h-24 border-2 bg-[#D24726] border-gray-100"
                       onPress={() => setShowUploadModal(true)}
                     >
                       <Image
                         source={icons.camera}
                         className="w-8 h-8 tint-primary"
                         resizeMode="contain"
+                        tintColor="#fff"
                       />
-                      <Text className="text-primary-500 text-sm mt-2 font-semibold">
+                      <Text className="text-white text-sm mt-2 font-semibold">
                         Upload
                       </Text>
                     </TouchableOpacity>

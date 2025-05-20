@@ -28,6 +28,7 @@ import { useGlobalContext } from "../context/GlobalProvider";
 import { router } from "expo-router";
 import * as FileSystem from "expo-file-system"; // for reading the image as blob
 import mime from "mime"; // helps get MIME type from file extension
+import GradientBackground from "./GradientBackground";
 
 const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
   const [showFullImage, setShowFullImage] = useState(false);
@@ -63,6 +64,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
 
       // Set the extracted data if it is a receipt
       setExtractedData(data.data); // access the inner `data` field
+
+      console.log("Receipt Data", data.data);
       Alert.alert("Success", "Receipt processed successfully!");
     } catch (error) {
       Alert.alert("Error", "Failed to extract receipt data.");
@@ -73,6 +76,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
   };
 
   const handleSave = async () => {
+    console.log("extractedData", extractedData);
     if (!consentGiven) {
       Alert.alert(
         "Consent Required",
@@ -114,17 +118,32 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
         fileName,
         mimeType
       );
+      // 1. Create a Date object from the ISO string
+      const receiptDate = new Date(extractedData.datetime);
 
-      // Prepare receipt data with storage reference
-      let isoDatetime;
-      if (extractedData.datetime) {
-        const parsedDate = new Date(extractedData.datetime);
-        isoDatetime = isNaN(parsedDate)
-          ? new Date().toISOString()
-          : parsedDate.toISOString();
-      } else {
-        isoDatetime = new Date().toISOString();
-      }
+      // 2. Define options for date formatting (customize as needed)
+      const dateOptions = {
+        year: "numeric",
+        month: "long", // 'numeric', '2-digit', 'short', 'long'
+        day: "numeric", // 'numeric', '2-digit'
+      };
+
+      // 3. Define options for time formatting (customize as needed)
+      const timeOptions = {
+        hour: "2-digit", // 'numeric', '2-digit'
+        minute: "2-digit", // 'numeric', '2-digit'
+        hour12: true, // true for AM/PM, false for 24-hour
+      };
+
+      // 4. Format the date and time
+      const formattedDate = receiptDate.toLocaleDateString(
+        undefined,
+        dateOptions
+      ); // `undefined` uses default locale
+      const formattedTime = receiptDate.toLocaleTimeString(
+        undefined,
+        timeOptions
+      );
 
       // 2. Process items to include IDs
       const itemsWithIds = await Promise.all(
@@ -145,7 +164,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
         location: extractedData.location
           ? `${extractedData.location.address}, ${extractedData.location.city}, ${extractedData.location.country}`
           : "Unknown",
-        datetime: isoDatetime,
+        datetime: extractedData.datetime || new Date().toISOString(),
         currency: "EGP",
         subtotal: parseFloat(extractedData.subtotal) || 0,
         vat: parseFloat(extractedData.vat) || 0,
@@ -208,7 +227,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
   };
 
   return (
-    <View className="bg-orange-50 rounded-3xl px-2 pt-2 pb-1   max-h-[90vh] ">
+    <View className="  px-2 pt-2 pb-1   max-h-[100vh] bg-[#cccccd] ">
       <ScrollView
         contentContainerStyle={{
           alignItems: "center",
@@ -294,120 +313,137 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
 
         {extractedData && (
           <>
-            <View className="w-full  mt-1 px-8 py-1 bg-slate-200  rounded-xl border-2 border-[#b94040]  mb-2">
-              <Text className="font-plight text-lg mb-4 text-red-900 text-center underline">
-                Receipt Details
-              </Text>
-
-              {extractedData.merchant && !showAllItems && (
-                <Text className="text-blue-900 font-psemibold mb-3 text-base">
-                  <Text className="text-black font-semibold text-base ">
-                    🏪 Merchant →
-                  </Text>{" "}
-                  {extractedData.merchant}
+          
+              <View className="w-full  mt-1 px-8 py-1   rounded-xl    mb-2">
+                <Text className="font-plight text-lg mb-4 text-red-900 text-center underline">
+                  Receipt Details
                 </Text>
-              )}
 
-              {extractedData.location && !showAllItems && (
-                <Text className="text-blue-900 font-psemibold mb-3 text-base">
-                  <Text className="text-black font-pbold text-base">
-                    📍 Location →
+                {extractedData.merchant && !showAllItems && (
+                  <Text className="text-blue-900 font-psemibold mb-3 text-base">
+                    <Text className="text-black font-semibold text-base ">
+                      🏪 Merchant →
+                    </Text>{" "}
+                    {extractedData.merchant}
                   </Text>
-                  <Text>
-                    {extractedData.location.address
-                      ? extractedData.location.address + ", "
-                      : ""}
-                    {extractedData.location.city
-                      ? extractedData.location.city + ", "
-                      : ""}
-                    {extractedData.location.country}
-                  </Text>
-                </Text>
-              )}
+                )}
 
-              {extractedData.datetime && !showAllItems && (
-                <Text className="text-blue-900 font-psemibold mb-3 text-base">
-                  <Text className="text-black font-pbold text-base">
-                    📅 Date →
-                  </Text>{" "}
-                  {extractedData.datetime}
-                </Text>
-              )}
-
-              {extractedData.items.length > 0 && !showAllItems && (
-                <View>
-                  <Text className="font-pbold text-base text-black mb-1 ">
-                    🗂️ Category:
-                  </Text>
-                  <Text className="text-base text-green-900 ml-4 mb-2 font-psemibold">
-                    {extractedData.items[0].category || "Unknown"} →{" "}
-                    {extractedData.items[0].subcategory || "Uncategorized"}
-                  </Text>
-                </View>
-              )}
-
-              {/* Items extracted as collapssed */}
-
-              {extractedData.items?.length > 0 && (
-                <View className="mb-3">
-                  {/* Always show the "Items" label */}
-                  <View className="flex-row items-center mb-1">
-                    <Text className="font-pbold text-base text-blue-700">
-                      🛒 Items:
+                {extractedData.location && !showAllItems && (
+                  <Text className="text-blue-900 font-psemibold mb-3 text-base">
+                    <Text className="text-black font-pbold text-base">
+                      📍 Location →
                     </Text>
+                    <Text>
+                      {extractedData.location.address
+                        ? extractedData.location.address + ", "
+                        : ""}
+                      {extractedData.location.city
+                        ? extractedData.location.city + ", "
+                        : ""}
+                      {extractedData.location.country}
+                    </Text>
+                  </Text>
+                )}
+
+                {extractedData.datetime && !showAllItems && (
+                  <Text className="text-blue-900 font-psemibold mb-3 text-base">
+                    <Text className="text-black font-pbold text-base">
+                      📅 Date →
+                    </Text>{" "}
+                    {new Date(extractedData.datetime).toLocaleDateString(
+                      undefined,
+                      {
+                        year: "numeric",
+                        month: "short", // 'short' for "May", 'long' for "May"
+                        day: "numeric",
+                      }
+                    )}{" "}
+                    {new Date(extractedData.datetime).toLocaleTimeString(
+                      undefined,
+                      {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true, // true for AM/PM, false for 24-hour
+                      }
+                    )}
+                  </Text>
+                )}
+
+                {extractedData.items.length > 0 && !showAllItems && (
+                  <View>
+                    <Text className="font-pbold text-base text-black mb-1 ">
+                      🗂️ Category:
+                    </Text>
+                    <Text className="text-base text-green-900 ml-4 mb-2 font-psemibold">
+                      {extractedData.items[0].category || "Unknown"} →{" "}
+                      {extractedData.items[0].subcategory || "Uncategorized"}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Items extracted as collapssed */}
+
+                {extractedData.items?.length > 0 && (
+                  <View className="mb-3">
+                    {/* Always show the "Items" label */}
+                    <View className="flex-row items-center mb-1">
+                      <Text className="font-pbold text-base text-blue-700">
+                        🛒 Items:
+                      </Text>
+                      {extractedData.items.length > 3 && (
+                        <TouchableOpacity onPress={toggleItems}>
+                          <Text className="font-pbold text-base text-blue-700 ml-1">
+                            {showAllItems ? "(▲ Show less)" : "(Show more ▼)"}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {(showAllItems || extractedData.items.length <= 2
+                      ? extractedData.items
+                      : extractedData.items.slice(0, 2)
+                    ).map((item, index) => (
+                      <View key={index} className="ml-4 mb-1 p-1   ">
+                        <Text className="text-blue-900 font-psemibold text-base">
+                          • {item.name || "Unnamed item"} →{" "}
+                          <Text className="font-bold text-red-900 text-base">
+                            {item.price || "N/A"}
+                          </Text>
+                        </Text>
+                      </View>
+                    ))}
+
+                    {/* Show toggle only if more than 3 items */}
                     {extractedData.items.length > 3 && (
                       <TouchableOpacity onPress={toggleItems}>
-                        <Text className="font-pbold text-base text-blue-700 ml-1">
-                          {showAllItems ? "(▲ Show less)" : "(Show more ▼)"}
+                        <Text className="text-blue-700 font-pbold ml-4 mt-1 text-base">
+                          {showAllItems
+                            ? "▲ Hide Items & Show Details"
+                            : "▼ Show All Items"}
                         </Text>
                       </TouchableOpacity>
                     )}
                   </View>
+                )}
 
-                  {(showAllItems || extractedData.items.length <= 2
-                    ? extractedData.items
-                    : extractedData.items.slice(0, 2)
-                  ).map((item, index) => (
-                    <View key={index} className="ml-4 mb-1 p-1   ">
-                      <Text className="text-blue-900 font-psemibold text-base">
-                        • {item.name || "Unnamed item"} →{" "}
-                        <Text className="font-bold text-red-900 text-base">
-                          {item.price || "N/A"}
-                        </Text>
-                      </Text>
-                    </View>
-                  ))}
-
-                  {/* Show toggle only if more than 3 items */}
-                  {extractedData.items.length > 3 && (
-                    <TouchableOpacity onPress={toggleItems}>
-                      <Text className="text-blue-700 font-pbold ml-4 mt-1 text-base">
-                        {showAllItems
-                          ? "▲ Hide Items & Show Details"
-                          : "▼ Show All Items"}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              )}
-
-              {extractedData.subtotal && !showAllItems && (
-                <Text className="text-red-900  text-base font-psemibold mb-1">
-                  <Text className="text-black font-pbold text-base">
-                    💵 Subtotal →
-                  </Text>{" "}
-                  {extractedData.subtotal}
-                </Text>
-              )}
-              {extractedData.vat && !showAllItems && (
-                <Text className="text-red-900  text-base font-psemibold mb-1">
-                  <Text className="text-black font-pbold text-base">
-                    🧾 VAT →
-                  </Text>{" "}
-                  {extractedData.vat}
-                </Text>
-              )}
-            </View>
+                {extractedData.subtotal && !showAllItems && (
+                  <Text className="text-red-900  text-base font-psemibold mb-1">
+                    <Text className="text-black font-pbold text-base">
+                      💵 Subtotal →
+                    </Text>{" "}
+                    {extractedData.subtotal}
+                  </Text>
+                )}
+                {extractedData.vat && !showAllItems && (
+                  <Text className="text-red-900  text-base font-psemibold mb-1">
+                    <Text className="text-black font-pbold text-base">
+                      🧾 VAT →
+                    </Text>{" "}
+                    {extractedData.vat}
+                  </Text>
+                )}
+              </View>
+         
             {extractedData.total && (
               <Text className="text-blue-900 font-psemibold mb-1 text-xl">
                 <Text className="text-black font-pbold text-xl">💰 Total:</Text>{" "}
