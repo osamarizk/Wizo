@@ -6,6 +6,8 @@ import {
   Dimensions,
   ActivityIndicator,
   RefreshControl,
+  Modal,
+  Pressable,
 } from "react-native";
 import React, { useEffect, useState, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -87,6 +89,7 @@ const Home = () => {
     datasets: [{ data: [] }],
   });
 
+  const [showSpendingModal, setShowSpendingModal] = useState(true);
   const greeting =
     hours < 12
       ? "Good Morning"
@@ -94,6 +97,10 @@ const Home = () => {
       ? "Good Afternoon"
       : "Good Evening";
 
+  const closeModal = () => {
+    setShowSpendingModal(false);
+    setSelectedCategory(null); // IMPORTANT: Reset selectedCategory when closing
+  };
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchData();
@@ -285,6 +292,7 @@ const Home = () => {
 
   const handlePieChartPress = (item) => {
     setSelectedCategory(item); // Store the selected category data
+    setShowSpendingModal(true);
 
     // Process data for the bar chart
     const monthlyData = {};
@@ -595,57 +603,42 @@ const Home = () => {
 
               {/* Category Details Modal */}
               {selectedCategory && (
-                <View
-                  style={{
-                    // simple modal implementation
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%",
-                    backgroundColor: "transparent",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    zIndex: 10,
-                  }}
+                <Modal
+                  animationType="slide"
+                  transparent={true}
+                  visible={showSpendingModal}
+                  onRequestClose={closeModal} // Use the new closeModal function
                 >
-                  <View
-                    style={{
-                      backgroundColor: "white",
-                      padding: 20,
-                      borderRadius: 8,
-                      width: "80%",
-                      maxHeight: "60%",
-                      overflowY: "auto",
-                    }}
+                  <Pressable
+                    className="flex-1 justify-center items-center bg-black/50"
+                    onPress={closeModal} // Use the new closeModal function
                   >
-                    <Text
-                      style={{
-                        fontSize: 20,
-                        fontWeight: "bold",
-                        marginBottom: 10,
-                      }}
+                    <Pressable
+                      className="bg-slate-100 p-10 w-80 rounded-md max-h-[80vh]"
+                      onPress={() => {}}
                     >
-                      {selectedCategory.name} Details
-                    </Text>
-                    <Text className="font-pregular text-base">
-                      Total Spending:{" "}
-                      {parseFloat(selectedCategory.population).toFixed(2)} EGP
-                    </Text>
-                    {/* You can add more details here, e.g., a breakdown of spending over time */}
-                    <Text className="text-lg font-bold mb-2">
-                      Monthly Breakdown
-                    </Text>
-                    {renderCategoryLineChart()}
-                    <TouchableOpacity
-                      onPress={() => setSelectedCategory(null)} // close the modal
-                      className="mt-5 py-2.5 px-5 bg-[#4E17B3] rounded-md"
-                    >
-                      <Text className="text-white text-center">Close</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                      <Text className="font-pextrabold text-xl mt-1">
+                        {selectedCategory.name} Details
+                      </Text>
+                      <Text className="font-pregular text-base mb-2">
+                        Total Spending:{" "}
+                        {parseFloat(selectedCategory.population).toFixed(2)} EGP
+                      </Text>
+                      <Text className="text-lg font-bold mb-2">
+                        Monthly Breakdown
+                      </Text>
+                      {renderCategoryLineChart()}
+                      <TouchableOpacity
+                        onPress={closeModal} // Use the new closeModal function
+                        className="mt-5 py-2.5 px-5 bg-[#4E17B3] rounded-md"
+                      >
+                        <Text className="text-white text-center">Close</Text>
+                      </TouchableOpacity>
+                    </Pressable>
+                  </Pressable>
+                </Modal>
               )}
+
               {/* Latest Receipts Section */}
               <View className="p-4 border-2 rounded-md border-[#9F54B6] mb-4">
                 <Text className="text-lg font-semibold text-gray-800 mb-2">
