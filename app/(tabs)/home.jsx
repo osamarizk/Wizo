@@ -8,6 +8,8 @@ import {
   RefreshControl,
   Modal,
   Pressable,
+  StyleSheet,
+  ScrollView,
 } from "react-native";
 import React, { useEffect, useState, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -24,6 +26,8 @@ import {
   createSubcategories,
   getUserBudgets,
   getAllCategories,
+  getUserPoints,
+  getUserEarnedBadges,
 } from "../../lib/appwrite";
 import { router, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -39,25 +43,29 @@ import Animated, {
 
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
-  "#D03957",
-  "#F4A261",
-  "#2A9D8F",
-  "#4E17B3",
-  "#8AC926",
-  "#9F54B6",
-  "#D24726",
-  "#6D83F2",
-  "#D24726",
-  "#2A9D8F",
-  "#4E17B3",
-  "#8AC926",
-  "#D03957",
-  "#F4A261",
-  "#2A9D8F",
+  "#D03957", // Red
+  "#F4A261", // Orange
+  "#2A9D8F", // Teal
+  "#F9C74F", //Yellow
+  "#90BE6D", // Green
+  "#4E17B3", // Purple
+  "#8AC926", // Lime Green
+  "#9F54B6", // Darker Purple
+  "#E76F51", // Coral
+  "#264653", // Dark Blue
+  "#CBF3F0", // Light Blue
+  "#FFBF69", // Gold
+  "#A3B18A", // Olive Green
+  "#588157", // Forest Green
+  "#F2CC8F", // Cream
+  "#E07A5F", // Salmon
+  "#3D405B", // Dark Slate Blue
+  "#6D83F2", // Light Slate Blue
 ];
 
 const Home = () => {
   const hours = new Date().getHours();
+  // Global context for user and notification count
   const {
     user,
     showUploadModal,
@@ -65,6 +73,8 @@ const Home = () => {
     loading: globalLoading,
     checkBudgetInitialization,
   } = useGlobalContext();
+
+  // State variables for various data and UI controls
   const [latestReceipts, setLatestReceipts] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -84,13 +94,18 @@ const Home = () => {
   const [chartData, setChartData] = useState([]);
   const [allReceipts, setAllReceipts] = useState([]); // State to store all receipts
   const [categoryMonthlySpending, setCategoryMonthlySpending] = useState({
-    // New state for monthly spending data
     labels: [],
     datasets: [{ data: [] }],
   });
-
   const [showSpendingModal, setShowSpendingModal] = useState(true);
   const [categoryMerchantAnalysis, setCategoryMerchantAnalysis] = useState([]); // New state for merchant analysis
+
+  // NEW STATE FOR POINTS AND BADGES
+  const [userTotalPoints, setUserTotalPoints] = useState(0);
+  const [userBadges, setUserBadges] = useState([]);
+  const [showPointsBadgeModal, setShowPointsBadgeModal] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalMessage, setModalMessage] = useState("");
 
   const now = new Date();
   const monthOptions = { month: "long" };
@@ -167,6 +182,13 @@ const Home = () => {
         fetchBudget();
         fetchCategories();
         // console.log(showBudgetPrompt);
+
+        // NEW: Fetch user points and badges
+        const currentPoints = await getUserPoints(user.$id);
+        setUserTotalPoints(currentPoints?.points || 0);
+
+        const earnedBadges = await getUserEarnedBadges(user.$id);
+        setUserBadges(earnedBadges);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -258,8 +280,13 @@ const Home = () => {
 
   if (isLoading || globalLoading) {
     return (
-      <GradientBackground className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" color="white" />
+      <GradientBackground colors={gradientColors}>
+        <SafeAreaView className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#FFFFFF" />
+          <Text className="text-white mt-4 font-pmedium text-lg">
+            Loading your dashboard...
+          </Text>
+        </SafeAreaView>
       </GradientBackground>
     );
   }
@@ -475,6 +502,29 @@ const Home = () => {
     );
   };
 
+  // Navigate to notification screen
+  const goToNotifications = () => {
+    router.push("/notifications");
+  };
+
+  // Navigate to wallet screen
+  const goToWallet = () => {
+    router.push("/wallet");
+  };
+
+  // Function to show custom modal
+  const showCustomModal = (title, message) => {
+    setModalTitle(title);
+    setModalMessage(message);
+    setShowPointsBadgeModal(true);
+  };
+
+  // Function to close custom modal
+  const closeCustomModal = () => {
+    setShowPointsBadgeModal(false);
+    setModalTitle("");
+    setModalMessage("");
+  };
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1 ">
@@ -489,8 +539,8 @@ const Home = () => {
           }}
           ListHeaderComponent={
             <>
-              {/* Header */}
-              <View className="flex-row justify-between items-center mb-5 mt-3">
+              {/* Header Section */}
+              <View className="flex-row justify-between items-center mb-2 mt-1">
                 <View>
                   <Text className="text-base text-gray-500 font-pregular">
                     {greeting}
@@ -522,6 +572,111 @@ const Home = () => {
                 </TouchableOpacity>
               </View>
 
+              {/* Points Display */}
+              <View className="flex-row items-center justify-between mb-1">
+                <View className=" mt-2">
+                  <Text className="text-gray-600 font-pmedium text-lg">
+                    Your Points:{" "}
+                    <Text className="font-pbold text-xl">
+                      {userTotalPoints}
+                    </Text>{" "}
+                    ✨
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() =>
+                      showCustomModal(
+                        "Your Badges",
+                        "View your earned achievements!"
+                      )
+                    }
+                    className="mt-2"
+                  >
+                    <Text className="text-gray-600 font-psemibold text-base underline">
+                      View My Badges ({userBadges.length})
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* NEW: Set Up Budget Prompt (Moved to a more visible location) */}
+                {showBudgetPrompt && (
+                  <View className="mx-4   p-4  rounded-xl backdrop-blur-sm bg-transparent items-center">
+                    {/* <Image
+                    source={icons.pie} // Reusing pie icon, or use a new one for budget prompt
+                    className="w-12 h-12 mb-3"
+                    resizeMode="contain"
+                    tintColor="#9F54B6" // A color that stands b-4
+                  />
+                  <Text className="text-lg font-psemibold text-gray-800 text-center mb-3">
+                    Ready to take control of your spending?
+                  </Text> */}
+                    {/* <Text className="text-base font-pregular text-gray-600 text-center mb-4">
+                    Set up your first budget to track your expenses and achieve
+                    your financial goals!
+                  </Text> */}
+                    <TouchableOpacity
+                      onPress={SetupBudget}
+                      className=" p-4 items-center  justify-center "
+                    >
+                      <Image
+                        source={icons.pie} // Reusing pie icon, or use a new one for budget prompt
+                        className="w-12 h-12 "
+                        resizeMode="contain"
+                        tintColor="#9F54B6" // A color that stands b-4
+                      />
+                      <Text className="text-gray-700 font-pregular text-base text-center">
+                        {`Set up your budget Now \n to track your spending!`}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+              {/* Custom Modal for Points/Badges */}
+              <Modal
+                animationType="fade"
+                transparent={true}
+                visible={showPointsBadgeModal}
+                onRequestClose={closeCustomModal}
+              >
+                <Pressable
+                  style={styles.centeredView}
+                  onPress={closeCustomModal}
+                >
+                  <View
+                    style={styles.modalView}
+                    onStartShouldSetResponder={() => true}
+                  >
+                    <Text style={styles.modalTitle}>{modalTitle}</Text>
+                    <Text style={styles.modalMessage}>{modalMessage}</Text>
+                    {modalTitle === "Your Badges" && (
+                      <ScrollView style={styles.badgeList}>
+                        {userBadges.length > 0 ? (
+                          userBadges.map((badge, index) => (
+                            <View key={index} style={styles.badgeItem}>
+                              {/* You might want to fetch badge details from the 'badges' collection using badge.badge_id */}
+                              {/* For now, let's just display the ID or a placeholder */}
+                              <Text style={styles.badgeName}>
+                                • Badge ID: {badge.badge_id} (Earned on:{" "}
+                                {new Date(badge.earned_at).toLocaleDateString()}
+                                )
+                              </Text>
+                            </View>
+                          ))
+                        ) : (
+                          <Text style={styles.noBadgesText}>
+                            No badges earned yet. Keep using the app!
+                          </Text>
+                        )}
+                      </ScrollView>
+                    )}
+                    <TouchableOpacity
+                      style={[styles.button, styles.buttonClose]}
+                      onPress={closeCustomModal}
+                    >
+                      <Text style={styles.textStyle}>Close</Text>
+                    </TouchableOpacity>
+                  </View>
+                </Pressable>
+              </Modal>
               {/* Receipt Summary */}
               <View className=" p-1  mb-4 border-2 rounded-md border-[#9F54B6]">
                 <TouchableOpacity
@@ -771,11 +926,12 @@ const Home = () => {
               </View>
 
               {/* Budget Display/Prompt */}
-              <View className=" flex  p-4  mb-4   backdrop-blur-sm shadow-md shadow-[#878fe7]  rounded-xl  border-2 border-[#9F54B6] ">
-                <Text className="text-lg font-semibold text-[#4E17B3] mb-2">
-                  Budget Setup
-                </Text>
-                {userBudget && userBudget.length > 0 ? (
+
+              {userBudget && userBudget.length > 0 && (
+                <View className=" flex  p-4  mb-4   backdrop-blur-sm shadow-md shadow-[#878fe7]  rounded-xl  border-2 border-[#9F54B6] ">
+                  <Text className="text-lg font-semibold text-[#4E17B3] mb-2">
+                    Budget Setup
+                  </Text>
                   <View className="w-full max-w-md justify-center items-center">
                     <TouchableOpacity
                       onPress={toggleExpanded} // Toggle expansion on press
@@ -833,30 +989,13 @@ const Home = () => {
                       </Text>
                     </TouchableOpacity>
                   </View>
-                ) : (
-                  showBudgetPrompt && (
-                    <TouchableOpacity
-                      onPress={SetupBudget}
-                      className=" flex px-4 py-2 items-center justify-center w-28 h-28 border-x-4 border-[#9F54B6] rounded-full"
-                    >
-                      <Image
-                        source={icons.pie}
-                        className="w-12 h-12 "
-                        resizeMode="contain"
-                        tintColor="#fff"
-                      />
-                      <Text className="text-[#4E17B3] text-center font-psemibold text-base mt-1">
-                        Set Up Budget
-                      </Text>
-                    </TouchableOpacity>
-                  )
-                )}
-                {!showBudgetPrompt && (
+                </View>
+              )}
+              {/* {!showBudgetPrompt && (
                   <Text className="text-white italic mb-3">
                     ✨ No receipts uploaded yet. to setup Budget! ✨
                   </Text>
-                )}
-              </View>
+                )} */}
             </>
           }
           data={latestReceipts}
@@ -879,4 +1018,77 @@ const Home = () => {
   );
 };
 
+// Styles for the custom modal
+const styles = StyleSheet.create({
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)", // Semi-transparent background
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    width: "80%", // Make modal responsive
+    maxWidth: 400, // Max width for larger screens
+  },
+  modalTitle: {
+    marginBottom: 15,
+    textAlign: "center",
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  modalMessage: {
+    marginBottom: 20,
+    textAlign: "center",
+    fontSize: 16,
+    color: "#555",
+  },
+  badgeList: {
+    maxHeight: 200, // Limit height for scrollable badge list
+    width: "100%",
+    marginBottom: 20,
+  },
+  badgeItem: {
+    paddingVertical: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  badgeName: {
+    fontSize: 14,
+    color: "#666",
+    fontStyle: "italic",
+  },
+  noBadgesText: {
+    fontSize: 14,
+    color: "#888",
+    textAlign: "center",
+  },
+  button: {
+    borderRadius: 10,
+    padding: 12,
+    elevation: 2,
+  },
+  buttonClose: {
+    backgroundColor: "#2196F3",
+  },
+  textStyle: {
+    color: "white",
+    fontWeight: "bold",
+    textAlign: "center",
+    fontSize: 16,
+  },
+});
 export default Home;

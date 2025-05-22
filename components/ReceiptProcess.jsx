@@ -156,11 +156,11 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
             ...item,
             category_id: categoryId,
             subcategory_id: subcategoryId,
-            payment_method: extractedData.paymentMethod || "Unknown",
-            transaction_id: extractedData.transactionId || "Unknown",
-            loyaltyPoints: extractedData.loyaltyPoints || "Unknown",
-            loyaltyProgram: extractedData.loyaltyProgram || "Unknown",
-            notes: extractedData.notes || "Unknown",
+            // payment_method: extractedData.paymentMethod || "Unknown",
+            // transaction_id: extractedData.transactionId || "Unknown",
+            // loyaltyPoints: extractedData.loyaltyPoints || "Unknown",
+            // loyaltyProgram: extractedData.loyaltyProgram || "Unknown",
+            // notes: extractedData.notes || "Unknown",
           };
         })
       );
