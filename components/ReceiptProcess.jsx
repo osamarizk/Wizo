@@ -156,9 +156,16 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
             ...item,
             category_id: categoryId,
             subcategory_id: subcategoryId,
+            payment_method: extractedData.paymentMethod || "Unknown",
+            transaction_id: extractedData.transactionId || "Unknown",
+            loyaltyPoints: extractedData.loyaltyPoints || "Unknown",
+            loyaltyProgram: extractedData.loyaltyProgram || "Unknown",
+            notes: extractedData.notes || "Unknown",
           };
         })
       );
+
+      console.log("extracted Receipt Data ....", extractedData);
 
       const receiptData = {
         user_id: user.$id,
@@ -272,16 +279,16 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
       >
         {extractedData && (
           <>
-            <Image
-              source={images.success}
-              className="  w-16 h-16  right-1"
-              resizeMode="contain"
-            />
-            <Text className="text-xl text-blue-900 font-pbold text-center mb-2">
+            <Text className="text-xl text-blue-900 font-pregular text-center mb-2 mt-4 underline">
               {!extractedData
                 ? "Receipt Processing..."
-                : "🎉 Receipt Extracted Successfuly"}
+                : "🎉Please confirm Receipt Data"}
             </Text>
+            {/* <Image
+              source={images.success}
+              className=" w-16 h-16 right-1 "
+              resizeMode="contain"
+            /> */}
           </>
         )}
 
@@ -347,9 +354,9 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
         {extractedData && (
           <>
             <View className="w-full  mt-1 px-8 py-1   rounded-xl    mb-2">
-              <Text className="font-plight text-lg mb-4 text-red-900 text-center underline">
+              {/* <Text className="font-plight text-lg mb-2 text-red-900 text-center underline">
                 Receipt Details
-              </Text>
+              </Text> */}
 
               {extractedData.merchant && !showAllItems && (
                 <Text className="text-blue-900 font-psemibold mb-3 text-base">
@@ -490,7 +497,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
                 onValueChange={setConsentGiven}
                 color={consentGiven ? "#22c55e" : undefined}
               />
-              <Text className="text-base text-black/90 font-pregular ">
+              <Text className="text-base text-black/90 font-pregular underline ">
                 Your data is saved securely and may be shared anonymized with
                 trusted third parties..
               </Text>

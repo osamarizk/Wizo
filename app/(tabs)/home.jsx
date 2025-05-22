@@ -684,6 +684,11 @@ const Home = () => {
                       <Text className="text-lg font-bold ">
                         Merchant Breakdown
                       </Text>
+                      <Text className="text-sm font-pregular text-gray-600 mb-2 italic">
+                        Merchant spending figures are calculated based on the
+                        individual item prices from your receipts, prior to any
+                        discounts, VAT, or other service charges.
+                      </Text>
                       {renderMerchantAnalysisTable()}
                       <TouchableOpacity
                         onPress={closeModal}
