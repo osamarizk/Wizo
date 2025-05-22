@@ -90,6 +90,12 @@ const Home = () => {
   });
 
   const [showSpendingModal, setShowSpendingModal] = useState(true);
+  const [categoryMerchantAnalysis, setCategoryMerchantAnalysis] = useState([]); // New state for merchant analysis
+
+  const now = new Date();
+  const monthOptions = { month: "long" };
+  const monthName = now.toLocaleString("default", monthOptions); // 'default' uses the user's default locale
+
   const greeting =
     hours < 12
       ? "Good Morning"
@@ -120,66 +126,38 @@ const Home = () => {
         setUnreadCount(count);
         setReceiptStats(stats);
         setAllReceipts(allReceipts); // Set all receipts to state
-
+        console.log("stats", stats);
         // console.log("allReceipts", allReceipts);
 
-        const spendingByCategory = {};
-        let totalItemsPrice = 0;
-        allReceipts.forEach((receipt) => {
-          try {
-            const items = JSON.parse(receipt.items);
-            items.forEach((item) => {
-              const category = item.category;
-              const price = parseFloat(item.price);
-              if (category && !isNaN(price)) {
-                spendingByCategory[category] =
-                  (spendingByCategory[category] || 0) + price;
-                totalItemsPrice += price;
-              }
-            });
-          } catch (error) {
-            console.error("Error parsing items:", error);
-          }
-        });
+        const spendingByCategory = stats.monthlyCategorySpendingBreakdown || {};
+        const totalItemsPriceForMonth = Object.values(
+          spendingByCategory
+        ).reduce((sum, val) => sum + val, 0); // Calculate total from breakdown
 
-        // const chartData = Object.keys(spendingByCategory).map(
-        //   (category, index) => ({
-        //     name: category,
-        //     population: spendingByCategory[category],
-        //     color: gradientColors[index % gradientColors.length],
-        //     legendFontColor: "#7F7F7F",
-        //     legendFontSize: 12,
-        //     percent:
-        //       totalItemsPrice > 0
-        //         ? (spendingByCategory[category] / totalItemsPrice) * 100
-        //         : 0,
-        //   })
-        // );
-        // setCategorySpendingData(chartData);
-        console.log("spendingByCategory", spendingByCategory);
         const chartData = Object.keys(spendingByCategory).map(
-          (category, index) => {
-            // const categoryData = categories.find((c) => c.$id === category);  <-- REMOVE THIS LINE
+          (categoryName, index) => {
+            // 'categoryName' is already the name
             return {
-              name: category, // Use the category name directly
-              population: spendingByCategory[category],
-              color: gradientColors[index % gradientColors.length], //  Get color
+              name: categoryName,
+              population: spendingByCategory[categoryName],
+              color: gradientColors[index % gradientColors.length],
               legendFontColor: "#7F7F7F",
               legendFontSize: 12,
               percent:
-                totalItemsPrice > 0
-                  ? (spendingByCategory[category] / totalItemsPrice) * 100
+                totalItemsPriceForMonth > 0
+                  ? (spendingByCategory[categoryName] /
+                      totalItemsPriceForMonth) *
+                    100
                   : 0,
-              id: category,
+              id: categoryName, // Use name as ID for consistency
+              value: spendingByCategory[categoryName],
             };
           }
         );
-
-        // console.log(chartData);
         setChartData(chartData);
         setCategorySpendingData(chartData);
 
-        const latest = await fetchUserReceipts(user.$id, 3);
+        const latest = await fetchUserReceipts(user.$id, 5);
         setLatestReceipts(latest);
 
         // const isBudgetInitialized = await checkBudgetInitialization(user.$id);
@@ -289,52 +267,125 @@ const Home = () => {
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
   };
+  // Monthly data
+  // const handlePieChartPress = (item) => {
+  //   setSelectedCategory(item); // Store the selected category data
+  //   setShowSpendingModal(true);
+
+  //   // Process data for the bar chart
+  //   const monthlyData = {};
+  //   allReceipts.forEach((receipt) => {
+  //     try {
+  //       const items = JSON.parse(receipt.items);
+  //       const receiptDate = new Date(receipt.datetime);
+  //       const monthYear = `${receiptDate.getFullYear()}-${(
+  //         receiptDate.getMonth() + 1
+  //       )
+  //         .toString()
+  //         .padStart(2, "0")}`;
+
+  //       items.forEach((receiptItem) => {
+  //         if (receiptItem.category === item.name) {
+  //           // Match by category name
+  //           const price = parseFloat(receiptItem.price);
+  //           if (!isNaN(price)) {
+  //             monthlyData[monthYear] = (monthlyData[monthYear] || 0) + price;
+  //           }
+  //         }
+  //       });
+  //     } catch (error) {
+  //       console.error("Error parsing items for monthly data:", error);
+  //     }
+  //   });
+
+  //   // Sort months and prepare data for BarChart
+  //   const sortedMonths = Object.keys(monthlyData).sort();
+  //   const labels = sortedMonths.map((month) => {
+  //     const [year, monthNum] = month.split("-");
+  //     return new Date(year, monthNum - 1).toLocaleString("default", {
+  //       month: "short",
+  //     });
+  //   });
+  //   const dataPoints = sortedMonths.map((month) => monthlyData[month]);
+
+  //   setCategoryMonthlySpending({
+  //     labels: labels,
+  //     datasets: [{ data: dataPoints }],
+  //   });
+  // };
 
   const handlePieChartPress = (item) => {
-    setSelectedCategory(item); // Store the selected category data
+    setSelectedCategory(item);
     setShowSpendingModal(true);
 
-    // Process data for the bar chart
-    const monthlyData = {};
-    allReceipts.forEach((receipt) => {
-      try {
-        const items = JSON.parse(receipt.items);
-        const receiptDate = new Date(receipt.datetime);
-        const monthYear = `${receiptDate.getFullYear()}-${(
-          receiptDate.getMonth() + 1
-        )
-          .toString()
-          .padStart(2, "0")}`;
+    // Retrieve pre-calculated merchant analysis for the selected category from receiptStats
+    // receiptStats.monthlyCategoryMerchantAnalysis is structured as:
+    // { "CategoryName": { "MerchantName": { totalSpending: X, numberOfVisits: Y } } }
+    const merchantsForSelectedCategory =
+      receiptStats.monthlyCategoryMerchantAnalysis[item.name] || {};
 
-        items.forEach((receiptItem) => {
-          if (receiptItem.category === item.name) {
-            // Match by category name
-            const price = parseFloat(receiptItem.price);
-            if (!isNaN(price)) {
-              monthlyData[monthYear] = (monthlyData[monthYear] || 0) + price;
-            }
-          }
-        });
-      } catch (error) {
-        console.error("Error parsing items for monthly data:", error);
-      }
-    });
+    console.log("merchantsForSelectedCategory", merchantsForSelectedCategory);
+    // Convert the aggregated object for the specific category into an array for rendering
+    const merchantAnalysisArray = Object.keys(merchantsForSelectedCategory).map(
+      (merchantName) => ({
+        merchantName: merchantName,
+        totalSpending: merchantsForSelectedCategory[merchantName].totalSpending,
+        numberOfVisits:
+          merchantsForSelectedCategory[merchantName].numberOfVisits,
+      })
+    );
 
-    // Sort months and prepare data for BarChart
-    const sortedMonths = Object.keys(monthlyData).sort();
-    const labels = sortedMonths.map((month) => {
-      const [year, monthNum] = month.split("-");
-      return new Date(year, monthNum - 1).toLocaleString("default", {
-        month: "short",
-      });
-    });
-    const dataPoints = sortedMonths.map((month) => monthlyData[month]);
-
-    setCategoryMonthlySpending({
-      labels: labels,
-      datasets: [{ data: dataPoints }],
-    });
+    setCategoryMerchantAnalysis(merchantAnalysisArray);
   };
+
+  const renderMerchantAnalysisTable = () => {
+    if (categoryMerchantAnalysis.length === 0) {
+      return (
+        <Text className="text-gray-500 italic mt-4 text-center">
+          No merchant data for this category.
+        </Text>
+      );
+    }
+
+    console.log("categoryMerchantAnalysis", categoryMerchantAnalysis);
+    return (
+      <View className="w-full mt-4 border border-gray-300 rounded-md overflow-hidden">
+        {/* Table Header */}
+        <View className="flex-row bg-gray-200 py-2 px-3 border-b border-gray-300">
+          <Text className="flex-1 font-pbold text-gray-700 text-sm">
+            Merchant
+          </Text>
+          <Text className="w-1/4 font-pbold text-gray-700 text-sm text-right">
+            Total (EGP)
+          </Text>
+          <Text className="w-1/4 font-pbold text-gray-700 text-sm text-right">
+            Visits
+          </Text>
+        </View>
+
+        {/* Table Rows */}
+        {categoryMerchantAnalysis.map((data, index) => (
+          <View
+            key={data.merchantName}
+            className={`flex-row py-2 px-3 ${
+              index % 2 === 0 ? "bg-white" : "bg-gray-50"
+            } border-b border-gray-200 last:border-none`}
+          >
+            <Text className="flex-1 text-gray-800 text-sm">
+              {data.merchantName}
+            </Text>
+            <Text className="w-1/4 text-gray-800 text-sm text-right">
+              {data.totalSpending.toFixed(2)}
+            </Text>
+            <Text className="w-1/4 text-gray-800 text-sm text-right">
+              {data.numberOfVisits}
+            </Text>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   const renderPieChart = () => {
     // console.log("categorySpendingData", categorySpendingData);
     if (categorySpendingData.length === 0) {
@@ -472,7 +523,7 @@ const Home = () => {
               </View>
 
               {/* Receipt Summary */}
-              <View className=" p-4  mb-4 border-2 rounded-md border-[#9F54B6]">
+              <View className=" p-1  mb-4 border-2 rounded-md border-[#9F54B6]">
                 <TouchableOpacity
                   onPress={() => router.push("/notification")}
                   className="relative p-2 rounded-full mt-1"
@@ -484,19 +535,19 @@ const Home = () => {
                     Receipts : {receiptStats.totalCount}
                   </Text>
                   <Text className="text-center text-md font-pregular text-gray-600">
-                    <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
+                    <Text className="text-center text-base font-pregular text-[#D03957] mt-1 underline">
                       {"("}
                       {receiptStats.thisMonthCount}
                       {") "}
                     </Text>
-                    R this month | Monthly Spending EGP:
-                    <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
+                    R on {monthName} | {monthName} Spending EGP:
+                    <Text className="text-center text-base font-pregular text-[#D03957] mt-1 underline">
                       {receiptStats.monthlySpending.toFixed(2)}
                     </Text>
                   </Text>
                   <Text className="text-center text-base font-pregular text-black mt-1">
                     Last Receipt:
-                    <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 underline">
+                    <Text className="text-center text-base font-pregular text-[#D03957] mt-1 underline">
                       {" "}
                       {receiptStats.latestDate}
                     </Text>
@@ -508,7 +559,10 @@ const Home = () => {
               {receiptStats.highestSpendingCategory && (
                 <View className=" p-4  border-2 rounded-md border-[#9F54B6] mb-4">
                   <Text className="text-base font-pregular text-gray-700 mb-2">
-                    Top Spending Insight
+                    Top Spending Insight of{" "}
+                    <Text className="font-psemibold text-xl text-[#D03957]">
+                      {monthName}
+                    </Text>
                   </Text>
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2">
@@ -554,12 +608,15 @@ const Home = () => {
               )}
 
               {/* Spending Categories Charts */}
-              <View className=" p-4  border-2 rounded-md border-[#9F54B6] mb-4">
-                <Text className="text-lg font-pregular text-gray-700 -mb-2">
-                  Spending Categories |
-                  <Text className="text-lg font-bold text-black font-pbold">
-                    {" "}
-                    Total: EGP {receiptStats.monthlySpending.toFixed(2)}
+              <View className=" p-2  border-2 rounded-md border-[#9F54B6] mb-4">
+                <Text className="text-base font-pregular text-gray-700 -mb-1">
+                  Spending Categories of{" "}
+                  <Text className="font-psemibold text-xl text-[#D03957]">
+                    {monthName}
+                  </Text>
+                  <Text className="text-xl font-bold text-black font-pbold mt-2">
+                    {" : "}
+                    EGP {receiptStats.monthlySpending.toFixed(2)}
                   </Text>
                 </Text>
 
@@ -571,7 +628,7 @@ const Home = () => {
 
                     <View className="flex-1 flex-col">
                       <Text className="font-psemibold mb-2 text-blue-600 text-base">
-                        👇 Click below 👇
+                        👇 check details 👇
                       </Text>
                       {categorySpendingData.map((item) => (
                         <TouchableOpacity
@@ -607,29 +664,29 @@ const Home = () => {
                   animationType="slide"
                   transparent={true}
                   visible={showSpendingModal}
-                  onRequestClose={closeModal} // Use the new closeModal function
+                  onRequestClose={closeModal}
                 >
                   <Pressable
                     className="flex-1 justify-center items-center bg-black/50"
-                    onPress={closeModal} // Use the new closeModal function
+                    onPress={closeModal}
                   >
                     <Pressable
                       className="bg-slate-100 p-10 w-80 rounded-md max-h-[80vh]"
                       onPress={() => {}}
                     >
-                      <Text className="font-pextrabold text-xl mt-1">
+                      <Text className="font-pextrabold text-xl ">
                         {selectedCategory.name} Details
                       </Text>
                       <Text className="font-pregular text-base mb-2">
                         Total Spending:{" "}
                         {parseFloat(selectedCategory.population).toFixed(2)} EGP
                       </Text>
-                      <Text className="text-lg font-bold mb-2">
-                        Monthly Breakdown
+                      <Text className="text-lg font-bold ">
+                        Merchant Breakdown
                       </Text>
-                      {renderCategoryLineChart()}
+                      {renderMerchantAnalysisTable()}
                       <TouchableOpacity
-                        onPress={closeModal} // Use the new closeModal function
+                        onPress={closeModal}
                         className="mt-5 py-2.5 px-5 bg-[#4E17B3] rounded-md"
                       >
                         <Text className="text-white text-center">Close</Text>
@@ -641,7 +698,7 @@ const Home = () => {
 
               {/* Latest Receipts Section */}
               <View className="p-4 border-2 rounded-md border-[#9F54B6] mb-4">
-                <Text className="text-lg font-semibold text-gray-800 mb-2">
+                <Text className="text-lg font-semibold text-[#4E17B3] mb-2">
                   Latest Receipts
                 </Text>
                 {latestReceipts.length > 0 ? (
@@ -709,7 +766,7 @@ const Home = () => {
               </View>
 
               {/* Budget Display/Prompt */}
-              <View className="p-4  mb-4   backdrop-blur-sm shadow-md shadow-[#878fe7]  rounded-xl  border-2 border-[#9F54B6] ">
+              <View className=" flex items-center p-4  mb-4   backdrop-blur-sm shadow-md shadow-[#878fe7]  rounded-xl  border-2 border-[#9F54B6] ">
                 {userBudget && userBudget.length > 0 ? (
                   <View className="w-full max-w-md justify-center items-center">
                     <TouchableOpacity
@@ -778,9 +835,9 @@ const Home = () => {
                         source={icons.pie}
                         className="w-12 h-12 "
                         resizeMode="contain"
-                        tintColor="#D24726"
+                        tintColor="#fff"
                       />
-                      <Text className="text-black text-center font-psemibold text-base mt-2">
+                      <Text className="text-[#4E17B3] text-center font-psemibold text-base mt-2">
                         Set Up Budget
                       </Text>
                     </TouchableOpacity>
