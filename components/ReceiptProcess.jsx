@@ -22,6 +22,8 @@ import {
   countUnreadNotifications,
   getCategoriesByName,
   getSubcategoriesByName,
+  updateUserPoints,
+  checkAndAwardBadges,
 } from "../lib/appwrite";
 import Checkbox from "expo-checkbox"; // Make sure expo-checkbox is installed
 import { useGlobalContext } from "../context/GlobalProvider";
@@ -180,14 +182,45 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
 
       if (response && response.$id) {
         Alert.alert("Success", "Receipt saved successfully!");
-
-        // Create notification
+        // Create Receipt Upload notification
         await createNotification({
           user_id: user.$id,
           title: "Receipt Uploaded",
-          message: "Your receipt was successfully uploaded.",
-          receipt_id: response.$id, // ✅ Link the notification to the uploaded receipt
+          message: `${user.username} Your receipt was successfully uploaded.`,
+          receipt_id: response.$id,
         });
+        // --- POINTS & BADGES INTEGRATION START ---
+        // 1. Award points for receipt upload
+        const pointsEarned = 10; // Example: 10 points per receipt
+        await updateUserPoints(user.$id, pointsEarned, "receipt_upload");
+        console.log(
+          `User ${user.$id} earned ${pointsEarned} points for receipt upload.`
+        );
+
+        // 2. Check for badges
+        const earnedBadges = await checkAndAwardBadges(user.$id);
+        if (earnedBadges.length > 0) {
+          const badgeNames = earnedBadges.map((badge) => badge.name).join(", ");
+          const pointsExtra = earnedBadges
+            .map((badge) => badge.points_reward)
+            .join(", ");
+          Alert.alert(
+            "Achievement Unlocked!",
+            `You earned new badges: ${badgeNames}! You earned Extra Points: ${pointsExtra}!`
+          );
+
+          // Create Points notification
+
+          await createNotification({
+            user_id: user.$id,
+            title: "Points Earned",
+            message: `${user.username} you earned ${pointsExtra} Extra Points for receipt upload.`,
+            receipt_id: response.$id,
+          });
+          console.log(`User ${user.$id} earned badges: ${badgeNames}`);
+        }
+        // --- POINTS & BADGES INTEGRATION END ---
+
         // Update the unread notification count in the context
         const updatedUnreadCount = await countUnreadNotifications(user.$id); // Fetch updated unread count
         updateUnreadCount(updatedUnreadCount); // Update context with new unread count
@@ -313,137 +346,136 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
 
         {extractedData && (
           <>
-          
-              <View className="w-full  mt-1 px-8 py-1   rounded-xl    mb-2">
-                <Text className="font-plight text-lg mb-4 text-red-900 text-center underline">
-                  Receipt Details
+            <View className="w-full  mt-1 px-8 py-1   rounded-xl    mb-2">
+              <Text className="font-plight text-lg mb-4 text-red-900 text-center underline">
+                Receipt Details
+              </Text>
+
+              {extractedData.merchant && !showAllItems && (
+                <Text className="text-blue-900 font-psemibold mb-3 text-base">
+                  <Text className="text-black font-semibold text-base ">
+                    🏪 Merchant →
+                  </Text>{" "}
+                  {extractedData.merchant}
                 </Text>
+              )}
 
-                {extractedData.merchant && !showAllItems && (
-                  <Text className="text-blue-900 font-psemibold mb-3 text-base">
-                    <Text className="text-black font-semibold text-base ">
-                      🏪 Merchant →
-                    </Text>{" "}
-                    {extractedData.merchant}
+              {extractedData.location && !showAllItems && (
+                <Text className="text-blue-900 font-psemibold mb-3 text-base">
+                  <Text className="text-black font-pbold text-base">
+                    📍 Location →
                   </Text>
-                )}
-
-                {extractedData.location && !showAllItems && (
-                  <Text className="text-blue-900 font-psemibold mb-3 text-base">
-                    <Text className="text-black font-pbold text-base">
-                      📍 Location →
-                    </Text>
-                    <Text>
-                      {extractedData.location.address
-                        ? extractedData.location.address + ", "
-                        : ""}
-                      {extractedData.location.city
-                        ? extractedData.location.city + ", "
-                        : ""}
-                      {extractedData.location.country}
-                    </Text>
+                  <Text>
+                    {extractedData.location.address
+                      ? extractedData.location.address + ", "
+                      : ""}
+                    {extractedData.location.city
+                      ? extractedData.location.city + ", "
+                      : ""}
+                    {extractedData.location.country}
                   </Text>
-                )}
+                </Text>
+              )}
 
-                {extractedData.datetime && !showAllItems && (
-                  <Text className="text-blue-900 font-psemibold mb-3 text-base">
-                    <Text className="text-black font-pbold text-base">
-                      📅 Date →
-                    </Text>{" "}
-                    {new Date(extractedData.datetime).toLocaleDateString(
-                      undefined,
-                      {
-                        year: "numeric",
-                        month: "short", // 'short' for "May", 'long' for "May"
-                        day: "numeric",
-                      }
-                    )}{" "}
-                    {new Date(extractedData.datetime).toLocaleTimeString(
-                      undefined,
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true, // true for AM/PM, false for 24-hour
-                      }
-                    )}
+              {extractedData.datetime && !showAllItems && (
+                <Text className="text-blue-900 font-psemibold mb-3 text-base">
+                  <Text className="text-black font-pbold text-base">
+                    📅 Date →
+                  </Text>{" "}
+                  {new Date(extractedData.datetime).toLocaleDateString(
+                    undefined,
+                    {
+                      year: "numeric",
+                      month: "short", // 'short' for "May", 'long' for "May"
+                      day: "numeric",
+                    }
+                  )}{" "}
+                  {new Date(extractedData.datetime).toLocaleTimeString(
+                    undefined,
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true, // true for AM/PM, false for 24-hour
+                    }
+                  )}
+                </Text>
+              )}
+
+              {extractedData.items.length > 0 && !showAllItems && (
+                <View>
+                  <Text className="font-pbold text-base text-black mb-1 ">
+                    🗂️ Category:
                   </Text>
-                )}
+                  <Text className="text-base text-green-900 ml-4 mb-2 font-psemibold">
+                    {extractedData.items[0].category || "Unknown"} →{" "}
+                    {extractedData.items[0].subcategory || "Uncategorized"}
+                  </Text>
+                </View>
+              )}
 
-                {extractedData.items.length > 0 && !showAllItems && (
-                  <View>
-                    <Text className="font-pbold text-base text-black mb-1 ">
-                      🗂️ Category:
+              {/* Items extracted as collapssed */}
+
+              {extractedData.items?.length > 0 && (
+                <View className="mb-3">
+                  {/* Always show the "Items" label */}
+                  <View className="flex-row items-center mb-1">
+                    <Text className="font-pbold text-base text-blue-700">
+                      🛒 Items:
                     </Text>
-                    <Text className="text-base text-green-900 ml-4 mb-2 font-psemibold">
-                      {extractedData.items[0].category || "Unknown"} →{" "}
-                      {extractedData.items[0].subcategory || "Uncategorized"}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Items extracted as collapssed */}
-
-                {extractedData.items?.length > 0 && (
-                  <View className="mb-3">
-                    {/* Always show the "Items" label */}
-                    <View className="flex-row items-center mb-1">
-                      <Text className="font-pbold text-base text-blue-700">
-                        🛒 Items:
-                      </Text>
-                      {extractedData.items.length > 3 && (
-                        <TouchableOpacity onPress={toggleItems}>
-                          <Text className="font-pbold text-base text-blue-700 ml-1">
-                            {showAllItems ? "(▲ Show less)" : "(Show more ▼)"}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
-
-                    {(showAllItems || extractedData.items.length <= 2
-                      ? extractedData.items
-                      : extractedData.items.slice(0, 2)
-                    ).map((item, index) => (
-                      <View key={index} className="ml-4 mb-1 p-1   ">
-                        <Text className="text-blue-900 font-psemibold text-base">
-                          • {item.name || "Unnamed item"} →{" "}
-                          <Text className="font-bold text-red-900 text-base">
-                            {item.price || "N/A"}
-                          </Text>
-                        </Text>
-                      </View>
-                    ))}
-
-                    {/* Show toggle only if more than 3 items */}
                     {extractedData.items.length > 3 && (
                       <TouchableOpacity onPress={toggleItems}>
-                        <Text className="text-blue-700 font-pbold ml-4 mt-1 text-base">
-                          {showAllItems
-                            ? "▲ Hide Items & Show Details"
-                            : "▼ Show All Items"}
+                        <Text className="font-pbold text-base text-blue-700 ml-1">
+                          {showAllItems ? "(▲ Show less)" : "(Show more ▼)"}
                         </Text>
                       </TouchableOpacity>
                     )}
                   </View>
-                )}
 
-                {extractedData.subtotal && !showAllItems && (
-                  <Text className="text-red-900  text-base font-psemibold mb-1">
-                    <Text className="text-black font-pbold text-base">
-                      💵 Subtotal →
-                    </Text>{" "}
-                    {extractedData.subtotal}
-                  </Text>
-                )}
-                {extractedData.vat && !showAllItems && (
-                  <Text className="text-red-900  text-base font-psemibold mb-1">
-                    <Text className="text-black font-pbold text-base">
-                      🧾 VAT →
-                    </Text>{" "}
-                    {extractedData.vat}
-                  </Text>
-                )}
-              </View>
-         
+                  {(showAllItems || extractedData.items.length <= 2
+                    ? extractedData.items
+                    : extractedData.items.slice(0, 2)
+                  ).map((item, index) => (
+                    <View key={index} className="ml-4 mb-1 p-1   ">
+                      <Text className="text-blue-900 font-psemibold text-base">
+                        • {item.name || "Unnamed item"} →{" "}
+                        <Text className="font-bold text-red-900 text-base">
+                          {item.price || "N/A"}
+                        </Text>
+                      </Text>
+                    </View>
+                  ))}
+
+                  {/* Show toggle only if more than 3 items */}
+                  {extractedData.items.length > 3 && (
+                    <TouchableOpacity onPress={toggleItems}>
+                      <Text className="text-blue-700 font-pbold ml-4 mt-1 text-base">
+                        {showAllItems
+                          ? "▲ Hide Items & Show Details"
+                          : "▼ Show All Items"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {extractedData.subtotal && !showAllItems && (
+                <Text className="text-red-900  text-base font-psemibold mb-1">
+                  <Text className="text-black font-pbold text-base">
+                    💵 Subtotal →
+                  </Text>{" "}
+                  {extractedData.subtotal}
+                </Text>
+              )}
+              {extractedData.vat && !showAllItems && (
+                <Text className="text-red-900  text-base font-psemibold mb-1">
+                  <Text className="text-black font-pbold text-base">
+                    🧾 VAT →
+                  </Text>{" "}
+                  {extractedData.vat}
+                </Text>
+              )}
+            </View>
+
             {extractedData.total && (
               <Text className="text-blue-900 font-psemibold mb-1 text-xl">
                 <Text className="text-black font-pbold text-xl">💰 Total:</Text>{" "}

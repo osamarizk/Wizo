@@ -534,20 +534,20 @@ const Home = () => {
                   <Text className="text-center text-2xl font-bold text-gray-800 ">
                     Receipts : {receiptStats.totalCount}
                   </Text>
-                  <Text className="text-center text-md font-pregular text-gray-600">
-                    <Text className="text-center text-base font-pregular text-[#D03957] mt-1 underline">
+                  <Text className="text-center text-base font-pregular text-gray-600">
+                    <Text className="text-center text-base font-pregular text-[#4E17B3] mt-2 ">
                       {"("}
                       {receiptStats.thisMonthCount}
                       {") "}
                     </Text>
-                    R on {monthName} | {monthName} Spending EGP:
-                    <Text className="text-center text-base font-pregular text-[#D03957] mt-1 underline">
-                      {receiptStats.monthlySpending.toFixed(2)}
+                    R on {monthName} | {monthName} Spending : {""}
+                    <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 ">
+                      EGP {receiptStats.monthlySpending.toFixed(2)}
                     </Text>
                   </Text>
-                  <Text className="text-center text-base font-pregular text-black mt-1">
-                    Last Receipt:
-                    <Text className="text-center text-base font-pregular text-[#D03957] mt-1 underline">
+                  <Text className="text-center text-base font-pregular text-gray-600 mt-1">
+                    Last Receipt Date:
+                    <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 ">
                       {" "}
                       {receiptStats.latestDate}
                     </Text>
@@ -560,7 +560,7 @@ const Home = () => {
                 <View className=" p-4  border-2 rounded-md border-[#9F54B6] mb-4">
                   <Text className="text-base font-pregular text-gray-700 mb-2">
                     Top Spending Insight of{" "}
-                    <Text className="font-psemibold text-xl text-[#D03957]">
+                    <Text className="font-psemibold text-xl text-[#4E17B3]">
                       {monthName}
                     </Text>
                   </Text>
@@ -611,7 +611,7 @@ const Home = () => {
               <View className=" p-2  border-2 rounded-md border-[#9F54B6] mb-4">
                 <Text className="text-base font-pregular text-gray-700 -mb-1">
                   Spending Categories of{" "}
-                  <Text className="font-psemibold text-xl text-[#D03957]">
+                  <Text className="font-psemibold text-xl text-[#4E17B3]">
                     {monthName}
                   </Text>
                   <Text className="text-xl font-bold text-black font-pbold mt-2">
@@ -744,7 +744,7 @@ const Home = () => {
                   ))
                 ) : (
                   <View className="py-4 items-center">
-                    <Text className="text-gray-500 italic mb-3">
+                    <Text className="text-black italic mb-3">
                       ✨ No receipts uploaded yet. Let's get started! ✨
                     </Text>
                     <TouchableOpacity
@@ -766,7 +766,10 @@ const Home = () => {
               </View>
 
               {/* Budget Display/Prompt */}
-              <View className=" flex items-center p-4  mb-4   backdrop-blur-sm shadow-md shadow-[#878fe7]  rounded-xl  border-2 border-[#9F54B6] ">
+              <View className=" flex  p-4  mb-4   backdrop-blur-sm shadow-md shadow-[#878fe7]  rounded-xl  border-2 border-[#9F54B6] ">
+                <Text className="text-lg font-semibold text-[#4E17B3] mb-2">
+                  Budget Setup
+                </Text>
                 {userBudget && userBudget.length > 0 ? (
                   <View className="w-full max-w-md justify-center items-center">
                     <TouchableOpacity
@@ -837,11 +840,16 @@ const Home = () => {
                         resizeMode="contain"
                         tintColor="#fff"
                       />
-                      <Text className="text-[#4E17B3] text-center font-psemibold text-base mt-2">
+                      <Text className="text-[#4E17B3] text-center font-psemibold text-base mt-1">
                         Set Up Budget
                       </Text>
                     </TouchableOpacity>
                   )
+                )}
+                {!showBudgetPrompt && (
+                  <Text className="text-white italic mb-3">
+                    ✨ No receipts uploaded yet. to setup Budget! ✨
+                  </Text>
                 )}
               </View>
             </>
