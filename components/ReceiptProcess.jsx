@@ -41,6 +41,9 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
   const [collapsed, setCollapsed] = useState(true);
   const { user, updateUnreadCount } = useGlobalContext();
 
+  // NEW STATE: To control visibility after save click
+  const [hasSaved, setHasSaved] = useState(false);
+
   const toggleCollapsed = () => {
     setCollapsed(!collapsed);
   };
@@ -50,6 +53,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setShowAllItems((prev) => !prev);
   };
+  // Assuming this code snippet is within your ReceiptProcess.jsx component
+
   const handleProcessReceipt = async () => {
     try {
       setIsProcessing(true);
@@ -63,6 +68,48 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
         );
         return;
       }
+
+      // --- Start of NEW Item Consolidation Logic ---
+      if (data.data && data.data.items && data.data.items.length > 0) {
+        const originalItems = data.data.items;
+        const consolidatedItems = [];
+
+        for (let i = 0; i < originalItems.length; i++) {
+          const currentItem = originalItems[i];
+
+          // Check if the current item has a price of 0 and is not the very first item
+          if (currentItem.price === 0 && i > 0) {
+            // Attempt to append this item's name to the previous item's name
+            const lastConsolidatedItem =
+              consolidatedItems[consolidatedItems.length - 1];
+
+            if (lastConsolidatedItem) {
+              // Append the current item name in parentheses to the previous item's name
+              lastConsolidatedItem.name = `${lastConsolidatedItem.name} (${currentItem.name})`;
+              // Optionally, you can also transfer category/subcategory if they are missing on the main item
+              if (!lastConsolidatedItem.category && currentItem.category) {
+                lastConsolidatedItem.category = currentItem.category;
+              }
+              if (
+                !lastConsolidatedItem.subcategory &&
+                currentItem.subcategory
+              ) {
+                lastConsolidatedItem.subcategory = currentItem.subcategory;
+              }
+            } else {
+              // Fallback: If for some reason there's no previous item (should be rare for add-ons),
+              // add it as a standalone item.
+              consolidatedItems.push(currentItem);
+            }
+          } else {
+            // If the item has a price > 0, or it's the first item, add it directly
+            consolidatedItems.push(currentItem);
+          }
+        }
+        // Update the items in your extractedData with the consolidated list
+        data.data.items = consolidatedItems;
+      }
+      // --- End of NEW Item Consolidation Logic ---
 
       // Set the extracted data if it is a receipt
       setExtractedData(data.data); // access the inner `data` field
@@ -109,6 +156,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
 
     try {
       setIsProcessing(true);
+      setHasSaved(true); // <-- Set hasSaved to true HERE
 
       const fileInfo = await FileSystem.getInfoAsync(imageUri);
       const fileUri = fileInfo.uri;
@@ -179,6 +227,16 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
         vat: parseFloat(extractedData.vat) || 0,
         total: parseFloat(extractedData.total) || 0,
         items: JSON.stringify(itemsWithIds || []),
+        cardLastFourDigits: extractedData.cardLastFourDigits || "null",
+        cashierId: extractedData.cashierId || "null",
+        payment_method: extractedData.paymentMethod || "null",
+        storeBranchId: extractedData.storeBranchId || "null",
+        transactionId: extractedData.transactionId || "null",
+        loyalty_points:
+          typeof extractedData.loyaltyPoints === "string"
+            ? parseInt(extractedData.loyaltyPoints) // Convert string "0" to number 0 if necessary
+            : extractedData.loyaltyPoints || 0,
+        notes: extractedData.notes || "null",
         image_file_id: uploadedFile.$id,
         image_type: uploadedFile.mimeType,
         image_size: uploadedFile.sizeOriginal || 0,
@@ -221,7 +279,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
           await createNotification({
             user_id: user.$id,
             title: "Points Earned",
-            message: `${user.username} you earned ${pointsExtra} Extra Points for receipt upload.`,
+            message: `${user.username} you earned ${pointsExtra} Extra Points for  ${badgeNames}!`,
             receipt_id: response.$id,
           });
           console.log(`User ${user.$id} earned badges: ${badgeNames}`);
@@ -241,6 +299,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
     } catch (error) {
       console.error("Save error:", error);
       Alert.alert("Error", "Could not save receipt.");
+      setHasSaved(false); // Reset if save fails
     } finally {
       setIsProcessing(false);
     }
@@ -267,7 +326,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
   };
 
   return (
-    <View className="  px-2 pt-2 pb-1   max-h-[100vh] bg-[#cccccd] ">
+    <View className=" px-2 pt-2 pb-1 max-h-[100vh] bg-[#cccccd] ">
       <ScrollView
         contentContainerStyle={{
           alignItems: "center",
@@ -292,26 +351,25 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
           </>
         )}
 
-        {!extractedData && (
-          <TouchableOpacity
-            onPress={() => setShowFullImage(true)}
-            className="relative w-full"
-          >
-            <Image
-              source={{ uri: imageUri }}
-              resizeMode="contain"
-              className="w-full aspect-[5/6] mb-1 mt-4 rounded-3xl"
-            />
-            <View className="absolute bottom-36 right-2 bg-black/70 px-2 py-1 rounded">
-              <Text className="font-psemibold text-base text-white">
-                Tap to view full
-              </Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
+        {/* The full image view and processing/action buttons before data extraction */}
         {!extractedData && (
           <>
+            <TouchableOpacity
+              onPress={() => setShowFullImage(true)}
+              className="relative w-full"
+            >
+              <Image
+                source={{ uri: imageUri }}
+                resizeMode="contain"
+                className="w-full aspect-[5/6] mb-1 mt-4 rounded-3xl"
+              />
+              <View className="absolute bottom-36 right-2 bg-black/70 px-2 py-1 rounded">
+                <Text className="font-psemibold text-base text-white">
+                  Tap to view full
+                </Text>
+              </View>
+            </TouchableOpacity>
+
             {isProcessing ? (
               <View className="items-center mt-6 mb-6">
                 <ActivityIndicator size="large" color="#ef6969" />
@@ -321,18 +379,21 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
               </View>
             ) : (
               <View className="flex-row justify-center items-center gap-6 mt-4 mb-6">
-                <TouchableOpacity onPress={onCancel}>
-                  <View className="items-center">
-                    <Image
-                      source={images.cancel}
-                      resizeMode="contain"
-                      className="w-[50px] h-[50px] rounded-full p-1 border-2 border-red-400 opacity-90"
-                    />
-                    <Text className="mt-1 font-pregular text-sm text-black/80">
-                      Cancel
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                {/* Cancel Button - Hidden when hasSaved is true */}
+                {!hasSaved && (
+                  <TouchableOpacity onPress={onCancel}>
+                    <View className="items-center">
+                      <Image
+                        source={images.cancel}
+                        resizeMode="contain"
+                        className="w-[50px] h-[50px] rounded-full p-1 border-2 border-red-400 opacity-90"
+                      />
+                      <Text className="mt-1 font-pregular text-sm text-black/80">
+                        Cancel
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
 
                 <TouchableOpacity onPress={handleProcessReceipt}>
                   <View className="items-center">
@@ -351,13 +412,10 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
           </>
         )}
 
-        {extractedData && (
+        {/* Extracted Data Display - Hidden when hasSaved is true */}
+        {extractedData && !hasSaved && (
           <>
-            <View className="w-full  mt-1 px-8 py-1   rounded-xl    mb-2">
-              {/* <Text className="font-plight text-lg mb-2 text-red-900 text-center underline">
-                Receipt Details
-              </Text> */}
-
+            <View className="w-full mt-1 px-8 py-1 rounded-xl mb-2">
               {extractedData.merchant && !showAllItems && (
                 <Text className="text-blue-900 font-psemibold mb-3 text-base">
                   <Text className="text-black font-semibold text-base ">
@@ -367,22 +425,26 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
                 </Text>
               )}
 
-              {extractedData.location && !showAllItems && (
-                <Text className="text-blue-900 font-psemibold mb-3 text-base">
-                  <Text className="text-black font-pbold text-base">
-                    📍 Location →
+              {extractedData.location &&
+                !showAllItems &&
+                (extractedData.location.address ||
+                  extractedData.location.city ||
+                  extractedData.location.country) && (
+                  <Text className="text-blue-900 font-psemibold mb-3 text-base">
+                    <Text className="text-black font-pbold text-base">
+                      📍 Location →
+                    </Text>
+                    <Text>
+                      {extractedData.location.address
+                        ? extractedData.location.address + ", "
+                        : ""}
+                      {extractedData.location.city
+                        ? extractedData.location.city + ", "
+                        : ""}
+                      {extractedData.location.country}
+                    </Text>
                   </Text>
-                  <Text>
-                    {extractedData.location.address
-                      ? extractedData.location.address + ", "
-                      : ""}
-                    {extractedData.location.city
-                      ? extractedData.location.city + ", "
-                      : ""}
-                    {extractedData.location.country}
-                  </Text>
-                </Text>
-              )}
+                )}
 
               {extractedData.datetime && !showAllItems && (
                 <Text className="text-blue-900 font-psemibold mb-3 text-base">
@@ -393,7 +455,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
                     undefined,
                     {
                       year: "numeric",
-                      month: "short", // 'short' for "May", 'long' for "May"
+                      month: "short",
                       day: "numeric",
                     }
                   )}{" "}
@@ -402,7 +464,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
                     {
                       hour: "2-digit",
                       minute: "2-digit",
-                      hour12: true, // true for AM/PM, false for 24-hour
+                      hour12: true,
                     }
                   )}
                 </Text>
@@ -420,11 +482,9 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
                 </View>
               )}
 
-              {/* Items extracted as collapssed */}
-
+              {/* Items extracted as collapsed */}
               {extractedData.items?.length > 0 && (
                 <View className="mb-3">
-                  {/* Always show the "Items" label */}
                   <View className="flex-row items-center mb-1">
                     <Text className="font-pbold text-base text-blue-700">
                       🛒 Items:
@@ -442,7 +502,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
                     ? extractedData.items
                     : extractedData.items.slice(0, 2)
                   ).map((item, index) => (
-                    <View key={index} className="ml-4 mb-1 p-1   ">
+                    <View key={index} className="ml-4 mb-1 p-1 ">
                       <Text className="text-blue-900 font-psemibold text-base">
                         • {item.name || "Unnamed item"} →{" "}
                         <Text className="font-bold text-red-900 text-base">
@@ -452,7 +512,6 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
                     </View>
                   ))}
 
-                  {/* Show toggle only if more than 3 items */}
                   {extractedData.items.length > 3 && (
                     <TouchableOpacity onPress={toggleItems}>
                       <Text className="text-blue-700 font-pbold ml-4 mt-1 text-base">
@@ -466,7 +525,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
               )}
 
               {extractedData.subtotal && !showAllItems && (
-                <Text className="text-red-900  text-base font-psemibold mb-1">
+                <Text className="text-red-900 text-base font-psemibold mb-1">
                   <Text className="text-black font-pbold text-base">
                     💵 Subtotal →
                   </Text>{" "}
@@ -474,7 +533,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
                 </Text>
               )}
               {extractedData.vat && !showAllItems && (
-                <Text className="text-red-900  text-base font-psemibold mb-1">
+                <Text className="text-red-900 text-base font-psemibold mb-1">
                   <Text className="text-black font-pbold text-base">
                     🧾 VAT →
                   </Text>{" "}
@@ -505,18 +564,21 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
 
             {/* Buttons */}
             <View className="flex-row justify-center items-center gap-6 mt-0 mb-1">
-              <TouchableOpacity onPress={onCancel}>
-                <View className="items-center">
-                  <Image
-                    source={images.cancel}
-                    resizeMode="contain"
-                    className="w-[55px] h-[55px] rounded-full p-1 border-2 border-red-400 opacity-90"
-                  />
-                  <Text className="mt-1 font-pregular text-sm text-black/80">
-                    Cancel
-                  </Text>
-                </View>
-              </TouchableOpacity>
+              {/* Cancel Button - Hidden when hasSaved is true */}
+              {!hasSaved && (
+                <TouchableOpacity onPress={onCancel}>
+                  <View className="items-center">
+                    <Image
+                      source={images.cancel}
+                      resizeMode="contain"
+                      className="w-[55px] h-[55px] rounded-full p-1 border-2 border-red-400 opacity-90"
+                    />
+                    <Text className="mt-1 font-pregular text-sm text-black/80">
+                      Cancel
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity onPress={handleSave}>
                 <View className="items-center opacity-100">
@@ -536,19 +598,20 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
           </>
         )}
 
-        {extractedData && isProcessing && (
-          <View className="items-center mt-4 mb-6 px-4">
-            <ActivityIndicator size="large" color="#ef6969" />
-            <Text className="text-center mt-2 text-black/70 font-pregular">
-              Your data is saved securely and may be shared with trusted third
-              parties.
-            </Text>
-            {/* <Text className="text-center text-black/70 font-pregular">
-              We value your trust. All shared data is anonymized and requires
-              your consent.
-            </Text> */}
-          </View>
-        )}
+        {/* This block shows only after save is clicked OR during initial processing */}
+        {extractedData &&
+          isProcessing &&
+          hasSaved && ( // <-- Added hasSaved condition here
+            <View className="items-center mt-4 mb-6 px-4">
+              <ActivityIndicator size="large" color="#ef6969" />
+              <Text className="text-center mt-2 text-black/70 font-pregular">
+                Your data is saving securely...
+              </Text>
+              <Text className="text-center mt-2 text-black/70 font-pregular">
+                Please wait while we process your request.
+              </Text>
+            </View>
+          )}
       </ScrollView>
 
       <ReceiptFull

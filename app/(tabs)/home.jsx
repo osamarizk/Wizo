@@ -10,6 +10,7 @@ import {
   Pressable,
   StyleSheet,
   ScrollView,
+  Alert,
 } from "react-native";
 import React, { useEffect, useState, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -28,6 +29,7 @@ import {
   getAllCategories,
   getUserPoints,
   getUserEarnedBadges,
+  deleteReceiptById,
 } from "../../lib/appwrite";
 import { router, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -107,6 +109,9 @@ const Home = () => {
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
 
+  const [showReceiptOptionsModal, setShowReceiptOptionsModal] = useState(false);
+  const [selectedReceipt, setSelectedReceipt] = useState(null); // Stores the receipt object when dots are clicked
+
   const now = new Date();
   const monthOptions = { month: "long" };
   const monthName = now.toLocaleString("default", monthOptions); // 'default' uses the user's default locale
@@ -141,8 +146,9 @@ const Home = () => {
         setUnreadCount(count);
         setReceiptStats(stats);
         setAllReceipts(allReceipts); // Set all receipts to state
-        console.log("stats", stats);
-        // console.log("allReceipts", allReceipts);
+        // console.log("stats", stats);
+        // console.log("ReceiptStats...", stats);
+        // console.log("allReceipts...", allReceipts);
 
         const spendingByCategory = stats.monthlyCategorySpendingBreakdown || {};
         const totalItemsPriceForMonth = Object.values(
@@ -278,12 +284,12 @@ const Home = () => {
     }, [user, fetchData, globalLoading])
   );
 
-  if (isLoading || globalLoading) {
+  if (isLoading || refreshing) {
     return (
       <GradientBackground colors={gradientColors}>
         <SafeAreaView className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text className="text-white mt-4 font-pmedium text-lg">
+          <Text className="text-black mt-4 font-pextralight text-lg">
             Loading your dashboard...
           </Text>
         </SafeAreaView>
@@ -525,6 +531,64 @@ const Home = () => {
     setModalTitle("");
     setModalMessage("");
   };
+
+  // <--- NEW RECEIPT OPTIONS HANDLERS ---
+  const handleViewDetails = () => {
+    if (selectedReceipt) {
+      // Assuming you have a route like '/receipt-details/[id]'
+      router.push(`/receipt-details/${selectedReceipt.$id}`);
+    }
+    setShowReceiptOptionsModal(false);
+    setSelectedReceipt(null);
+  };
+
+  const handleEditReceipt = () => {
+    if (selectedReceipt) {
+      // Assuming you have a route like '/edit-receipt/[id]'
+      router.push(`/edit-receipt/${selectedReceipt.$id}`);
+    }
+    setShowReceiptOptionsModal(false);
+    setSelectedReceipt(null);
+  };
+
+  const handleDeleteReceipt = () => {
+    if (!selectedReceipt) return;
+
+    Alert.alert(
+      "Delete Receipt",
+      `Are you sure you want to delete the receipt from ${selectedReceipt.merchant}? This action cannot be undone.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => setShowReceiptOptionsModal(false), // Close modal if cancelled
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteReceiptById(selectedReceipt.$id); // Implement this Appwrite function
+              Alert.alert("Success", "Receipt deleted successfully.");
+              onRefresh(); // Refresh the list to reflect deletion
+            } catch (error) {
+              console.error("Error deleting receipt:", error);
+              Alert.alert(
+                "Error",
+                "Failed to delete receipt. Please try again."
+              );
+            } finally {
+              setShowReceiptOptionsModal(false); // Always close modal
+              setSelectedReceipt(null);
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+  // --- NEW RECEIPT OPTIONS HANDLERS END ---
+
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1 ">
@@ -573,7 +637,7 @@ const Home = () => {
               </View>
 
               {/* Points Display */}
-              <View className="flex-row items-center justify-between mb-1">
+              <View className="flex-row items-center justify-between mb-2">
                 <View className=" mt-2">
                   <Text className="text-gray-600 font-pmedium text-lg">
                     Your Points:{" "}
@@ -713,11 +777,16 @@ const Home = () => {
               {/* Top Spending Insights */}
               {receiptStats.highestSpendingCategory && (
                 <View className=" p-4  border-2 rounded-md border-[#9F54B6] mb-4">
-                  <Text className="text-base font-pregular text-gray-700 mb-2">
+                  <Text className="text-base font-pregular text-black mb-2">
                     Top Spending Insight of{" "}
                     <Text className="font-psemibold text-xl text-[#4E17B3]">
                       {monthName}
                     </Text>
+                  </Text>
+                  <Text className="text-sm font-pregular text-gray-600 mb-2 italic">
+                    Calculation based on the individual item prices from your
+                    receipts, prior to any discounts, VAT, or other service
+                    charges.
                   </Text>
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2">
@@ -763,56 +832,57 @@ const Home = () => {
               )}
 
               {/* Spending Categories Charts */}
-              <View className=" p-2  border-2 rounded-md border-[#9F54B6] mb-4">
-                <Text className="text-base font-pregular text-gray-700 -mb-1">
-                  Spending Categories of{" "}
-                  <Text className="font-psemibold text-xl text-[#4E17B3]">
-                    {monthName}
+              {receiptStats.monthlySpending > 0 && (
+                <View className=" p-2  border-2 rounded-md border-[#9F54B6] mb-4">
+                  <Text className="text-base font-pregular text-black -mb-1">
+                    Spending Categories of{" "}
+                    <Text className="font-psemibold text-xl text-[#4E17B3]">
+                      {monthName}
+                    </Text>
+                    <Text className="text-xl font-bold text-black font-pbold mt-2">
+                      {" : "}
+                      EGP {receiptStats.monthlySpending.toFixed(2)}
+                    </Text>
                   </Text>
-                  <Text className="text-xl font-bold text-black font-pbold mt-2">
-                    {" : "}
-                    EGP {receiptStats.monthlySpending.toFixed(2)}
-                  </Text>
-                </Text>
 
-                {categorySpendingData.length > 0 ? (
-                  <View className="flex-row items-center justify-center gap-2">
-                    <View className="w-[150px] h-[150px] justify-center items-center ">
-                      {renderPieChart()}
+                  {categorySpendingData.length > 0 ? (
+                    <View className="flex-row items-center justify-center gap-2">
+                      <View className="w-[150px] h-[150px] justify-center items-center ">
+                        {renderPieChart()}
+                      </View>
+
+                      <View className="flex-1 flex-col">
+                        <Text className="font-psemibold mb-2 text-blue-600 text-base">
+                          👇 check details 👇
+                        </Text>
+                        {categorySpendingData.map((item) => (
+                          <TouchableOpacity
+                            key={item.id}
+                            onPress={() => handlePieChartPress(item)}
+                            className="flex-row items-center mb-2 "
+                          >
+                            <View
+                              className="w-3 h-3 rounded-full mr-2"
+                              style={{ backgroundColor: item.color || "gray" }}
+                            />
+                            <Text className="text-md font-pregular text-gray-700 underline">
+                              {item.name} (
+                              {typeof item.percent === "number"
+                                ? item.percent.toFixed(1)
+                                : "0"}
+                              %)
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
                     </View>
-
-                    <View className="flex-1 flex-col">
-                      <Text className="font-psemibold mb-2 text-blue-600 text-base">
-                        👇 check details 👇
-                      </Text>
-                      {categorySpendingData.map((item) => (
-                        <TouchableOpacity
-                          key={item.id}
-                          onPress={() => handlePieChartPress(item)}
-                          className="flex-row items-center mb-2 "
-                        >
-                          <View
-                            className="w-3 h-3 rounded-full mr-2"
-                            style={{ backgroundColor: item.color || "gray" }}
-                          />
-                          <Text className="text-md font-pregular text-gray-700 underline">
-                            {item.name} (
-                            {typeof item.percent === "number"
-                              ? item.percent.toFixed(1)
-                              : "0"}
-                            %)
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                ) : (
-                  <Text className="text-gray-500 italic mt-4">
-                    No spending data available.
-                  </Text>
-                )}
-              </View>
-
+                  ) : (
+                    <Text className="text-gray-500 italic mt-4">
+                      No spending data available.
+                    </Text>
+                  )}
+                </View>
+              )}
               {/* Category Details Modal */}
               {selectedCategory && (
                 <Modal
@@ -858,8 +928,8 @@ const Home = () => {
 
               {/* Latest Receipts Section */}
               <View className="p-4 border-2 rounded-md border-[#9F54B6] mb-4">
-                <Text className="text-lg font-semibold text-[#4E17B3] mb-2">
-                  Latest Receipts
+                <Text className="text-lg font-semibold text-black mb-2">
+                  Latest Uplaoded Receipts
                 </Text>
                 {latestReceipts.length > 0 ? (
                   latestReceipts.map((item) => (
@@ -894,9 +964,11 @@ const Home = () => {
                         </View>
                       </View>
                       <TouchableOpacity
-                        onPress={() =>
-                          console.log(`Options for receipt ${item.$id}`)
-                        }
+                        onPress={() => {
+                          setSelectedReceipt(item); // Set the selected receipt
+                          setShowReceiptOptionsModal(true); // Show the modal
+                        }}
+                        className="p-2" // Add some padding for easier tap target
                       >
                         <Image source={icons.dots} className="w-6 h-6" />
                       </TouchableOpacity>
@@ -928,35 +1000,35 @@ const Home = () => {
               {/* Budget Display/Prompt */}
 
               {userBudget && userBudget.length > 0 && (
-                <View className=" flex  p-4  mb-4   backdrop-blur-sm shadow-md shadow-[#878fe7]  rounded-xl  border-2 border-[#9F54B6] ">
-                  <Text className="text-lg font-semibold text-[#4E17B3] mb-2">
-                    Budget Setup
+                <View className=" flex  p-4  mb-4    rounded-xl  border-2 border-[#9F54B6] ">
+                  <Text className="text-lg font-psemibold text-black mb-2">
+                    My Budgets
                   </Text>
                   <View className="w-full max-w-md justify-center items-center">
                     <TouchableOpacity
                       onPress={toggleExpanded} // Toggle expansion on press
                       className="w-full flex flex-row items-center justify-between"
                     >
-                      <Text className="text-center text-xl font-pbold text-gray-800  mb-4">
-                        Expand to Check Your Budgets
+                      <Text className="text-center text-base font-pregular text-black  mb-4 underline">
+                        Expand to Check My Budgets
                       </Text>
-                      {isExpanded ? (
+                      {/* {isExpanded ? (
                         <>
                           <Image
                             source={icons.up}
-                            className="w-7 h-7"
-                            tintColor="#9F54B6"
+                            className="w-6 h-6"
+                            // tintColor="#000"
                           />
                         </>
                       ) : (
                         <>
                           <Image
                             source={icons.down}
-                            className="w-7 h-7"
-                            tintColor="#9F54B6"
+                            className="w-6 h-6"
+                            // tintColor="#000"
                           />
                         </>
-                      )}
+                      )} */}
                     </TouchableOpacity>
                     <Collapsible collapsed={!isExpanded}>
                       {isExpanded && (
@@ -967,7 +1039,7 @@ const Home = () => {
                               onPress={() => ViewBudget(budget.$id)}
                               className="p-4  mb-4 border-2 rounded-md border-[#9F54B6]"
                             >
-                              <Text className="text-gray-700 text-center font-pregular text-base">
+                              <Text className="text-black text-center font-pregular text-base">
                                 {/* Display category or identifier */}
                                 Budget for {getCategoryName(budget.categoryId)}:
                                 EGP {budget.budgetAmount.toFixed(2)}
@@ -980,11 +1052,26 @@ const Home = () => {
                         </View>
                       )}
                     </Collapsible>
-                    <TouchableOpacity
+                    {/* <TouchableOpacity
                       onPress={SetupBudget}
                       className=" flex px-4 py-2 items-center justify-center w-28 h-28 border-x-4 border-[#9F54B6] rounded-full mt-2"
                     >
                       <Text className="text-blue-700 text-center font-semibold text-base">
+                        Add New Budget
+                      </Text>
+                    </TouchableOpacity> */}
+
+                    <TouchableOpacity
+                      onPress={SetupBudget}
+                      className=" p-4 items-center  justify-center "
+                    >
+                      <Image
+                        source={icons.pie} // Reusing pie icon, or use a new one for budget prompt
+                        className="w-12 h-12 "
+                        resizeMode="contain"
+                        tintColor="#000" // A color that stands b-4
+                      />
+                      <Text className="text-black font-pregular text-base text-center">
                         Add New Budget
                       </Text>
                     </TouchableOpacity>
@@ -1013,6 +1100,66 @@ const Home = () => {
             onRefresh={onRefresh}
           />
         )}
+
+        {/* <--- NEW: Receipt Options Modal ---/> */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={showReceiptOptionsModal}
+          onRequestClose={() => setShowReceiptOptionsModal(false)}
+        >
+          <Pressable
+            style={styles.centeredView} // Reuse existing style
+            onPress={() => setShowReceiptOptionsModal(false)} // Close when tapping outside
+          >
+            <View
+              style={styles.receiptOptionsModalView}
+              onStartShouldSetResponder={() => true}
+            >
+              <Text style={styles.modalTitle}>Receipt Options</Text>
+              {selectedReceipt && (
+                <Text style={styles.modalSubtitle}>
+                  {selectedReceipt.merchant} - EGP{" "}
+                  {parseFloat(selectedReceipt.total).toFixed(2)}
+                </Text>
+              )}
+
+              <TouchableOpacity
+                style={styles.modalOptionButton}
+                onPress={handleViewDetails}
+              >
+                <Text style={styles.modalOptionText}>View Details</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalOptionButton}
+                onPress={handleEditReceipt}
+              >
+                <Text style={styles.modalOptionText}>Edit Receipt</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.modalOptionButton,
+                  { backgroundColor: "#ef4444" },
+                ]} // Red background for delete
+                onPress={handleDeleteReceipt}
+              >
+                <Text style={[styles.modalOptionText, { color: "white" }]}>
+                  Delete Receipt
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.button, styles.buttonClose, { marginTop: 20 }]} // Reuse existing button style
+                onPress={() => setShowReceiptOptionsModal(false)}
+              >
+                <Text style={styles.textStyle}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Modal>
+        {/* <--- END NEW: Receipt Options Modal ---/> */}
       </SafeAreaView>
     </GradientBackground>
   );
@@ -1090,5 +1237,44 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 16,
   },
+
+  // <--- NEW STYLES FOR RECEIPT OPTIONS MODAL ---
+  receiptOptionsModalView: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 10,
+    padding: 25,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    width: "70%",
+    maxWidth: 350,
+  },
+  modalSubtitle: {
+    fontSize: 15,
+    color: "#666",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  modalOptionButton: {
+    width: "100%",
+    padding: 15,
+    marginVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "#f0f0f0",
+    alignItems: "center",
+  },
+  modalOptionText: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#333",
+  },
+  // --- END NEW STYLES ---
 });
 export default Home;
