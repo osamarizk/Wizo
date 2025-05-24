@@ -12,6 +12,9 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+
 import React, { useEffect, useState, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import GradientBackground from "../../components/GradientBackground";
@@ -30,6 +33,7 @@ import {
   getUserPoints,
   getUserEarnedBadges,
   deleteReceiptById,
+  getReceiptImageDownloadUrl,
 } from "../../lib/appwrite";
 import { router, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -46,6 +50,7 @@ import Animated, {
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
   "#D03957", // Red
+  "#264653", // Dark Blue
   "#F4A261", // Orange
   "#2A9D8F", // Teal
   "#F9C74F", //Yellow
@@ -54,7 +59,7 @@ const gradientColors = [
   "#8AC926", // Lime Green
   "#9F54B6", // Darker Purple
   "#E76F51", // Coral
-  "#264653", // Dark Blue
+
   "#CBF3F0", // Light Blue
   "#FFBF69", // Gold
   "#A3B18A", // Olive Green
@@ -101,6 +106,8 @@ const Home = () => {
   });
   const [showSpendingModal, setShowSpendingModal] = useState(true);
   const [categoryMerchantAnalysis, setCategoryMerchantAnalysis] = useState([]); // New state for merchant analysis
+
+  const [isDownloading, setIsDownloading] = useState(false); // Add this new state
 
   // NEW STATE FOR POINTS AND BADGES
   const [userTotalPoints, setUserTotalPoints] = useState(0);
@@ -542,13 +549,59 @@ const Home = () => {
     setSelectedReceipt(null);
   };
 
-  const handleEditReceipt = () => {
-    if (selectedReceipt) {
-      // Assuming you have a route like '/edit-receipt/[id]'
-      router.push(`/edit-receipt/${selectedReceipt.$id}`);
+  const handleDowanLoadReceipt = async () => {
+    if (!selectedReceipt || !selectedReceipt.image_file_id) {
+      Alert.alert(
+        "Error",
+        "Receipt image information is missing. Cannot download."
+      );
+      return;
     }
-    setShowReceiptOptionsModal(false);
-    setSelectedReceipt(null);
+
+    setIsDownloading(true); // <--- Set loading to true when download starts
+
+    try {
+      const fileUrlString = await getReceiptImageDownloadUrl(
+        selectedReceipt.image_file_id
+      );
+
+      if (!fileUrlString) {
+        Alert.alert("Error", "Failed to retrieve receipt image download URL.");
+        return;
+      }
+
+      const fileUrl = new URL(fileUrlString);
+
+      const fileName = `receipt-${
+        selectedReceipt.merchant
+      }-${new Date().getTime()}.jpg`;
+      const localUri = FileSystem.documentDirectory + fileName;
+
+      const { uri } = await FileSystem.downloadAsync(
+        fileUrl.toString(),
+        localUri
+      );
+
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert("Error", "Sharing is not available on your platform.");
+        return;
+      }
+
+      await Sharing.shareAsync(uri, {
+        mimeType: "image/jpeg",
+        UTI: "public.jpeg",
+      });
+
+      Alert.alert("Success", "Receipt image downloaded and shared!");
+    } catch (error) {
+      console.error("Error in handleDowanLoadReceipt:", error);
+      Alert.alert(
+        "Error",
+        `Failed to download or share receipt image: ${error.message}`
+      );
+    } finally {
+      setIsDownloading(false); // <--- Set loading to false when download finishes (success or error)
+    }
   };
 
   const handleDeleteReceipt = () => {
@@ -852,8 +905,8 @@ const Home = () => {
                       </View>
 
                       <View className="flex-1 flex-col">
-                        <Text className="font-psemibold mb-2 text-blue-600 text-base">
-                          👇 check details 👇
+                        <Text className="font-psemibold mb-2 text-blue-800 text-base">
+                          👇 View details 👇
                         </Text>
                         {categorySpendingData.map((item) => (
                           <TouchableOpacity
@@ -1010,7 +1063,7 @@ const Home = () => {
                       className="w-full flex flex-row items-center justify-between"
                     >
                       <Text className="text-center text-base font-pregular text-black  mb-4 underline">
-                        Expand to Check My Budgets
+                        👇 Expand to Check My Budgets 👇
                       </Text>
                       {/* {isExpanded ? (
                         <>
@@ -1037,9 +1090,9 @@ const Home = () => {
                             <TouchableOpacity
                               key={budget.$id}
                               onPress={() => ViewBudget(budget.$id)}
-                              className="p-4  mb-4 border-2 rounded-md border-[#9F54B6]"
+                              className="p-4  mb-4 border-2 rounded-md border-[#fff]"
                             >
-                              <Text className="text-black text-center font-pregular text-base">
+                              <Text className="text-[#15493a] text-center font-psemibold text-base">
                                 {/* Display category or identifier */}
                                 Budget for {getCategoryName(budget.categoryId)}:
                                 EGP {budget.budgetAmount.toFixed(2)}
@@ -1069,9 +1122,9 @@ const Home = () => {
                         source={icons.pie} // Reusing pie icon, or use a new one for budget prompt
                         className="w-12 h-12 "
                         resizeMode="contain"
-                        tintColor="#000" // A color that stands b-4
+                        tintColor="#15493a" // A color that stands b-4
                       />
-                      <Text className="text-black font-pregular text-base text-center">
+                      <Text className="text-[#15493a] font-psemibold text-base text-center">
                         Add New Budget
                       </Text>
                     </TouchableOpacity>
@@ -1132,10 +1185,14 @@ const Home = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.modalOptionButton}
-                onPress={handleEditReceipt}
+                onPress={() => handleDowanLoadReceipt(selectedReceipt)} // Pass selectedReceipt if it's not globally available
+                disabled={isDownloading} // Disable the button while downloading
               >
-                <Text style={styles.modalOptionText}>Edit Receipt</Text>
+                {isDownloading ? (
+                  <ActivityIndicator size="smal" color="#0000ff" /> // Show indicator when downloading
+                ) : (
+                  <Text style={styles.modalOptionText}>Download Receipt</Text> // Original button text/icon
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1159,6 +1216,28 @@ const Home = () => {
             </View>
           </Pressable>
         </Modal>
+
+        {/* Optionally, for a full-screen overlay */}
+        {isDownloading && (
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: "rgba(0,0,0,0.5)", // Semi-transparent background
+              zIndex: 999, // Ensure it's on top
+            }}
+          >
+            <ActivityIndicator size="large" color="#ffffff" />
+            <Text style={{ color: "#ffffff", marginTop: 10 }}>
+              Downloading...
+            </Text>
+          </View>
+        )}
         {/* <--- END NEW: Receipt Options Modal ---/> */}
       </SafeAreaView>
     </GradientBackground>
