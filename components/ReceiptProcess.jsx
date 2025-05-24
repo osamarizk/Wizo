@@ -230,8 +230,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
         cardLastFourDigits: extractedData.cardLastFourDigits || "null",
         cashierId: extractedData.cashierId || "null",
         payment_method: extractedData.paymentMethod || "null",
-        storeBranchId: extractedData.storeBranchId || "null",
-        transactionId: extractedData.transactionId || "null",
+        storeBranchId: String(extractedData.storeBranchId || "null"), // Convert to string
+        transactionId: String(extractedData.transactionId || "null"),
         loyalty_points:
           typeof extractedData.loyaltyPoints === "string"
             ? parseInt(extractedData.loyaltyPoints) // Convert string "0" to number 0 if necessary
@@ -338,12 +338,14 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
       >
         {extractedData && (
           <>
-            <Text className="text-xl text-blue-900 font-pregular text-center mb-2 mt-4 underline">
-              {!extractedData
-                ? "Receipt Processing..."
-                : "🎉Please confirm Receipt Data"}
+            <Text className="text-xl text-black font-psemibold text-center mb-2 mt-4 ">
+              {
+                hasSaved && isProcessing // If hasSaved is true and still processing
+                  ? "♥️ Saving your receipt"
+                  : "🎉Please confirm Receipt Data" // After extraction, before saving or if save failed
+              }
             </Text>
-            {/* <Image
+            {/* <Image 
               source={images.success}
               className=" w-16 h-16 right-1 "
               resizeMode="contain"
