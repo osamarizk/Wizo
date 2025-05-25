@@ -20,6 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import GradientBackground from "../../components/GradientBackground";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import icons from "../../constants/icons";
+import CustomButton from "../../components/CustomButton";
 import {
   countUnreadNotifications,
   getReceiptStats,
@@ -106,6 +107,9 @@ const Home = () => {
   });
   const [showSpendingModal, setShowSpendingModal] = useState(true);
   const [categoryMerchantAnalysis, setCategoryMerchantAnalysis] = useState([]); // New state for merchant analysis
+  const [displayedReceiptImageUri, setDisplayedReceiptImageUri] =
+    useState(null);
+  const [isFetchingImage, setIsFetchingImage] = useState(false); // To show a loading indicator while fetching the image
 
   const [isDownloading, setIsDownloading] = useState(false); // Add this new state
 
@@ -118,6 +122,8 @@ const Home = () => {
 
   const [showReceiptOptionsModal, setShowReceiptOptionsModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState(null); // Stores the receipt object when dots are clicked
+  const [isDeleting, setIsDeleting] = useState(false); // Add this new state
+  const [showReceiptDetailsModal, setShowReceiptDetailsModal] = useState(false); // New state for details modal
 
   const now = new Date();
   const monthOptions = { month: "long" };
@@ -138,6 +144,8 @@ const Home = () => {
     setRefreshing(true);
     await fetchData();
     setRefreshing(false);
+    setIsDeleting(false);
+    setIsDownloading(false);
   };
   const fetchData = useCallback(async () => {
     if (user?.$id) {
@@ -540,13 +548,33 @@ const Home = () => {
   };
 
   // <--- NEW RECEIPT OPTIONS HANDLERS ---
-  const handleViewDetails = () => {
-    if (selectedReceipt) {
-      // Assuming you have a route like '/receipt-details/[id]'
-      router.push(`/receipt-details/${selectedReceipt.$id}`);
+
+  const handleViewDetails = async () => {
+    if (!selectedReceipt || !selectedReceipt.image_file_id) {
+      Alert.alert("Info", "No image available for this receipt.");
+      setShowReceiptOptionsModal(false); // Close the options modal
+      return;
     }
-    setShowReceiptOptionsModal(false);
-    setSelectedReceipt(null);
+
+    setIsFetchingImage(true); // Start image loading indicator
+    setShowReceiptOptionsModal(false); // Close the options modal immediately
+
+    try {
+      const imageUrl = await getReceiptImageDownloadUrl(
+        selectedReceipt.image_file_id
+      );
+
+      console.log("Image_URL", imageUrl);
+      setDisplayedReceiptImageUri(imageUrl);
+      setShowReceiptDetailsModal(true); // Open the details modal
+    } catch (error) {
+      console.error("Error fetching receipt image:", error);
+      Alert.alert("Error", `Failed to load receipt image: ${error.message}`);
+      setShowReceiptDetailsModal(false); // Ensure modal doesn't open on error
+      setDisplayedReceiptImageUri(null); // Clear image URI on error
+    } finally {
+      setIsFetchingImage(false); // Stop image loading indicator
+    }
   };
 
   const handleDowanLoadReceipt = async () => {
@@ -592,7 +620,7 @@ const Home = () => {
         UTI: "public.jpeg",
       });
 
-      Alert.alert("Success", "Receipt image downloaded and shared!");
+      // Alert.alert("Success", "Receipt image downloaded and shared!");
     } catch (error) {
       console.error("Error in handleDowanLoadReceipt:", error);
       Alert.alert(
@@ -606,6 +634,7 @@ const Home = () => {
 
   const handleDeleteReceipt = () => {
     if (!selectedReceipt) return;
+    setIsDeleting(true); // <--- Set loading to true when download starts
 
     Alert.alert(
       "Delete Receipt",
@@ -633,6 +662,7 @@ const Home = () => {
             } finally {
               setShowReceiptOptionsModal(false); // Always close modal
               setSelectedReceipt(null);
+              setIsDeleting(false); // <--- Set loading to false when download finishes (success or error)
             }
           },
         },
@@ -688,7 +718,6 @@ const Home = () => {
                   )}
                 </TouchableOpacity>
               </View>
-
               {/* Points Display */}
               <View className="flex-row items-center justify-between mb-2">
                 <View className=" mt-2">
@@ -794,6 +823,170 @@ const Home = () => {
                   </View>
                 </Pressable>
               </Modal>
+
+              {/* Receipt View Modal */}
+              <Modal
+                animationType="slide"
+                transparent={true}
+                visible={showReceiptDetailsModal}
+                onRequestClose={() => {
+                  setShowReceiptDetailsModal(false);
+                  setDisplayedReceiptImageUri(null); // Clear image on close
+                  setSelectedReceipt(null); // Reset selectedReceipt
+                }}
+              >
+                <Pressable
+                  style={styles.centeredView} // Your existing style
+                  onPress={() => {
+                    setShowReceiptDetailsModal(false);
+                    setDisplayedReceiptImageUri(null); // Clear image on close
+                    setSelectedReceipt(null); // Reset selectedReceipt
+                  }}
+                >
+                  <View
+                    className="bg-white p-6 rounded-lg w-11/12 max-h-[90vh]"
+                    onStartShouldSetResponder={() => true} // Prevents closing when tapping inside
+                  >
+                    <Text className="text-xl font-pbold text-center mb-4">
+                      Receipt Details
+                    </Text>
+
+                    {isFetchingImage ? (
+                      <View className="items-center justify-center py-10">
+                        <ActivityIndicator size="large" color="#4E17B3" />
+                        <Text className="mt-2 text-gray-600 font-pregular">
+                          Loading image...
+                        </Text>
+                      </View>
+                    ) : selectedReceipt && displayedReceiptImageUri ? (
+                      <ScrollView className="w-full">
+                        {/* Display the Image */}
+                        <View className="mb-4 items-center">
+                          {console.log(
+                            "DEBUG: Type of displayedReceiptImageUri:",
+                            typeof displayedReceiptImageUri
+                          )}
+                          {console.log(
+                            "DEBUG: Value of displayedReceiptImageUri:",
+                            displayedReceiptImageUri
+                          )}
+                          {console.log(
+                            "DEBUG: Is displayedReceiptImageUri truthy?",
+                            !!displayedReceiptImageUri
+                          )}
+                          <Image
+                            source={{ uri: displayedReceiptImageUri }}
+                            // className="w-full h-64 rounded-md" // Adjust size as needed, consider using Dimensions for dynamic sizing
+                            style={{
+                              width: Dimensions.get("window").width * 0.8,
+                              height: 450,
+                              borderRadius: 8,
+                            }} // Example: 80% of screen width, fixed height, rounded corners
+                            resizeMode="contain" // Ensures the whole image is visible
+                            onError={(error) => {
+                              console.error(
+                                `Image loading error:${displayedReceiptImageUri}`,
+                                error.nativeEvent.error
+                              );
+                              Alert.alert(
+                                "Image Error",
+                                "Failed to load receipt image. Please check your network."
+                              );
+                              // You might want to set displayedReceiptImageUri(null) here
+                              // or show a placeholder image if the original fails.
+                            }}
+                            onLoad={() => {
+                              console.log("Receipt image loaded successfully!");
+                            }}
+                          />
+                        </View>
+
+                        {/* Display Extracted Text Details */}
+                        <Text className="text-lg font-psemibold mb-1">
+                          Merchant:{" "}
+                          <Text className="font-pregular">
+                            {selectedReceipt.merchant}
+                          </Text>
+                        </Text>
+                        <Text className="text-lg font-psemibold mb-1">
+                          Total:{" "}
+                          <Text className="font-pregular">
+                            EGP {parseFloat(selectedReceipt.total).toFixed(2)}
+                          </Text>
+                        </Text>
+                        <Text className="text-lg font-psemibold mb-1">
+                          Date:{" "}
+                          <Text className="font-pregular">
+                            {new Date(
+                              selectedReceipt.datetime
+                            ).toLocaleDateString()}
+                          </Text>
+                        </Text>
+                        <Text className="text-lg font-psemibold mb-4">
+                          Category:{" "}
+                          <Text className="font-pregular">
+                            {selectedReceipt.category}
+                          </Text>
+                        </Text>
+
+                        {selectedReceipt.items && (
+                          <>
+                            <Text className="text-lg font-psemibold mb-2">
+                              Items:
+                            </Text>
+                            <View className="ml-4 mb-4 border border-gray-200 p-2 rounded-md">
+                              {/* Parse and display items from the JSON string */}
+                              {JSON.parse(selectedReceipt.items).map(
+                                (item, index) => (
+                                  <View
+                                    key={index}
+                                    className="flex-row justify-between mb-1"
+                                  >
+                                    <Text className="font-pregular w-3/4 text-sm">
+                                      {item.name}
+                                    </Text>
+                                    <Text className="font-pregular w-1/4 text-right text-sm">
+                                      EGP {parseFloat(item.price).toFixed(2)}
+                                    </Text>
+                                  </View>
+                                )
+                              )}
+                            </View>
+                          </>
+                        )}
+
+                        {/* Optional: Display notes */}
+                        {selectedReceipt.notes && (
+                          <Text className="text-lg font-psemibold mb-2">
+                            Notes:{" "}
+                            <Text className="font-pregular">
+                              {selectedReceipt.notes}
+                            </Text>
+                          </Text>
+                        )}
+                      </ScrollView>
+                    ) : (
+                      <Text className="text-center text-gray-500">
+                        No receipt data or image available.
+                      </Text>
+                    )}
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        setShowReceiptDetailsModal(false);
+                        setDisplayedReceiptImageUri(null); // Clear image URI on close
+                        setSelectedReceipt(null); // Reset selectedReceipt
+                      }}
+                      className="mt-6 bg-blue-500 rounded-md p-3 items-center"
+                    >
+                      <Text className="text-white font-pmedium text-base">
+                        Close
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </Pressable>
+              </Modal>
+
               {/* Receipt Summary */}
               <View className=" p-1  mb-4 border-2 rounded-md border-[#9F54B6]">
                 <TouchableOpacity
@@ -826,13 +1019,12 @@ const Home = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-
               {/* Top Spending Insights */}
               {receiptStats.highestSpendingCategory && (
                 <View className=" p-4  border-2 rounded-md border-[#9F54B6] mb-4">
                   <Text className="text-base font-pregular text-black mb-2">
                     Top Spending Insight of{" "}
-                    <Text className="font-psemibold text-xl text-[#4E17B3]">
+                    <Text className="font-psemibold text-xl text-[#b31731]">
                       {monthName}
                     </Text>
                   </Text>
@@ -883,13 +1075,12 @@ const Home = () => {
                   </Text>
                 </View>
               )}
-
               {/* Spending Categories Charts */}
               {receiptStats.monthlySpending > 0 && (
                 <View className=" p-2  border-2 rounded-md border-[#9F54B6] mb-4">
                   <Text className="text-base font-pregular text-black -mb-1">
                     Spending Categories of{" "}
-                    <Text className="font-psemibold text-xl text-[#4E17B3]">
+                    <Text className="font-psemibold text-xl text-[#b31731]">
                       {monthName}
                     </Text>
                     <Text className="text-xl font-bold text-black font-pbold mt-2">
@@ -978,7 +1169,6 @@ const Home = () => {
                   </Pressable>
                 </Modal>
               )}
-
               {/* Latest Receipts Section */}
               <View className="p-4 border-2 rounded-md border-[#9F54B6] mb-4">
                 <Text className="text-lg font-semibold text-black mb-2">
@@ -1020,6 +1210,8 @@ const Home = () => {
                         onPress={() => {
                           setSelectedReceipt(item); // Set the selected receipt
                           setShowReceiptOptionsModal(true); // Show the modal
+                          setIsDeleting(false);
+                          setIsDownloading(false);
                         }}
                         className="p-2" // Add some padding for easier tap target
                       >
@@ -1049,9 +1241,7 @@ const Home = () => {
                   </View>
                 )}
               </View>
-
               {/* Budget Display/Prompt */}
-
               {userBudget && userBudget.length > 0 && (
                 <View className=" flex  p-4  mb-4    rounded-xl  border-2 border-[#9F54B6] ">
                   <Text className="text-lg font-psemibold text-black mb-2">
@@ -1166,78 +1356,106 @@ const Home = () => {
             onPress={() => setShowReceiptOptionsModal(false)} // Close when tapping outside
           >
             <View
-              style={styles.receiptOptionsModalView}
+              className="bg-slate-300 p-8 w-80 rounded-md max-h-[80vh] opacity-85"
               onStartShouldSetResponder={() => true}
             >
-              <Text style={styles.modalTitle}>Receipt Options</Text>
+              <Text className="text-xl font-bold text-center">
+                Receipt Options
+              </Text>
               {selectedReceipt && (
-                <Text style={styles.modalSubtitle}>
+                <Text className="text-base text-center font-pregular text-gray-600 mb-2 mt-1">
                   {selectedReceipt.merchant} - EGP{" "}
                   {parseFloat(selectedReceipt.total).toFixed(2)}
                 </Text>
               )}
-
               <TouchableOpacity
-                style={styles.modalOptionButton}
                 onPress={handleViewDetails}
+                className="mt-3 w-full bg-[#4E17B3] rounded-md p-3 items-center justify-center" // Adjust className for your desired style
               >
-                <Text style={styles.modalOptionText}>View Details</Text>
+                <Text className="text-white font-pmedium text-base">
+                  View Receipt Details
+                </Text>
               </TouchableOpacity>
-
               <TouchableOpacity
-                onPress={() => handleDowanLoadReceipt(selectedReceipt)} // Pass selectedReceipt if it's not globally available
-                disabled={isDownloading} // Disable the button while downloading
+                onPress={() => handleDowanLoadReceipt(selectedReceipt)}
+                disabled={isDownloading} // Disable button while downloading
+                className="mt-5 w-full bg-[#335a69] rounded-md p-3 items-center justify-center "
               >
-                {isDownloading ? (
-                  <ActivityIndicator size="smal" color="#0000ff" /> // Show indicator when downloading
-                ) : (
-                  <Text style={styles.modalOptionText}>Download Receipt</Text> // Original button text/icon
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.modalOptionButton,
-                  { backgroundColor: "#ef4444" },
-                ]} // Red background for delete
-                onPress={handleDeleteReceipt}
-              >
-                <Text style={[styles.modalOptionText, { color: "white" }]}>
-                  Delete Receipt
+                <Text className="text-white font-pmedium text-base">
+                  Download Receipt
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.button, styles.buttonClose, { marginTop: 20 }]} // Reuse existing button style
+                onPress={() => handleDeleteReceipt(selectedReceipt.$id)} // Ensure you pass the correct ID for deletion
+                disabled={isDeleting} // Disable button while deleting
+                className="mt-5 w-full bg-[#D03957] rounded-md p-3 items-center justify-center"
+              >
+                <Text className="text-white font-pmedium text-base">
+                  Delete Receipt
+                </Text>
+              </TouchableOpacity>
+
+              {isDownloading && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    backgroundColor: "rgba(0,0,0,0.5)", // Semi-transparent background
+                    zIndex: 999, // Ensure it's on top
+                  }}
+                >
+                  <ActivityIndicator size="large" color="#FFFFFF" />
+                  <Text style={{ color: "#FFFFFF", marginTop: 10 }}>
+                    Downloading...
+                  </Text>
+                </View>
+              )}
+
+              {isDeleting && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    backgroundColor: "rgba(0,0,0,0.5)", // Semi-transparent background
+                    zIndex: 999, // Ensure it's on top
+                  }}
+                >
+                  <ActivityIndicator size="large" color="##FFFFFF" />
+                  <Text style={{ color: "#FFFFFF", marginTop: 10 }}>
+                    Deleting...
+                  </Text>
+                </View>
+              )}
+
+              <TouchableOpacity
+                className="absolute top-2 right-2 p-2 rounded-full"
+                // style={[styles.button, styles.buttonClose, { marginTop: 20 }]} // Reuse existing button style
                 onPress={() => setShowReceiptOptionsModal(false)}
               >
-                <Text style={styles.textStyle}>Cancel</Text>
+                <Image
+                  source={icons.close}
+                  resizeMode="contain"
+                  className="w-7 h-7 "
+                />
+                {/* <Text style={styles.textStyle}>Cancel</Text> */}
               </TouchableOpacity>
             </View>
           </Pressable>
         </Modal>
 
         {/* Optionally, for a full-screen overlay */}
-        {isDownloading && (
-          <View
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              justifyContent: "center",
-              alignItems: "center",
-              backgroundColor: "rgba(0,0,0,0.5)", // Semi-transparent background
-              zIndex: 999, // Ensure it's on top
-            }}
-          >
-            <ActivityIndicator size="large" color="#ffffff" />
-            <Text style={{ color: "#ffffff", marginTop: 10 }}>
-              Downloading...
-            </Text>
-          </View>
-        )}
+
         {/* <--- END NEW: Receipt Options Modal ---/> */}
       </SafeAreaView>
     </GradientBackground>
