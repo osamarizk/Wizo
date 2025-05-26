@@ -42,11 +42,7 @@ import UploadModal from "../../components/UploadModal";
 import { PieChart, BarChart, LineChart } from "react-native-chart-kit";
 import { FlashList } from "@shopify/flash-list"; // Import FlashList
 import Collapsible from "react-native-collapsible"; // Import the collapsible component
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-} from "react-native-reanimated"; // Added
+import ReceiptFull from "../../components/ReceiptFull";
 
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
@@ -124,6 +120,8 @@ const Home = () => {
   const [selectedReceipt, setSelectedReceipt] = useState(null); // Stores the receipt object when dots are clicked
   const [isDeleting, setIsDeleting] = useState(false); // Add this new state
   const [showReceiptDetailsModal, setShowReceiptDetailsModal] = useState(false); // New state for details modal
+
+  const [showFullImage, setShowFullImage] = useState(false);
 
   const now = new Date();
   const monthOptions = { month: "long" };
@@ -844,10 +842,10 @@ const Home = () => {
                   }}
                 >
                   <View
-                    className="bg-white p-6 rounded-lg w-11/12 max-h-[90vh]"
+                    className="bg-slate-300 p-6 rounded-lg w-11/12 max-h-[75vh]"
                     onStartShouldSetResponder={() => true} // Prevents closing when tapping inside
                   >
-                    <Text className="text-xl font-pbold text-center mb-4">
+                    <Text className="text-xl font-bold text-center mb-4">
                       Receipt Details
                     </Text>
 
@@ -874,96 +872,50 @@ const Home = () => {
                             "DEBUG: Is displayedReceiptImageUri truthy?",
                             !!displayedReceiptImageUri
                           )}
-                          <Image
-                            source={{ uri: displayedReceiptImageUri }}
-                            // className="w-full h-64 rounded-md" // Adjust size as needed, consider using Dimensions for dynamic sizing
-                            style={{
-                              width: Dimensions.get("window").width * 0.8,
-                              height: 450,
-                              borderRadius: 8,
-                            }} // Example: 80% of screen width, fixed height, rounded corners
-                            resizeMode="contain" // Ensures the whole image is visible
-                            onError={(error) => {
-                              console.error(
-                                `Image loading error:${displayedReceiptImageUri}`,
-                                error.nativeEvent.error
-                              );
-                              Alert.alert(
-                                "Image Error",
-                                "Failed to load receipt image. Please check your network."
-                              );
-                              // You might want to set displayedReceiptImageUri(null) here
-                              // or show a placeholder image if the original fails.
-                            }}
-                            onLoad={() => {
-                              console.log("Receipt image loaded successfully!");
-                            }}
+                          <TouchableOpacity
+                            onPress={() => setShowFullImage(true)}
+                            className="relative w-full"
+                          >
+                            <Image
+                              source={{ uri: displayedReceiptImageUri }}
+                              // className="w-full h-64 rounded-md" // Adjust size as needed, consider using Dimensions for dynamic sizing
+                              style={{
+                                width: Dimensions.get("window").width * 0.8,
+                                height: 400,
+                                borderRadius: 8,
+                              }} // Example: 80% of screen width, fixed height, rounded corners
+                              resizeMode="contain" // Ensures the whole image is visible
+                              onError={(error) => {
+                                console.error(
+                                  `Image loading error:${displayedReceiptImageUri}`,
+                                  error.nativeEvent.error
+                                );
+                                Alert.alert(
+                                  "Image Error",
+                                  "Failed to load receipt image. Please check your network."
+                                );
+                                // You might want to set displayedReceiptImageUri(null) here
+                                // or show a placeholder image if the original fails.
+                              }}
+                              onLoad={() => {
+                                console.log(
+                                  "Receipt image loaded successfully!"
+                                );
+                              }}
+                            />
+                            <View className="absolute bottom-36 right-2 bg-black/70 px-2 py-1 rounded">
+                              <Text className="font-psemibold text-base text-white">
+                                Tap to view full
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+
+                          <ReceiptFull
+                            imageUri={displayedReceiptImageUri}
+                            visible={showFullImage}
+                            onClose={() => setShowFullImage(false)}
                           />
                         </View>
-
-                        {/* Display Extracted Text Details */}
-                        <Text className="text-lg font-psemibold mb-1">
-                          Merchant:{" "}
-                          <Text className="font-pregular">
-                            {selectedReceipt.merchant}
-                          </Text>
-                        </Text>
-                        <Text className="text-lg font-psemibold mb-1">
-                          Total:{" "}
-                          <Text className="font-pregular">
-                            EGP {parseFloat(selectedReceipt.total).toFixed(2)}
-                          </Text>
-                        </Text>
-                        <Text className="text-lg font-psemibold mb-1">
-                          Date:{" "}
-                          <Text className="font-pregular">
-                            {new Date(
-                              selectedReceipt.datetime
-                            ).toLocaleDateString()}
-                          </Text>
-                        </Text>
-                        <Text className="text-lg font-psemibold mb-4">
-                          Category:{" "}
-                          <Text className="font-pregular">
-                            {selectedReceipt.category}
-                          </Text>
-                        </Text>
-
-                        {selectedReceipt.items && (
-                          <>
-                            <Text className="text-lg font-psemibold mb-2">
-                              Items:
-                            </Text>
-                            <View className="ml-4 mb-4 border border-gray-200 p-2 rounded-md">
-                              {/* Parse and display items from the JSON string */}
-                              {JSON.parse(selectedReceipt.items).map(
-                                (item, index) => (
-                                  <View
-                                    key={index}
-                                    className="flex-row justify-between mb-1"
-                                  >
-                                    <Text className="font-pregular w-3/4 text-sm">
-                                      {item.name}
-                                    </Text>
-                                    <Text className="font-pregular w-1/4 text-right text-sm">
-                                      EGP {parseFloat(item.price).toFixed(2)}
-                                    </Text>
-                                  </View>
-                                )
-                              )}
-                            </View>
-                          </>
-                        )}
-
-                        {/* Optional: Display notes */}
-                        {selectedReceipt.notes && (
-                          <Text className="text-lg font-psemibold mb-2">
-                            Notes:{" "}
-                            <Text className="font-pregular">
-                              {selectedReceipt.notes}
-                            </Text>
-                          </Text>
-                        )}
                       </ScrollView>
                     ) : (
                       <Text className="text-center text-gray-500">
@@ -972,16 +924,20 @@ const Home = () => {
                     )}
 
                     <TouchableOpacity
+                      className="absolute top-2 right-2 p-2 rounded-full"
+                      // style={[styles.button, styles.buttonClose, { marginTop: 20 }]} // Reuse existing button style
                       onPress={() => {
                         setShowReceiptDetailsModal(false);
                         setDisplayedReceiptImageUri(null); // Clear image URI on close
                         setSelectedReceipt(null); // Reset selectedReceipt
                       }}
-                      className="mt-6 bg-blue-500 rounded-md p-3 items-center"
                     >
-                      <Text className="text-white font-pmedium text-base">
-                        Close
-                      </Text>
+                      <Image
+                        source={icons.close}
+                        resizeMode="contain"
+                        className="w-7 h-7 "
+                      />
+                      {/* <Text style={styles.textStyle}>Cancel</Text> */}
                     </TouchableOpacity>
                   </View>
                 </Pressable>
@@ -1373,7 +1329,7 @@ const Home = () => {
                 className="mt-3 w-full bg-[#4E17B3] rounded-md p-3 items-center justify-center" // Adjust className for your desired style
               >
                 <Text className="text-white font-pmedium text-base">
-                  View Receipt Details
+                  View Receipt
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
