@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import SearchFilter from "../../components/SearchFilter";
 
 import React, { useEffect, useState, useCallback } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -43,6 +44,7 @@ import { PieChart, BarChart, LineChart } from "react-native-chart-kit";
 import { FlashList } from "@shopify/flash-list"; // Import FlashList
 import Collapsible from "react-native-collapsible"; // Import the collapsible component
 import ReceiptFull from "../../components/ReceiptFull";
+import { format } from "date-fns";
 
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
@@ -122,6 +124,27 @@ const Home = () => {
   const [showReceiptDetailsModal, setShowReceiptDetailsModal] = useState(false); // New state for details modal
 
   const [showFullImage, setShowFullImage] = useState(false);
+
+  // Search and Filter States:
+  const [searchQuery, setSearchQuery] = useState(""); // For merchant search
+  const [searchStartDate, setSearchStartDate] = useState(null);
+  const [searchEndDate, setSearchEndDate] = useState(null);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [markedDates, setMarkedDates] = useState({});
+  const [selectedSearchCategory, setSelectedSearchCategory] = useState(null);
+  const [selectedSearchSubcategory, setSelectedSearchSubcategory] =
+    useState(null);
+  const [filteredReceipts, setFilteredReceipts] = useState([]);
+  const [isSearching, setIsSearching] = useState(false); // <--- NEW STATE
+  const [showSearchFilterModal, setShowSearchFilterModal] = useState(false); // <--- NEW STATE FOR SEARCH FILTER MODAL
+  const [isSearchFilterExpanded, setIsSearchFilterExpanded] = useState(false); // <--- NEW STATE for collapsible filter
+
+  const isSearchActive =
+    searchQuery ||
+    selectedSearchCategory ||
+    selectedSearchSubcategory ||
+    searchStartDate ||
+    searchEndDate;
 
   const now = new Date();
   const monthOptions = { month: "long" };
@@ -208,6 +231,7 @@ const Home = () => {
 
         const earnedBadges = await getUserEarnedBadges(user.$id);
         setUserBadges(earnedBadges);
+        setIsSearchFilterExpanded(false);
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -215,6 +239,87 @@ const Home = () => {
       }
     }
   }, [user]);
+
+  const performSearch = useCallback(async () => {
+    setIsSearching(true); // <--- Set loading to true when search starts
+
+    try {
+      let results = allReceipts; // Start with all receipts
+
+      // Filter by merchant (case-insensitive)
+      if (searchQuery) {
+        results = results.filter((receipt) =>
+          receipt.merchant.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+
+      // Filter by category
+      if (selectedSearchCategory) {
+        results = results.filter(
+          (receipt) => receipt.category_id === selectedSearchCategory
+        );
+      }
+
+      // Filter by subcategory (only if a category is also selected)
+      if (selectedSearchSubcategory && selectedSearchCategory) {
+        results = results.filter(
+          (receipt) => receipt.subcategory_id === selectedSearchSubcategory
+        );
+      }
+
+      // Filter by date range
+      if (searchStartDate && searchEndDate) {
+        const startOfDay = new Date(searchStartDate);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(searchEndDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        results = results.filter((receipt) => {
+          const receiptDate = new Date(receipt.datetime);
+          return receiptDate >= startOfDay && receiptDate <= endOfDay;
+        });
+      } else if (searchStartDate) {
+        const startOfDay = new Date(searchStartDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        results = results.filter((receipt) => {
+          const receiptDate = new Date(receipt.datetime);
+          return receiptDate >= startOfDay;
+        });
+      } else if (searchEndDate) {
+        const endOfDay = new Date(searchEndDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        results = results.filter((receipt) => {
+          const receiptDate = new Date(receipt.datetime);
+          return receiptDate <= endOfDay;
+        });
+      }
+
+      setFilteredReceipts(results);
+    } catch (error) {
+      console.error("Error during search:", error);
+    } finally {
+      setIsSearching(false); // <--- Set loading to false when search completes (success or error)
+    }
+  }, [
+    searchQuery,
+    selectedSearchCategory,
+    selectedSearchSubcategory,
+    searchStartDate,
+    searchEndDate,
+    allReceipts,
+  ]);
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery("");
+    setSelectedSearchCategory(null);
+    setSelectedSearchSubcategory(null);
+    setSearchStartDate(null);
+    setSearchEndDate(null);
+    setMarkedDates({}); // Clear marked dates
+    setFilteredReceipts([]); // Clear filtered results to show all
+    setIsSearching(false); // <--- Ensure loading state is false on clear
+  }, []);
 
   const fetchCategories = async () => {
     try {
@@ -285,6 +390,7 @@ const Home = () => {
   useEffect(() => {
     if (user?.$id && !globalLoading) {
       fetchData();
+
       // uploadInitialData();
     }
   }, [user, fetchData, globalLoading]);
@@ -296,6 +402,48 @@ const Home = () => {
       }
     }, [user, fetchData, globalLoading])
   );
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      performSearch();
+    }, 300);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [
+    searchQuery,
+    selectedSearchCategory,
+    selectedSearchSubcategory,
+    searchStartDate,
+    searchEndDate,
+    performSearch,
+  ]);
+
+  useEffect(() => {
+    // This effect ensures search runs after allReceipts are loaded, but avoid running if a search is already active
+    if (
+      !isLoading &&
+      !refreshing &&
+      allReceipts.length > 0 &&
+      !searchQuery &&
+      !selectedSearchCategory &&
+      !selectedSearchSubcategory &&
+      !searchStartDate &&
+      !searchEndDate
+    ) {
+      performSearch();
+    }
+  }, [
+    allReceipts,
+    performSearch,
+    isLoading,
+    refreshing,
+    searchQuery,
+    selectedSearchCategory,
+    selectedSearchSubcategory,
+    searchStartDate,
+    searchEndDate,
+  ]);
 
   if (isLoading || refreshing) {
     return (
@@ -313,52 +461,6 @@ const Home = () => {
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
   };
-  // Monthly data
-  // const handlePieChartPress = (item) => {
-  //   setSelectedCategory(item); // Store the selected category data
-  //   setShowSpendingModal(true);
-
-  //   // Process data for the bar chart
-  //   const monthlyData = {};
-  //   allReceipts.forEach((receipt) => {
-  //     try {
-  //       const items = JSON.parse(receipt.items);
-  //       const receiptDate = new Date(receipt.datetime);
-  //       const monthYear = `${receiptDate.getFullYear()}-${(
-  //         receiptDate.getMonth() + 1
-  //       )
-  //         .toString()
-  //         .padStart(2, "0")}`;
-
-  //       items.forEach((receiptItem) => {
-  //         if (receiptItem.category === item.name) {
-  //           // Match by category name
-  //           const price = parseFloat(receiptItem.price);
-  //           if (!isNaN(price)) {
-  //             monthlyData[monthYear] = (monthlyData[monthYear] || 0) + price;
-  //           }
-  //         }
-  //       });
-  //     } catch (error) {
-  //       console.error("Error parsing items for monthly data:", error);
-  //     }
-  //   });
-
-  //   // Sort months and prepare data for BarChart
-  //   const sortedMonths = Object.keys(monthlyData).sort();
-  //   const labels = sortedMonths.map((month) => {
-  //     const [year, monthNum] = month.split("-");
-  //     return new Date(year, monthNum - 1).toLocaleString("default", {
-  //       month: "short",
-  //     });
-  //   });
-  //   const dataPoints = sortedMonths.map((month) => monthlyData[month]);
-
-  //   setCategoryMonthlySpending({
-  //     labels: labels,
-  //     datasets: [{ data: dataPoints }],
-  //   });
-  // };
 
   const handlePieChartPress = (item) => {
     setSelectedCategory(item);
@@ -716,6 +818,7 @@ const Home = () => {
                   )}
                 </TouchableOpacity>
               </View>
+
               {/* Points Display */}
               <View className="flex-row items-center justify-between mb-2">
                 <View className=" mt-2">
@@ -1125,12 +1228,132 @@ const Home = () => {
                   </Pressable>
                 </Modal>
               )}
-              {/* Latest Receipts Section */}
-              <View className="p-4 border-2 rounded-md border-[#9F54B6] mb-4">
-                <Text className="text-lg font-semibold text-black mb-2">
-                  Latest Uplaoded Receipts
+              {/* Consolidated Receipts Latest Upload and Search Display Section */}
+              {/* Collapsible Search Filter Section */}
+              <View className="p-4  mb-1">
+                <View className="flex-row justify-between items-center">
+                  <Text className="text-lg font-psemibold text-black">
+                    Search & Filter
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const isCurrentlyExpanded = isSearchFilterExpanded;
+                      setIsSearchFilterExpanded(!isCurrentlyExpanded); // Toggle the expansion state
+
+                      if (isCurrentlyExpanded) {
+                        // If the filter was expanded and is now being closed
+                        performSearch(); // Apply the currently set filters
+                        clearSearch(); // THEN, clear the filter inputs
+                      }
+                    }}
+                    className="p-2"
+                  >
+                    <Image
+                      source={
+                        isSearchFilterExpanded ? icons.action : icons.action
+                      } // Toggle icon
+                      className="w-8 h-8 tint-gray-600"
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {isSearchFilterExpanded && (
+                  <View>
+                    {/* This View wraps the SearchFilter content to add some top margin */}
+                    <SearchFilter
+                      searchQuery={searchQuery}
+                      setSearchQuery={setSearchQuery}
+                      selectedSearchCategory={selectedSearchCategory}
+                      setSelectedSearchCategory={setSelectedSearchCategory}
+                      selectedSearchSubcategory={selectedSearchSubcategory}
+                      setSelectedSearchSubcategory={
+                        setSelectedSearchSubcategory
+                      }
+                      searchStartDate={searchStartDate}
+                      setSearchStartDate={setSearchStartDate}
+                      searchEndDate={searchEndDate}
+                      setSearchEndDate={setSearchEndDate}
+                      showCalendarModal={showCalendarModal}
+                      setShowCalendarModal={setShowCalendarModal}
+                      markedDates={markedDates}
+                      setMarkedDates={setMarkedDates}
+                      categories={categories}
+                      performSearch={performSearch}
+                      clearSearch={clearSearch}
+                      setIsSearchFilterExpanded={setIsSearchFilterExpanded} // Pass new prop for internal collapse
+                    />
+                  </View>
+                )}
+              </View>
+
+              {/* Consolidated Receipts Display Section */}
+              <View className="p-4 border-2 rounded-md border-[#9F54B6] mb-4  ">
+                <Text className="text-lg font-psemibold text-black mb-2">
+                  {isSearchActive
+                    ? "Search Results"
+                    : "Latest Uploaded Receipts"}
                 </Text>
-                {latestReceipts.length > 0 ? (
+
+                {isSearching ? (
+                  <View className="flex-1 justify-center items-center py-8">
+                    <ActivityIndicator size="large" color="#9F54B6" />
+                    <Text className="text-gray-600 mt-2">Searching...</Text>
+                  </View>
+                ) : isSearchActive ? (
+                  filteredReceipts.length > 0 ? (
+                    filteredReceipts.map((item) => (
+                      <View
+                        key={item.$id}
+                        className="flex-row items-center justify-between py-2 border-b border-gray-200 last:border-none"
+                      >
+                        <View className="flex-row items-center flex-1">
+                          <View className="rounded-md p-2 mr-2">
+                            <Image
+                              source={icons.bill}
+                              resizeMode="contain"
+                              className="w-7 h-7"
+                            />
+                          </View>
+                          <View className="flex-1">
+                            <Text
+                              className="text-lg font-semibold text-gray-800 font-psemibold"
+                              numberOfLines={1}
+                              ellipsizeMode="tail"
+                            >
+                              {item.merchant || "Unknown Merchant"}
+                            </Text>
+                            {item.datetime && (
+                              <Text className="text-sm text-gray-600">
+                                {new Date(item.datetime).toLocaleDateString()} |
+                                {item.total
+                                  ? ` EGP ${parseFloat(item.total).toFixed(2)}`
+                                  : ""}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setSelectedReceipt(item);
+                            setShowReceiptOptionsModal(true);
+                            setIsDeleting(false);
+                            setIsDownloading(false);
+                          }}
+                          className="p-2"
+                        >
+                          <Image source={icons.dots} className="w-6 h-6" />
+                        </TouchableOpacity>
+                      </View>
+                    ))
+                  ) : (
+                    <View className="py-4 items-center">
+                      <Text className="text-black italic mb-3">
+                        No receipts found matching your search criteria.
+                      </Text>
+                    </View>
+                  )
+                ) : latestReceipts.length > 0 ? (
                   latestReceipts.map((item) => (
                     <View
                       key={item.$id}
@@ -1164,12 +1387,12 @@ const Home = () => {
                       </View>
                       <TouchableOpacity
                         onPress={() => {
-                          setSelectedReceipt(item); // Set the selected receipt
-                          setShowReceiptOptionsModal(true); // Show the modal
+                          setSelectedReceipt(item);
+                          setShowReceiptOptionsModal(true);
                           setIsDeleting(false);
                           setIsDownloading(false);
                         }}
-                        className="p-2" // Add some padding for easier tap target
+                        className="p-2"
                       >
                         <Image source={icons.dots} className="w-6 h-6" />
                       </TouchableOpacity>
@@ -1197,6 +1420,48 @@ const Home = () => {
                   </View>
                 )}
               </View>
+
+              {/* SearchFilter Modal */}
+              <Modal
+                animationType="slide"
+                transparent={true}
+                visible={showSearchFilterModal} // Controlled by the new state
+                onRequestClose={() => setShowSearchFilterModal(false)} // Allows closing with hardware back button on Android
+              >
+                <Pressable
+                  style={styles.centeredView} // Dim background
+                  onPress={() => setShowSearchFilterModal(false)} // Close modal on backdrop press
+                >
+                  <Pressable
+                    style={styles.modalView}
+                    onPress={(e) => e.stopPropagation()} // Prevent closing when pressing inside the modal content
+                  >
+                    <SearchFilter
+                      searchQuery={searchQuery}
+                      setSearchQuery={setSearchQuery}
+                      selectedSearchCategory={selectedSearchCategory}
+                      setSelectedSearchCategory={setSelectedSearchCategory}
+                      selectedSearchSubcategory={selectedSearchSubcategory}
+                      setSelectedSearchSubcategory={
+                        setSelectedSearchSubcategory
+                      }
+                      searchStartDate={searchStartDate}
+                      setSearchStartDate={setSearchStartDate}
+                      searchEndDate={searchEndDate}
+                      setSearchEndDate={setSearchEndDate}
+                      showCalendarModal={showCalendarModal}
+                      setShowCalendarModal={setShowCalendarModal}
+                      markedDates={markedDates}
+                      setMarkedDates={setMarkedDates}
+                      categories={categories}
+                      performSearch={performSearch}
+                      clearSearch={clearSearch}
+                      setShowSearchFilterModal={setShowSearchFilterModal} // <--- Pass the new prop
+                    />
+                  </Pressable>
+                </Pressable>
+              </Modal>
+
               {/* Budget Display/Prompt */}
               {userBudget && userBudget.length > 0 && (
                 <View className=" flex  p-4  mb-4    rounded-xl  border-2 border-[#9F54B6] ">

@@ -27,6 +27,8 @@ import budget from "../assets/icons/budget.png";
 import pie from "../assets/icons/pie.png";
 import down from "../assets/icons/down.png";
 import up from "../assets/icons/up.png";
+import action from "../assets/icons/action.png";
+import calendar from "../assets/icons/calendar.png";
 // budget.png
 // import receipt from "../assets/icons/receipt";
 export default {
@@ -59,4 +61,6 @@ export default {
   pie,
   down,
   up,
+  action,
+  calendar
 };

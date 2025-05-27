@@ -228,7 +228,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
         total: parseFloat(extractedData.total) || 0,
         items: JSON.stringify(itemsWithIds || []),
         cardLastFourDigits: extractedData.cardLastFourDigits || "null",
-        cashierId: extractedData.cashierId || "null",
+        cashierId: String(extractedData.cashierId || "null"),
         payment_method: extractedData.paymentMethod || "null",
         storeBranchId: String(extractedData.storeBranchId || "null"), // Convert to string
         transactionId: String(extractedData.transactionId || "null"),
