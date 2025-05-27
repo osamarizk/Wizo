@@ -120,11 +120,11 @@ const SearchFilter = ({
   return (
     <View className="pt-1">
       {/* Merchant Search */}
-       <TextInput
-        className="flex-1 text-black-100 font-bold text-base  rounded-md border border-[#4E17B3] w-full h-12 mb-3 px-4"
+      <TextInput
+        className="flex-1 text-black-100 font-bold text-base  rounded-md border border-[##4E17B3] w-full h-12 mb-3 px-4"
         value={searchQuery}
         placeholder="Merchant Name"
-        placeholderTextColor="#7b7b8b"
+        // placeholderTextColor="#a1a1a"
         onChangeText={(text) => setSearchQuery(text)}
         keyboardType="default"
       />
@@ -239,7 +239,7 @@ const SearchFilter = ({
 
         <TouchableOpacity
           onPress={handleClearFilters}
-          className="mt-3 w-full bg-[#D03957] rounded-md p-3 items-center justify-center" // Adjust className for your desired style
+          className="mt-1 w-full bg-[#D03957] rounded-md p-3 items-center justify-center" // Adjust className for your desired style
         >
           <Text className="text-white font-pmedium text-base">
             Clear Filter

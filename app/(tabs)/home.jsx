@@ -1230,7 +1230,7 @@ const Home = () => {
               )}
               {/* Consolidated Receipts Latest Upload and Search Display Section */}
               {/* Collapsible Search Filter Section */}
-              <View className="p-4  mb-1">
+              <View className="p-2  mb-1">
                 <View className="flex-row justify-between items-center">
                   <Text className="text-lg font-psemibold text-black">
                     Search & Filter
