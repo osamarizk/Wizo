@@ -32,7 +32,7 @@ import * as FileSystem from "expo-file-system"; // for reading the image as blob
 import mime from "mime"; // helps get MIME type from file extension
 import GradientBackground from "./GradientBackground";
 
-const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
+const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
   const [showFullImage, setShowFullImage] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -217,8 +217,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
 
       const receiptData = {
         user_id: user.$id,
-        merchant: extractedData.merchant || "Unknown",
-        location: extractedData.location
+        merchant: String(extractedData.merchant || "Unknown"),
+        location: String(extractedData.location)
           ? `${extractedData.location.address}, ${extractedData.location.city}, ${extractedData.location.country}`
           : "Unknown",
         datetime: extractedData.datetime || new Date().toISOString(),
@@ -229,7 +229,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
         items: JSON.stringify(itemsWithIds || []),
         cardLastFourDigits: extractedData.cardLastFourDigits || "null",
         cashierId: String(extractedData.cashierId || "null"),
-        payment_method: extractedData.paymentMethod || "null",
+        payment_method: String(extractedData.paymentMethod || "null"),
         storeBranchId: String(extractedData.storeBranchId || "null"), // Convert to string
         transactionId: String(extractedData.transactionId || "null"),
         loyalty_points:
@@ -289,9 +289,11 @@ const ReceiptProcess = ({ imageUri, onCancel, onRefresh }) => {
         // Update the unread notification count in the context
         const updatedUnreadCount = await countUnreadNotifications(user.$id); // Fetch updated unread count
         updateUnreadCount(updatedUnreadCount); // Update context with new unread count
-
-        onRefresh();
         onCancel(); // Close the modal
+        onRefresh();
+        // Call the success callback passed from UploadModal
+        onUploadSuccess?.(); // Call the passed success handler
+        router.push("/home");
       } else {
         console.error("Invalid response from createReceipt:", response);
         Alert.alert("Error", "Receipt was not saved. Please try again.");

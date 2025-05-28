@@ -12,6 +12,7 @@ import {
   Dimensions,
   Image,
 } from "react-native";
+import UploadModal from "../../components/UploadModal";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useGlobalContext } from "../../context/GlobalProvider"; // Adjust path as needed
 import { fetchUserReceipts, getAllCategories } from "../../lib/appwrite"; // Adjust path as needed
@@ -19,9 +20,15 @@ import { format } from "date-fns";
 import icons from "../../constants/icons"; // Adjust path as needed
 import GradientBackground from "../../components/GradientBackground";
 const screenWidth = Dimensions.get("window").width;
+import { useFocusEffect } from "@react-navigation/native";
 
 const Spending = () => {
-  const { user, isLoading: globalLoading } = useGlobalContext();
+  const {
+    user,
+    isLoading: globalLoading,
+    showUploadModal,
+    setShowUploadModal,
+  } = useGlobalContext();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [allReceipts, setAllReceipts] = useState([]);
@@ -135,6 +142,14 @@ const Spending = () => {
     fetchData();
   }, [fetchData]);
 
+  // This is the crucial part for refreshing when the screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // This will be called every time the Spending screen comes into focus
+      setRefreshing(true);
+      fetchData();
+    }, [fetchData])
+  );
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchData();
@@ -388,6 +403,15 @@ const Spending = () => {
             </View>
           </Pressable>
         </Modal>
+
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <UploadModal
+            visible={showUploadModal}
+            onClose={() => setShowUploadModal(false)}
+            onRefresh={onRefresh}
+          />
+        )}
       </SafeAreaView>
     </GradientBackground>
   );

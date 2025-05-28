@@ -10,9 +10,11 @@ import {
 import icons from "../constants/icons";
 import { pickImageFromCamera, pickImageFromGallery } from "../lib/imagePicker";
 import ReceiptProcess from "../components/ReceiptProcess";
+import { router } from "expo-router";
 
-const UploadModal = ({ visible, onClose, onRefresh }) => {
+const UploadModal = ({ visible, onClose, onUploadSuccess, onRefresh }) => {
   const [selectedImageUri, setSelectedImageUri] = useState(null);
+  // console.log("Refreshing Value:", onRefresh);
 
   const handleCancel = () => {
     setSelectedImageUri(null);
@@ -86,6 +88,7 @@ const UploadModal = ({ visible, onClose, onRefresh }) => {
               imageUri={selectedImageUri}
               onCancel={handleCancel}
               onRefresh={onRefresh}
+              onUploadSuccess={onUploadSuccess} // Pass onUploadSuccess down
             />
           )}
         </Pressable>

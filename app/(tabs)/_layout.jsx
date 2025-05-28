@@ -7,20 +7,21 @@ import {
   ScrollView,
 } from "react-native";
 import React, { useState } from "react";
-import { Tabs } from "expo-router"; // Import useNavigation
+import { Tabs, router } from "expo-router"; // Import router
 import TabIcons from "../../components/TabIcons";
 import icons from "../../constants/icons";
-import UploadModal from "../../components/UploadModal";
+import UploadModal from "../../components/UploadModal"; // Assuming this path
 import { useGlobalContext } from "../../context/GlobalProvider";
 
 const TabsLayout = () => {
   const { showUploadModal, setShowUploadModal } = useGlobalContext();
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useState("home"); // Keep track of active tab
 
-  // Function to refresh the Home screen when modal is closed
-  const handleModalClose = () => {
-    setShowUploadModal(false);
-    setActiveTab("home"); // Switch back to home tab
+  // Function to handle successful upload and redirect
+  const handleUploadSuccess = () => {
+    setShowUploadModal(false); // Close the upload modal
+    router.replace("/home"); // Redirect to the home tab
+    setActiveTab("home"); // Update active tab state to reflect the redirection
   };
 
   return (
@@ -94,7 +95,7 @@ const TabsLayout = () => {
                 {...props}
                 onPress={() => {
                   setShowUploadModal(true);
-                  setActiveTab("upload");
+                  setActiveTab("upload"); // Set active tab to upload when button pressed
                 }}
               />
             ),
@@ -110,7 +111,7 @@ const TabsLayout = () => {
           }}
         />
 
-        {/* Budget Tab */}
+        {/* Budget Tab (Commented out) */}
         {/* <Tabs.Screen
           name="budget"
           options={{
@@ -131,6 +132,7 @@ const TabsLayout = () => {
             },
           }}
         /> */}
+
         {/* Wallet Tab */}
         <Tabs.Screen
           name="wallet"
@@ -180,7 +182,8 @@ const TabsLayout = () => {
       {showUploadModal && (
         <UploadModal
           visible={showUploadModal}
-          onClose={() => setShowUploadModal(false)} // Close the modal
+          onClose={() => setShowUploadModal(false)} // Simply close the modal on manual close
+          onUploadSuccess={handleUploadSuccess} // Pass the success handler
         />
       )}
     </>
