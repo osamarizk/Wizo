@@ -26,7 +26,10 @@ const Account = () => {
     setShowUploadModal,
   } = useGlobalContext();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
+
+  // Removed 'refreshing' state and its related useEffect/useCallback as they weren't directly used by menu options.
+  // If you have specific data refresh needs on focus, keep the useFocusEffect logic,
+  // but it's not tied to menuOptions directly.
 
   const handleLogout = async () => {
     Alert.alert(
@@ -67,55 +70,46 @@ const Account = () => {
     );
   }
 
-  // Define menu options
+  // Define menu options, now including the logout item
   const menuOptions = [
     {
       id: "profileSettings",
       title: "Profile Settings",
       icon: icons.settings, // Make sure you have a settings icon
-      route: "/profile-settings", // Placeholder route
+      onPress: () => router.push("/profile-settings"), // Use onPress directly
     },
     {
       id: "privacyPolicy",
       title: "Privacy Policy",
       icon: icons.privacy, // Make sure you have a privacy icon
-      route: "/privacy-policy", // Placeholder route
+      onPress: () => router.push("/privacy-policy"),
     },
     {
       id: "termsOfService",
       title: "Terms of Service",
       icon: icons.terms, // Make sure you have a terms icon
-      route: "/terms-of-service", // Placeholder route
+      onPress: () => router.push("/terms-of-service"),
     },
     {
       id: "aboutUs",
       title: "About Us",
       icon: icons.about, // Make sure you have an info icon
-      route: "/about-us", // Placeholder route
+      onPress: () => router.push("/about-us"),
     },
     {
       id: "helpCenter",
       title: "Help Center",
       icon: icons.help, // Make sure you have a help icon
-      route: "/help-center", // Placeholder route
+      onPress: () => router.push("/help-center"),
+    },
+    {
+      id: "logout", // New logout item
+      title: "Log Out",
+      icon: icons.logout, // Make sure you have a logout icon
+      onPress: handleLogout, // Call the handleLogout function
+      isLogoutOption: true, // Flag to apply specific styling and loading logic
     },
   ];
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    // await menuOptions();
-  });
-
-  useEffect(() => {
-    setRefreshing(true);
-  }, [globalLoading]);
-
-  useFocusEffect(
-    useCallback(() => {
-      // This will be called every time the Spending screen comes into focus
-      setRefreshing(true);
-    }, [globalLoading])
-  );
 
   return (
     <GradientBackground>
@@ -127,11 +121,13 @@ const Account = () => {
         >
           {/* Header */}
           <View className="flex-row items-center justify-center mb-8">
-            <Text className="text-2xl font-pbold text-gray-800">Account</Text>
+            <Text className="text-2xl font-pbold text-gray-800">
+              Account Settings
+            </Text>
           </View>
 
           {/* User Profile Section */}
-          <View className="bg-white rounded-xl shadow-lg p-6 mb-8 flex-row items-center">
+          <View className="bg-transparent border border-[#D03957] rounded-xl p-6 mb-4 flex-row items-center">
             <Image
               source={user?.avatar ? { uri: user.avatar } : icons.user} // Use user's avatar or a placeholder
               className="w-20 h-20 rounded-full mr-4 border-2 border-primary-500"
@@ -148,61 +144,66 @@ const Account = () => {
           </View>
 
           {/* Menu Options */}
-          <View className="bg-white rounded-xl shadow-lg mb-8 overflow-hidden">
+          <View className="bg-transparent border border-[#D03957] rounded-xl mb-8 overflow-hidden">
             {menuOptions.map((option, index) => (
               <TouchableOpacity
                 key={option.id}
                 className={`flex-row items-center p-4 ${
                   index < menuOptions.length - 1
-                    ? "border-b border-gray-200"
+                    ? "border-b border-slate-300"
                     : ""
                 }`}
-                onPress={() => router.push(option.route)}
+                onPress={option.onPress} // Use the onPress function defined in the option
+                disabled={option.isLogoutOption && isLoggingOut} // Disable logout option when logging out
               >
-                {option.icon && (
-                  <Image
-                    source={option.icon}
-                    className="w-6 h-6 mr-4 tint-primary-500" // Apply tint if icons are monochrome
-                    resizeMode="contain"
+                {/* Conditionally show ActivityIndicator for logout */}
+                {option.isLogoutOption && isLoggingOut ? (
+                  <ActivityIndicator
+                    size="small"
+                    color="#D03957"
+                    className="mr-4"
                   />
+                ) : (
+                  option.icon && (
+                    <Image
+                      source={option.icon}
+                      className={`w-6 h-6 mr-4 ${
+                        option.isLogoutOption
+                          ? "tint-red-500"
+                          : "tint-primary-500"
+                      }`} // Tint logout icon red, others primary
+                      resizeMode="contain"
+                    />
+                  )
                 )}
-                <Text className="flex-1 text-lg font-pmedium text-gray-700">
+                <Text
+                  className={`flex-1 text-lg font-pmedium ${
+                    option.isLogoutOption ? "text-[#264653]" : "text-gray-700"
+                  }`} // Make logout text red, others gray
+                >
                   {option.title}
                 </Text>
-                <Image
-                  source={icons.chevronRight} // Make sure you have a chevronRight icon
-                  className="w-5 h-5 ml-4 tint-gray-400"
-                  resizeMode="contain"
-                />
+                {/* Don't show chevron for the logout option unless specifically desired */}
+                {!option.isLogoutOption && (
+                  <Image
+                    source={icons.rightArrow} // Make sure you have a rightArrow icon
+                    className="w-3 h-3 ml-4"
+                    resizeMode="contain"
+                    tintColor="gray"
+                  />
+                )}
               </TouchableOpacity>
             ))}
           </View>
 
-          {/* Logout Button */}
-          <TouchableOpacity
-            onPress={handleLogout}
-            className="bg-red-500 rounded-xl p-4 flex-row items-center justify-center shadow-lg"
-            disabled={isLoggingOut}
-          >
-            {isLoggingOut ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Image
-                  source={icons.logout} // Make sure you have a logout icon
-                  className="w-6 h-6 mr-3 tint-white"
-                  resizeMode="contain"
-                />
-                <Text className="text-xl font-pbold text-white">Log Out</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          {/* Removed the separate Logout Button section */}
+
           {/* Upload Modal */}
           {showUploadModal && (
             <UploadModal
               visible={showUploadModal}
               onClose={() => setShowUploadModal(false)}
-              onRefresh={onRefresh}
+              // onRefresh={onRefresh} // If onRefresh is still needed for modal context
             />
           )}
         </ScrollView>
@@ -213,25 +214,15 @@ const Account = () => {
 
 export default Account;
 
-// You might need to add these icons in your constants/icons.js if they don't exist
-// Example:
-// import profilePlaceholder from '../assets/icons/profile-placeholder.png'; // Or your default avatar
-// import settings from '../assets/icons/settings.png';
-// import privacy from '../assets/icons/privacy.png';
-// import terms from '../assets/icons/terms.png';
-// import info from '../assets/icons/info.png';
-// import help from '../assets/icons/help.png';
-// import logout from '../assets/icons/logout.png';
-// import chevronRight from '../assets/icons/chevron-right.png';
-//
+// Ensure your constants/icons.js has the necessary icons:
 // export default {
-//   profilePlaceholder,
-//   settings,
-//   privacy,
-//   terms,
-//   info,
-//   help,
-//   logout,
-//   chevronRight,
+//   user: require('../assets/icons/user.png'), // Default profile placeholder
+//   settings: require('../assets/icons/settings.png'),
+//   privacy: require('../assets/icons/privacy.png'),
+//   terms: require('../assets/icons/terms.png'),
+//   about: require('../assets/icons/about.png'), // Renamed from 'info' as per your code
+//   help: require('../assets/icons/help.png'),
+//   logout: require('../assets/icons/logout.png'),
+//   rightArrow: require('../assets/icons/right-arrow.png'), // Assuming this is your chevron icon
 //   // ... other icons
 // };

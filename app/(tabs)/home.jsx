@@ -787,7 +787,7 @@ const Home = () => {
           ListHeaderComponent={
             <>
               {/* Header Section */}
-              <View className="flex-row justify-between items-center mb-2 mt-1">
+              <View className="flex-row justify-between items-center mb-1 mt-1 ">
                 <View>
                   <Text className="text-base text-gray-500 font-pregular">
                     {greeting}
@@ -820,8 +820,8 @@ const Home = () => {
               </View>
 
               {/* Points Display */}
-              <View className="flex-row items-center justify-between mb-2">
-                <View className=" mt-2">
+              <View className="flex-row items-center justify-between mb-1">
+                <View className=" mt-1">
                   <Text className="text-gray-600 font-pmedium text-lg">
                     Your Points:{" "}
                     <Text className="font-pbold text-xl">
@@ -846,7 +846,7 @@ const Home = () => {
 
                 {/* NEW: Set Up Budget Prompt (Moved to a more visible location) */}
                 {showBudgetPrompt && (
-                  <View className="mx-4   p-4  rounded-xl backdrop-blur-sm bg-transparent items-center">
+                  <View className="mx-4   p-2  rounded-xl backdrop-blur-sm bg-transparent items-center">
                     {/* <Image
                     source={icons.pie} // Reusing pie icon, or use a new one for budget prompt
                     className="w-12 h-12 mb-3"
@@ -862,7 +862,7 @@ const Home = () => {
                   </Text> */}
                     <TouchableOpacity
                       onPress={SetupBudget}
-                      className=" p-4 items-center  justify-center "
+                      className=" p-2 items-center  justify-center "
                     >
                       <Image
                         source={icons.pie} // Reusing pie icon, or use a new one for budget prompt
@@ -1047,7 +1047,7 @@ const Home = () => {
               </Modal>
 
               {/* Receipt Summary */}
-              <View className=" p-1  mb-4 border-2 rounded-md border-[#9F54B6]">
+              <View className="  mb-4 border-2 rounded-md border-[#9F54B6]">
                 <TouchableOpacity
                   onPress={() => router.push("/notification")}
                   className="relative p-2 rounded-full mt-1"
@@ -1055,9 +1055,11 @@ const Home = () => {
                   <Text className="text-center text-gray-600 mb-2 text-base font-pregular">
                     Total Receipts
                   </Text>
+
                   <Text className="text-center text-2xl font-bold text-gray-800 ">
-                    Receipts : {receiptStats.totalCount}
+                    💁 Receipts : {receiptStats.totalCount}
                   </Text>
+
                   <Text className="text-center text-base font-pregular text-gray-600">
                     <Text className="text-center text-base font-pregular text-[#4E17B3] mt-2 ">
                       {"("}
@@ -1078,62 +1080,7 @@ const Home = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              {/* Top Spending Insights */}
-              {receiptStats.highestSpendingCategory && (
-                <View className=" p-4  border-2 rounded-md border-[#9F54B6] mb-4">
-                  <Text className="text-base font-pregular text-black mb-2">
-                    Top Spending Insight of{" "}
-                    <Text className="font-psemibold text-xl text-[#b31731]">
-                      {monthName}
-                    </Text>
-                  </Text>
-                  <Text className="text-sm font-pregular text-gray-600 mb-2 italic">
-                    Calculation based on the individual item prices from your
-                    receipts, prior to any discounts, VAT, or other service
-                    charges.
-                  </Text>
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-2">
-                      {receiptStats.highestSpendingCategory.name ===
-                        "Food & Dining" && (
-                        <Image
-                          source={icons.food}
-                          className="w-6 h-6"
-                          resizeMode="contain"
-                        />
-                      )}
-                      {receiptStats.highestSpendingCategory.name ===
-                        "Transportation" && (
-                        <Image
-                          source={icons.car}
-                          className="w-6 h-6 tint-primary"
-                          resizeMode="contain"
-                        />
-                      )}
-                      {receiptStats.highestSpendingCategory.name ===
-                        "Shopping" && (
-                        <Image
-                          source={icons.shopping}
-                          className="w-6 h-6 tint-primary"
-                          resizeMode="contain"
-                        />
-                      )}
-                      <Text className="text-lg font-semibold text-gray-800 font-psemibold">
-                        {receiptStats.highestSpendingCategory.name}
-                      </Text>
-                    </View>
-                    <Text className="text-xl font-bold text-primary-500 font-pbold">
-                      EGP{" "}
-                      {receiptStats.highestSpendingCategory.amount.toFixed(2)}
-                    </Text>
-                  </View>
-                  <Text className="text-md text-gray-600 mt-1">
-                    (
-                    {receiptStats.highestSpendingCategory.percentage.toFixed(1)}
-                    % of total)
-                  </Text>
-                </View>
-              )}
+
               {/* Spending Categories Charts */}
               {receiptStats.monthlySpending > 0 && (
                 <View className=" p-2  border-2 rounded-md border-[#9F54B6] mb-4">
@@ -1227,6 +1174,63 @@ const Home = () => {
                     </Pressable>
                   </Pressable>
                 </Modal>
+              )}
+
+              {/* Top Spending Insights */}
+              {receiptStats.highestSpendingCategory && (
+                <View className=" p-4  border-2 rounded-md border-[#9F54B6] mb-4">
+                  <Text className="text-base font-pregular text-black mb-2">
+                    Top Spending Insight of{" "}
+                    <Text className="font-psemibold text-xl text-[#b31731]">
+                      {monthName}
+                    </Text>
+                  </Text>
+                  <Text className="text-sm font-pregular text-gray-600 mb-2 italic">
+                    Calculation based on the individual item prices from your
+                    receipts, prior to any discounts, VAT, or other service
+                    charges.
+                  </Text>
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-2">
+                      {receiptStats.highestSpendingCategory.name ===
+                        "Food & Dining" && (
+                        <Image
+                          source={icons.food}
+                          className="w-6 h-6"
+                          resizeMode="contain"
+                        />
+                      )}
+                      {receiptStats.highestSpendingCategory.name ===
+                        "Transportation" && (
+                        <Image
+                          source={icons.car}
+                          className="w-6 h-6 tint-primary"
+                          resizeMode="contain"
+                        />
+                      )}
+                      {receiptStats.highestSpendingCategory.name ===
+                        "Shopping" && (
+                        <Image
+                          source={icons.shopping}
+                          className="w-6 h-6 tint-primary"
+                          resizeMode="contain"
+                        />
+                      )}
+                      <Text className="text-lg font-semibold text-gray-800 font-psemibold">
+                        {receiptStats.highestSpendingCategory.name}
+                      </Text>
+                    </View>
+                    <Text className="text-xl font-bold text-primary-500 font-pbold">
+                      EGP{" "}
+                      {receiptStats.highestSpendingCategory.amount.toFixed(2)}
+                    </Text>
+                  </View>
+                  <Text className="text-md text-gray-600 mt-1">
+                    (
+                    {receiptStats.highestSpendingCategory.percentage.toFixed(1)}
+                    % of total)
+                  </Text>
+                </View>
               )}
               {/* Consolidated Receipts Latest Upload and Search Display Section */}
               {/* Collapsible Search Filter Section */}

@@ -96,10 +96,10 @@ const Spending = () => {
         })
       );
 
-      // Sort by visits in descending order and limit to top 10 merchants
+      // Sort by visits in descending order and limit to top 5 merchants
       const sortedAndLimitedMerchantAnalysis = processedMerchantAnalysis
         .sort((a, b) => b.visits - a.visits) // Sort by visits descending
-        .slice(0, 5); // Take top 10 merchants
+        .slice(0, 5); // Take top 5 merchants
 
       setMerchantAnalysis(sortedAndLimitedMerchantAnalysis);
 
@@ -108,6 +108,80 @@ const Spending = () => {
         "Processed Merchant Analysis (for table and chart):",
         processedMerchantAnalysis
       );
+
+      // --- Process Data for Item Breakdown ---
+      const itemMap = {};
+      fetchedReceipts.forEach((receipt) => {
+        let itemsArray = [];
+        // Check if receipt.items is a string and attempt to parse it
+        if (typeof receipt.items === "string") {
+          try {
+            itemsArray = JSON.parse(receipt.items);
+            // console.log(`Successfully parsed items for Receipt ID: ${receipt.$id || 'Unknown'}.`); // Optional: More detailed logging
+          } catch (error) {
+            console.error(
+              `Error parsing items for Receipt ID: ${
+                receipt.$id || "Unknown"
+              }:`,
+              receipt.items,
+              error
+            );
+            // If parsing fails, itemsArray remains an empty array, preventing errors
+          }
+        } else if (Array.isArray(receipt.items)) {
+          // If it's already an array (e.g., from a different data source or prior processing)
+          itemsArray = receipt.items;
+        } else {
+          console.warn(
+            `Receipt ID: ${
+              receipt.$id || "Unknown"
+            } does not have a valid 'items' field (neither string nor array). Found type: ${typeof receipt.items}. Value:`,
+            receipt.items
+          );
+        }
+
+        // Ensure itemsArray is actually an array before iterating
+        if (Array.isArray(itemsArray) && itemsArray.length > 0) {
+          itemsArray.forEach((item) => {
+            // console.log("Processing item", item); // Uncomment for per-item debugging if needed
+            const itemName = item.name || "Unknown Item";
+            const itemPrice = parseFloat(item.price) || 0;
+            const datetime = receipt.datetime;
+
+            if (!itemMap[itemName]) {
+              itemMap[itemName] = {
+                totalSpend: 0,
+                timesBought: 0,
+                purchaseDates: [], // Store all dates for details
+              };
+            }
+            itemMap[itemName].totalSpend += itemPrice;
+            itemMap[itemName].timesBought += 1;
+            itemMap[itemName].purchaseDates.push(datetime);
+          });
+        } else if (Array.isArray(itemsArray) && itemsArray.length === 0) {
+          // console.log(`Receipt ID: ${receipt.$id || 'Unknown'} has an empty parsed 'items' array.`); // Optional: More detailed logging
+        }
+      });
+
+      const processedItemBreakdown = Object.keys(itemMap).map((itemName) => ({
+        item: itemName,
+        totalSpend: itemMap[itemName].totalSpend,
+        timesBought: itemMap[itemName].timesBought,
+        purchaseDates: itemMap[itemName].purchaseDates.sort(
+          (a, b) => new Date(b) - new Date(a)
+        ), // Sort dates descending
+      }));
+
+      // Sort by total spend in descending order (or timesBought, based on preference)
+      const sortedItemBreakdown = processedItemBreakdown.sort(
+        (a, b) => b.totalSpend - a.totalSpend
+      );
+      console.log("processedItemBreakdown", sortedItemBreakdown); // Your requested log
+      setItemBreakdown(sortedItemBreakdown);
+
+      // --- DEBUGGING: Log processed item breakdown ---
+      console.log("Processed Item Breakdown:", processedItemBreakdown);
     } catch (error) {
       console.error("Error fetching spending data:", error);
     } finally {
@@ -185,7 +259,8 @@ const Spending = () => {
     backgroundGradientTo: "#fff",
     backgroundGradientToOpacity: 0,
     // color: gradientColors[index % gradientColors.length],
-    color: (opacity = 1) => `rgba(78, 23, 179)`, // #9F54B6
+    // color: (opacity = 1) => `rgba(78, 23, 179,$[opacity])`, // #9F54B6
+    color: (opacity = 1) => `rgba(255,0,0, ${opacity})`,
     labelColor: (opacity = 1) => `rgba(0, 0, 0, 1)`,
     // style: {
     //   borderRadius: 16,
