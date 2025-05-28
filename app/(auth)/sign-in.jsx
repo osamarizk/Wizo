@@ -5,6 +5,7 @@ import {
   Image,
   Alert,
   TouchableOpacity,
+  KeyboardAvoidingView,
 } from "react-native";
 import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,7 +21,7 @@ import {
 import { useGlobalContext } from "../../context/GlobalProvider";
 import EmailResetModal from "../../components/EmailResetModel";
 import { sendOTPToEmail } from "../../lib/appwrite";
-import GradientBackground from "../../components/GradientBackground"
+import GradientBackground from "../../components/GradientBackground";
 
 const SignIn = () => {
   const [form, setForm] = useState({

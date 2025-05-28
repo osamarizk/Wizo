@@ -198,8 +198,22 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
       // 2. Process items to include IDs
       const itemsWithIds = await Promise.all(
         extractedData.items.map(async (item) => {
-          const categoryId = await getCategoryByName(item.category);
-          const subcategoryId = await getSubcategoryByName(item.subcategory);
+          let categoryId = null;
+          // Check if item.category exists and is not an empty string before calling the function
+          if (item.category) {
+            const categoryDoc = await getCategoryByName(item.category);
+            // Assuming getCategoryByName also returns the document or null
+            categoryId = categoryDoc ? categoryDoc.$id : null;
+          }
+
+          let subcategoryId = null;
+          // Check if item.subcategory exists and is not an empty string before calling the function
+          if (item.subcategory) {
+            const subcategoryDoc = await getSubcategoryByName(item.subcategory);
+            // getSubcategoryByName now returns the document or null as per previous changes
+            subcategoryId = subcategoryDoc ? subcategoryDoc.$id : null;
+          }
+
           return {
             ...item,
             category_id: categoryId,

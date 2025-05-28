@@ -21,6 +21,7 @@ import icons from "../../constants/icons"; // Adjust path as needed
 import GradientBackground from "../../components/GradientBackground";
 const screenWidth = Dimensions.get("window").width;
 import { useFocusEffect } from "@react-navigation/native";
+import { BarChart } from "react-native-chart-kit"; // Import BarChart
 
 const Spending = () => {
   const {
@@ -62,6 +63,9 @@ const Spending = () => {
       setAllReceipts(fetchedReceipts);
       setCategories(fetchedCategories);
 
+      // --- DEBUGGING: Log fetched receipts ---
+      console.log("Fetched Receipts:", fetchedReceipts);
+
       // --- Process Data for Merchant Analysis ---
       const merchantMap = {};
       fetchedReceipts.forEach((receipt) => {
@@ -91,45 +95,19 @@ const Spending = () => {
           ), // Sort dates descending
         })
       );
-      setMerchantAnalysis(processedMerchantAnalysis);
 
-      // --- Process Data for Item Breakdown ---
-      const itemMap = {};
-      fetchedReceipts.forEach((receipt) => {
-        try {
-          const items = JSON.parse(receipt.items || "[]");
-          const receiptDate = receipt.datetime;
+      // Sort by visits in descending order and limit to top 10 merchants
+      const sortedAndLimitedMerchantAnalysis = processedMerchantAnalysis
+        .sort((a, b) => b.visits - a.visits) // Sort by visits descending
+        .slice(0, 5); // Take top 10 merchants
 
-          items.forEach((item) => {
-            const itemName = item.name || "Unknown Item";
-            const itemPrice = parseFloat(item.price) || 0;
-            const itemQuantity = parseFloat(item.quantity) || 1; // Default quantity to 1
+      setMerchantAnalysis(sortedAndLimitedMerchantAnalysis);
 
-            if (!itemMap[itemName]) {
-              itemMap[itemName] = {
-                totalSpend: 0,
-                timesBought: 0,
-                purchaseDates: [], // Store all dates for details
-              };
-            }
-            itemMap[itemName].totalSpend += itemPrice * itemQuantity;
-            itemMap[itemName].timesBought += itemQuantity; // Count purchases by quantity
-            itemMap[itemName].purchaseDates.push(receiptDate);
-          });
-        } catch (e) {
-          console.error("Error parsing items for receipt:", receipt.$id, e);
-        }
-      });
-
-      const processedItemBreakdown = Object.keys(itemMap).map((itemName) => ({
-        item: itemName,
-        totalSpend: itemMap[itemName].totalSpend,
-        timesBought: itemMap[itemName].timesBought,
-        purchaseDates: itemMap[itemName].purchaseDates.sort(
-          (a, b) => new Date(b) - new Date(a)
-        ), // Sort dates descending
-      }));
-      setItemBreakdown(processedItemBreakdown);
+      // --- DEBUGGING: Log processed merchant analysis ---
+      console.log(
+        "Processed Merchant Analysis (for table and chart):",
+        processedMerchantAnalysis
+      );
     } catch (error) {
       console.error("Error fetching spending data:", error);
     } finally {
@@ -165,6 +143,76 @@ const Spending = () => {
     setSelectedItemName(itemName);
     setSelectedItemPurchases(purchaseDates);
     setShowItemDetailsModal(true);
+  };
+
+  // Prepare data for the Merchant Visits Bar Chart
+  // This will be created based on the current 'merchantAnalysis' state.
+  const merchantVisitsChartData = {
+    labels: merchantAnalysis.map((data) => data.merchant),
+    datasets: [
+      {
+        data: merchantAnalysis.map((data) => data.visits),
+      },
+    ],
+  };
+
+  const gradientColors = [
+    "#D03957", // Red
+    "#264653", // Dark Blue
+    "#F4A261", // Orange
+    "#2A9D8F", // Teal
+    "#F9C74F", //Yellow
+    "#90BE6D", // Green
+    "#4E17B3", // Purple
+    "#8AC926", // Lime Green
+    "#9F54B6", // Darker Purple
+    "#E76F51", // Coral
+
+    "#CBF3F0", // Light Blue
+    "#FFBF69", // Gold
+    "#A3B18A", // Olive Green
+    "#588157", // Forest Green
+    "#F2CC8F", // Cream
+    "#E07A5F", // Salmon
+    "#3D405B", // Dark Slate Blue
+    "#6D83F2", // Light Slate Blue
+  ];
+
+  const chartConfig = {
+    backgroundColor: "transparent",
+    backgroundGradientFrom: "#fff",
+    backgroundGradientFromOpacity: 0,
+    backgroundGradientTo: "#fff",
+    backgroundGradientToOpacity: 0,
+    // color: gradientColors[index % gradientColors.length],
+    color: (opacity = 1) => `rgba(78, 23, 179)`, // #9F54B6
+    labelColor: (opacity = 1) => `rgba(0, 0, 0, 1)`,
+    // style: {
+    //   borderRadius: 16,
+    //   fontFamily: "Bogle-Regular",
+    // },
+    // // propsForBackgroundLines: {
+    // //   strokeWidth: 6,
+    // //   stroke: "#efefef",
+    // //   strokeDasharray: "0",
+    // // },
+    // propsForLabels: {
+    //   fontFamily: "Bogle-Regular",
+    // },
+    strokeWidth: 20, // optional, default 3
+    barPercentage: 1.2,
+    useShadowColorFromDataset: false, // optional
+    fillShadowGradient: "#D03957", // Gradient color for the bars
+    fillShadowGradientOpacity: 1, // Opacity for the gradient fill
+    decimalPlaces: 0, // No decimal places for visits
+    propsForLabels: {
+      fontSize: 10, // Adjust label font size if names are long to prevent overlap
+    },
+    horizontalLabelRotation: 15,
+    verticalLabelRotation: 35,
+    // Optional: Add a small horizontal offset to labels if they overlap excessively.
+    // This is a common issue with many labels on small screens.
+    // labelCount: 5, // You could limit the number of labels if there are too many
   };
 
   if (isLoading || globalLoading) {
@@ -209,9 +257,51 @@ const Spending = () => {
             <>
               {/* Merchant Analysis Table */}
               <View className="p-4 border-2 rounded-md border-[#9F54B6] mb-4">
-                <Text className="text-lg font-bold text-black mb-4">
+                {/* <Text className="text-lg font-bold text-black mb-4">
                   Merchant Analysis
-                </Text>
+                </Text> */}
+                {/* Bar Chart for Merchant Visits */}
+                {/* Ensure merchantAnalysis has data to render the chart */}
+                {merchantAnalysis.length > 0 ? ( // Only render if there's data
+                  <View className="mb-2">
+                    <Text className="text-lg font-pbold text-black mb-1 text-center">
+                      Merchant Visits Overview
+                    </Text>
+                    <Text className="text-sm text-gray-600 p-1 text-center">
+                      Displaying top 5 merchants by visits (default). Chart
+                      settings for this limit can be adjusted from the app's
+                      settings section.
+                    </Text>
+                    <BarChart
+                      data={merchantVisitsChartData}
+                      showBarTops={false}
+                      width={screenWidth - 64} // Adjust width to fit within padding
+                      withInnerLines={true}
+                      segments={3}
+                      height={280}
+                      yAxisLabel="" // Label for Y-axis (e.g., "Visits")
+                      chartConfig={chartConfig}
+                      verticalLabelRotation={25} // Rotate labels to fit more on X-axis
+                      fromZero={true} // Start Y-axis from zero
+                      showValuesOnTopOfBars={true} // Show actual values on top of bars
+                      flatColor={true}
+                      style={{
+                        flex: 1,
+                        paddingRight: 25,
+                        marginVertical: 2,
+                        borderRadius: 50,
+                        marginBottom: 20,
+                      }}
+                      // If labels still overlap, you might need to adjust height or rotation
+                      // or implement custom labels for better control.
+                    />
+                  </View>
+                ) : (
+                  <Text className="text-gray-500 italic text-center mb-4">
+                    No merchant data available for charting.
+                  </Text>
+                )}
+
                 <View className="flex-row bg-gray-300 py-2 px-3 border-b border-gray-300 rounded-t-md">
                   <Text className="flex-1 font-pbold text-black text-sm">
                     Merchant
@@ -347,7 +437,7 @@ const Spending = () => {
                 {selectedMerchantVisits.length > 0 ? (
                   selectedMerchantVisits.map((date, index) => (
                     <Text key={index} className="text-base text-gray-700 py-1">
-                      {format(new Date(date), "MMM dd, yyyy - hh:mm a")}
+                      {format(new Date(date), "MMM dd,̋ - hh:mm a")}
                     </Text>
                   ))
                 ) : (
@@ -385,7 +475,7 @@ const Spending = () => {
                 {selectedItemPurchases.length > 0 ? (
                   selectedItemPurchases.map((date, index) => (
                     <Text key={index} className="text-base text-gray-700 py-1">
-                      {format(new Date(date), "MMM dd, yyyy - hh:mm a")}
+                      {format(new Date(date), "MMM dd,̋ - hh:mm a")}
                     </Text>
                   ))
                 ) : (

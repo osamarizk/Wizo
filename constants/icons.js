@@ -29,6 +29,13 @@ import down from "../assets/icons/down.png";
 import up from "../assets/icons/up.png";
 import action from "../assets/icons/action.png";
 import calendar from "../assets/icons/calendar.png";
+import settings from "../assets/icons/settings.png";
+import privacy from "../assets/icons/privacy.png";
+import terms from "../assets/icons/terms.png";
+import about from "../assets/icons/about.png";
+import help from "../assets/icons/help.png";
+import user from "../assets/icons/user.png";
+
 // budget.png
 // import receipt from "../assets/icons/receipt";
 export default {
@@ -62,5 +69,11 @@ export default {
   down,
   up,
   action,
-  calendar
+  calendar,
+  settings,
+  privacy,
+  terms,
+  about,
+  help,
+  user,
 };
