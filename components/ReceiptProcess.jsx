@@ -236,12 +236,12 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
           ? `${extractedData.location.address}, ${extractedData.location.city}, ${extractedData.location.country}`
           : "Unknown",
         datetime: extractedData.datetime || new Date().toISOString(),
-        currency: "EGP",
+        currency: String(extractedData.currency || "EGP"),
         subtotal: parseFloat(extractedData.subtotal) || 0,
         vat: parseFloat(extractedData.vat) || 0,
         total: parseFloat(extractedData.total) || 0,
         items: JSON.stringify(itemsWithIds || []),
-        cardLastFourDigits: extractedData.cardLastFourDigits || "null",
+        cardLastFourDigits: String(extractedData.cardLastFourDigits || "null"),
         cashierId: String(extractedData.cashierId || "null"),
         payment_method: String(extractedData.paymentMethod || "null"),
         storeBranchId: String(extractedData.storeBranchId || "null"), // Convert to string
@@ -250,7 +250,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
           typeof extractedData.loyaltyPoints === "string"
             ? parseInt(extractedData.loyaltyPoints) // Convert string "0" to number 0 if necessary
             : extractedData.loyaltyPoints || 0,
-        notes: extractedData.notes || "null",
+        notes: String(extractedData.notes || "null"),
         image_file_id: uploadedFile.$id,
         image_type: uploadedFile.mimeType,
         image_size: uploadedFile.sizeOriginal || 0,
@@ -507,7 +507,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
                     <Text className="font-pbold text-base text-blue-700">
                       🛒 Items:
                     </Text>
-                    {extractedData.items.length > 3 && (
+                    {extractedData.items.length > 2 && ( // CHANGE THIS LINE: 3 is your desired default
                       <TouchableOpacity onPress={toggleItems}>
                         <Text className="font-pbold text-base text-blue-700 ml-1">
                           {showAllItems ? "(▲ Show less)" : "(Show more ▼)"}
@@ -516,7 +516,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
                     )}
                   </View>
 
-                  {(showAllItems || extractedData.items.length <= 2
+                  {(showAllItems || extractedData.items.length <= 2 // CHANGE THIS LINE TOO, to match the desired default
                     ? extractedData.items
                     : extractedData.items.slice(0, 2)
                   ).map((item, index) => (
@@ -530,7 +530,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
                     </View>
                   ))}
 
-                  {extractedData.items.length > 3 && (
+                  {extractedData.items.length > 2 && ( // CHANGE THIS LINE: 3 is your desired default
                     <TouchableOpacity onPress={toggleItems}>
                       <Text className="text-blue-700 font-pbold ml-4 mt-1 text-base">
                         {showAllItems
