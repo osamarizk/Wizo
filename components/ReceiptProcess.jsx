@@ -24,6 +24,7 @@ import {
   getSubcategoriesByName,
   updateUserPoints,
   checkAndAwardBadges,
+  checkSession,
 } from "../lib/appwrite";
 import Checkbox from "expo-checkbox"; // Make sure expo-checkbox is installed
 import { useGlobalContext } from "../context/GlobalProvider";
@@ -69,24 +70,18 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
         return;
       }
 
-      // --- Start of NEW Item Consolidation Logic ---
+      // --- Item Consolidation Logic (remains unchanged) ---
       if (data.data && data.data.items && data.data.items.length > 0) {
         const originalItems = data.data.items;
         const consolidatedItems = [];
 
         for (let i = 0; i < originalItems.length; i++) {
           const currentItem = originalItems[i];
-
-          // Check if the current item has a price of 0 and is not the very first item
           if (currentItem.price === 0 && i > 0) {
-            // Attempt to append this item's name to the previous item's name
             const lastConsolidatedItem =
               consolidatedItems[consolidatedItems.length - 1];
-
             if (lastConsolidatedItem) {
-              // Append the current item name in parentheses to the previous item's name
               lastConsolidatedItem.name = `${lastConsolidatedItem.name} (${currentItem.name})`;
-              // Optionally, you can also transfer category/subcategory if they are missing on the main item
               if (!lastConsolidatedItem.category && currentItem.category) {
                 lastConsolidatedItem.category = currentItem.category;
               }
@@ -97,24 +92,82 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
                 lastConsolidatedItem.subcategory = currentItem.subcategory;
               }
             } else {
-              // Fallback: If for some reason there's no previous item (should be rare for add-ons),
-              // add it as a standalone item.
               consolidatedItems.push(currentItem);
             }
           } else {
-            // If the item has a price > 0, or it's the first item, add it directly
             consolidatedItems.push(currentItem);
           }
         }
-        // Update the items in your extractedData with the consolidated list
         data.data.items = consolidatedItems;
       }
-      // --- End of NEW Item Consolidation Logic ---
+      // --- End of Item Consolidation Logic ---
 
-      // Set the extracted data if it is a receipt
-      setExtractedData(data.data); // access the inner `data` field
+      // --- START: MODIFIED LOGIC FOR COUNTRY AND NULL HANDLING (for display/editing) ---
 
-      console.log("Receipt Data", data.data);
+      // Ensure data.data and data.data.location exist to prevent errors
+      if (!data.data) {
+        data.data = {};
+      }
+      if (!data.data.location) {
+        data.data.location = {};
+      }
+
+      // 1. Determine the country for the receipt (prioritizing extracted over user session)
+      const userSession = await checkSession();
+      // userCountryFromSession can be null/undefined if not found
+      const userCountryFromSession = userSession?.countryName;
+
+      const extractedLocationCountry = data.data.location.country;
+      // rawFinalCountry will be null/undefined if neither extracted nor user session has it
+      const rawFinalCountry =
+        extractedLocationCountry || userCountryFromSession;
+
+      // 2. Convert all location components to string, defaulting to an EMPTY STRING if null/undefined.
+      // This allows `filter(Boolean)` in display logic to correctly omit them.
+      data.data.location.address = String(data.data.location.address || "");
+      data.data.location.city = String(data.data.location.city || "");
+      data.data.location.country = String(rawFinalCountry || ""); // Ensure country is also "" if truly null
+
+      // 3. Apply null handling to other relevant fields (defaulting to "null" string or appropriate numbers)
+      data.data.merchant = String(data.data.merchant || "Unknown"); // Still default to "Unknown" for merchant
+      data.data.currency = String(data.data.currency || "EGP");
+
+      // Numeric fields: ensure they are numbers, defaulting to 0 if null/undefined/invalid
+      data.data.subtotal = parseFloat(data.data.subtotal || 0);
+      data.data.vat = parseFloat(data.data.vat || 0);
+      data.data.total = parseFloat(data.data.total || 0);
+
+      // Other string fields: default to "null" string if null/undefined
+      data.data.cardLastFourDigits = String(
+        data.data.cardLastFourDigits || "null"
+      );
+      data.data.cashierId = String(data.data.cashierId || "null");
+      data.data.paymentMethod = String(data.data.paymentMethod || "null");
+      data.data.storeBranchId = String(data.data.storeBranchId || "null");
+      data.data.transactionId = String(data.data.transactionId || "null");
+
+      // Loyalty points handling: null/undefined to "null" string, numeric string to float, others to string.
+      if (
+        data.data.loyaltyPoints === null ||
+        data.data.loyaltyPoints === undefined
+      ) {
+        data.data.loyaltyPoints = "null"; // If null/undefined, save as the string "null"
+      } else if (
+        typeof data.data.loyaltyPoints === "string" &&
+        !isNaN(parseFloat(data.data.loyaltyPoints))
+      ) {
+        data.data.loyaltyPoints = parseFloat(data.data.loyaltyPoints); // If it's a numeric string, convert to number
+      } else {
+        data.data.loyaltyPoints = String(data.data.loyaltyPoints || "null"); // Convert any other non-null/undefined value to string, defaulting to "null" if falsy
+      }
+
+      data.data.notes = String(data.data.notes || "null");
+
+      // --- END: MODIFIED LOGIC FOR COUNTRY AND NULL HANDLING ---
+
+      // Set the extracted data (now processed and cleaned)
+      setExtractedData(data.data);
+      console.log("Receipt Data (Processed for display/editing)", data.data);
       Alert.alert("Success", "Receipt processed successfully!");
     } catch (error) {
       Alert.alert("Error", "Failed to extract receipt data.");
@@ -123,7 +176,6 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
       setIsProcessing(false);
     }
   };
-
   const handleSave = async () => {
     console.log("extractedData", extractedData);
     if (!consentGiven) {
@@ -138,6 +190,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
       Alert.alert("Error", "Missing receipt data or image.");
       return;
     }
+
+    console.log("User Data...", user);
 
     const isDuplicate = await isDuplicateReceipt(
       user.$id,
@@ -218,44 +272,91 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
             ...item,
             category_id: categoryId,
             subcategory_id: subcategoryId,
-            // payment_method: extractedData.paymentMethod || "Unknown",
-            // transaction_id: extractedData.transactionId || "Unknown",
-            // loyaltyPoints: extractedData.loyaltyPoints || "Unknown",
-            // loyaltyProgram: extractedData.loyaltyProgram || "Unknown",
-            // notes: extractedData.notes || "Unknown",
           };
         })
       );
 
       console.log("extracted Receipt Data ....", extractedData);
+      // cconst userSession = await checkSession();
 
+      // --- START: MODIFIED LOGIC FOR COUNTRY AND NULL HANDLING ---
+
+      // Build the location string parts using the pre-processed extractedData
+      const locationAddress = extractedData.location?.address; // Will be "" if null
+      const locationCity = extractedData.location?.city; // Will be "" if null
+      const locationCountry = extractedData.location?.country; // Will be "" if null
+
+      // Filter out empty strings (which represent the original nulls)
+      const locationParts = [
+        locationAddress,
+        locationCity,
+        locationCountry,
+      ].filter(Boolean);
+
+      // If all parts are empty, then the entire location string defaults to "Unknown" for database storage.
+      // Otherwise, join the existing parts.
+      const finalLocationString =
+        locationParts.length > 0 ? locationParts.join(", ") : "Unknown";
+      console.log("finalLocationString...", finalLocationString);
+      // For the separate 'country' field saved to Appwrite:
+      // Convert empty string "" to "null" string, otherwise use the value or default to "null".
+      const countryForAppwrite =
+        extractedData.location?.country === ""
+          ? "null" // If it's an empty string (from being originally null), save as "null" string
+          : String(extractedData.location?.country || "null"); // Otherwise, use its value or default to "null" string
+
+      console.log(
+        "extractedData.loyaltyPoints...",
+        extractedData.loyaltyPoints
+      );
       const receiptData = {
         user_id: user.$id,
-        merchant: String(extractedData.merchant || "Unknown"),
-        location: String(extractedData.location)
-          ? `${extractedData.location.address}, ${extractedData.location.city}, ${extractedData.location.country}`
-          : "Unknown",
+        merchant: String(extractedData.merchant || "Unknown"), // Existing handling for merchant
+        location: finalLocationString, // This will be like "City, Country" or "Address, City" or "Country" or "Unknown"
         datetime: extractedData.datetime || new Date().toISOString(),
         currency: String(extractedData.currency || "EGP"),
-        subtotal: parseFloat(extractedData.subtotal) || 0,
-        vat: parseFloat(extractedData.vat) || 0,
-        total: parseFloat(extractedData.total) || 0,
-        items: JSON.stringify(itemsWithIds || []),
+        // Use parseFloat with || 0 to ensure numbers and handle null/undefined/empty string to 0
+        subtotal: parseFloat(extractedData.subtotal || 0),
+        vat: parseFloat(extractedData.vat || 0),
+        total: parseFloat(extractedData.total || 0),
+        items: JSON.stringify(itemsWithIds || []), // Already handles array/null to empty array string
         cardLastFourDigits: String(extractedData.cardLastFourDigits || "null"),
         cashierId: String(extractedData.cashierId || "null"),
         payment_method: String(extractedData.paymentMethod || "null"),
-        storeBranchId: String(extractedData.storeBranchId || "null"), // Convert to string
+        storeBranchId: String(extractedData.storeBranchId || "null"),
         transactionId: String(extractedData.transactionId || "null"),
-        loyalty_points:
-          typeof extractedData.loyaltyPoints === "string"
-            ? parseInt(extractedData.loyaltyPoints) // Convert string "0" to number 0 if necessary
-            : extractedData.loyaltyPoints || 0,
+        loyalty_points: (() => {
+          // Self-executing anonymous function to determine the value
+          let value = extractedData.loyaltyPoints;
+
+          // If null, undefined, or an empty string, default to 0
+          if (value === null || value === undefined || value === "") {
+            return 0;
+          }
+
+          // Attempt to parse as an integer
+          const parsed = parseInt(value);
+
+          // If parsing results in a valid number, return it.
+          // isNaN(parsed) checks if parsing failed (e.g., if value was "abc").
+          // Fallback to 0 if parsing fails.
+          if (!isNaN(parsed)) {
+            return parsed;
+          }
+
+          // If the value was not null/undefined/empty string and not a parseable integer (e.g., "not a number"),
+          // still default to 0 to satisfy Appwrite's integer requirement.
+          return 0;
+        })(), // Call the function immediately
         notes: String(extractedData.notes || "null"),
         image_file_id: uploadedFile.$id,
         image_type: uploadedFile.mimeType,
         image_size: uploadedFile.sizeOriginal || 0,
         image_url: `https://cloud.appwrite.io/v1/storage/buckets/${uploadedFile.bucketId}/files/${uploadedFile.$id}/view?project=${projectId}`,
       };
+
+      // --- END: MODIFIED LOGIC FOR COUNTRY AND NULL HANDLING ---
+
       // Save receipt metadata in the database
       const response = await createReceipt(receiptData);
 
@@ -289,11 +390,10 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
           );
 
           // Create Points notification
-
           await createNotification({
             user_id: user.$id,
             title: "Points Earned",
-            message: `${user.username} you earned ${pointsExtra} Extra Points for  ${badgeNames}!`,
+            message: `${user.username} you earned ${pointsExtra} Extra Points for  ${badgeNames}!`,
             receipt_id: response.$id,
           });
           console.log(`User ${user.$id} earned badges: ${badgeNames}`);
@@ -453,13 +553,13 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
                       📍 Location →
                     </Text>
                     <Text>
-                      {extractedData.location.address
-                        ? extractedData.location.address + ", "
-                        : ""}
-                      {extractedData.location.city
-                        ? extractedData.location.city + ", "
-                        : ""}
-                      {extractedData.location.country}
+                      {[
+                        extractedData.location.address,
+                        extractedData.location.city,
+                        extractedData.location.country,
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
                     </Text>
                   </Text>
                 )}

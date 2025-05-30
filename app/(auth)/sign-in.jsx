@@ -49,7 +49,8 @@ const SignIn = () => {
     }
     // 3-Call the API to login the user
     try {
-      await signIn(form.email, form.password);
+      const userSession = await signIn(form.email, form.password);
+      console.log("User Session", userSession);
       //  set user data to global context
       const resu = await getCurrentUser();
       console.log("current user", resu);

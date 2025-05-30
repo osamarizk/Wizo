@@ -18,7 +18,7 @@ const Index = () => {
     <GradientBackground>
       <SafeAreaView className="flex-1">
         <ScrollView>
-          <View className=" justify-center items-center px-4 py-4  min-h-[85vh] ">
+          <View className=" justify-center items-center px-4 py-4  ">
             <Image
               source={images.logoo7}
               resizeMode="contain"
@@ -41,7 +41,7 @@ const Index = () => {
             <Image
               source={images.mobrc}
               style={{ width: width * 0.9, height: height * 0.35 }}
-              className="absolute bottom-80 left-2"
+              className=" bottom-80 left-2"
               resizeMode="contain"
               opacity={0.92}
             />
@@ -63,7 +63,7 @@ const Index = () => {
             />
           </View>
         </ScrollView>
-        <StatusBar backgroundColor="#161622" style="dark" />
+        {/* <StatusBar backgroundColor="#161622" style="dark" /> */}
       </SafeAreaView>
     </GradientBackground>
   );

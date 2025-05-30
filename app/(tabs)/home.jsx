@@ -787,7 +787,7 @@ const Home = () => {
           ListHeaderComponent={
             <>
               {/* Header Section */}
-              <View className="flex-row justify-between items-center mb-1 mt-1 ">
+              <View className="flex-row justify-between items-center mb-2 mt-1 ">
                 <View>
                   <Text className="text-base text-gray-500 font-pregular">
                     {greeting}
@@ -820,63 +820,51 @@ const Home = () => {
               </View>
 
               {/* Points Display */}
-              <View className="flex-row items-center justify-between mb-1">
-                <View className=" mt-1">
-                  <Text className="text-gray-600 font-pmedium text-lg">
-                    Your Points:{" "}
-                    <Text className="font-pbold text-xl">
-                      {userTotalPoints}
-                    </Text>{" "}
-                    ✨
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() =>
-                      showCustomModal(
-                        "Your Badges",
-                        "View your earned achievements!"
-                      )
-                    }
-                    className="mt-2"
-                  >
-                    <Text className="text-gray-600 font-psemibold text-base underline">
-                      View My Badges ({userBadges.length})
+              {(userTotalPoints > 0 || userBadges.length > 0) && (
+                <View className="flex-row items-center justify-between mb-1">
+                  <View className=" mt-1">
+                    <Text className="text-gray-600 font-pmedium text-lg">
+                      Your Points:{" "}
+                      <Text className="font-pbold text-xl">
+                        {userTotalPoints}
+                      </Text>{" "}
+                      ✨
                     </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* NEW: Set Up Budget Prompt (Moved to a more visible location) */}
-                {showBudgetPrompt && (
-                  <View className="mx-4   p-2  rounded-xl backdrop-blur-sm bg-transparent items-center">
-                    {/* <Image
-                    source={icons.pie} // Reusing pie icon, or use a new one for budget prompt
-                    className="w-12 h-12 mb-3"
-                    resizeMode="contain"
-                    tintColor="#9F54B6" // A color that stands b-4
-                  />
-                  <Text className="text-lg font-psemibold text-gray-800 text-center mb-3">
-                    Ready to take control of your spending?
-                  </Text> */}
-                    {/* <Text className="text-base font-pregular text-gray-600 text-center mb-4">
-                    Set up your first budget to track your expenses and achieve
-                    your financial goals!
-                  </Text> */}
                     <TouchableOpacity
-                      onPress={SetupBudget}
-                      className=" p-2 items-center  justify-center "
+                      onPress={() =>
+                        showCustomModal(
+                          "Your Badges",
+                          "View your earned achievements!"
+                        )
+                      }
+                      className="mt-2"
                     >
-                      <Image
-                        source={icons.pie} // Reusing pie icon, or use a new one for budget prompt
-                        className="w-12 h-12 "
-                        resizeMode="contain"
-                        tintColor="#9F54B6" // A color that stands b-4
-                      />
-                      <Text className="text-gray-700 font-pregular text-base text-center">
-                        {`Set up your budget Now \n to track your spending!`}
+                      <Text className="text-gray-600 font-psemibold text-base underline">
+                        View My Badges ({userBadges.length})
                       </Text>
                     </TouchableOpacity>
                   </View>
-                )}
-              </View>
+                  {/* NEW: Set Up Budget Prompt (Moved to a more visible location) */}
+                  {showBudgetPrompt && (
+                    <View className="mx-4 p-2 rounded-xl backdrop-blur-sm bg-transparent items-center">
+                      <TouchableOpacity
+                        onPress={SetupBudget}
+                        className=" p-2 items-center justify-center "
+                      >
+                        <Image
+                          source={icons.pie} // Reusing pie icon, or use a new one for budget prompt
+                          className="w-12 h-12 "
+                          resizeMode="contain"
+                          tintColor="#9F54B6" // A color that stands b-4
+                        />
+                        <Text className="text-gray-700 font-pregular text-base text-center">
+                          {`Set up your budget Now \n to track your spending!`}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              )}
               {/* Custom Modal for Points/Badges */}
               <Modal
                 animationType="fade"

@@ -16,12 +16,12 @@ const RootLayout = () => {
   // Laod fonts and handle errorrs of font loading
   const { fontsLoaded, error } = useLoadFonts();
   if (!fontsLoaded && !error) return null;
-  if (
-    Platform.OS === "android" &&
-    UIManager.setLayoutAnimationEnabledExperimental
-  ) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-  }
+  // if (
+  //   Platform.OS === "android" &&
+  //   UIManager.setLayoutAnimationEnabledExperimental
+  // ) {
+  //   UIManager.setLayoutAnimationEnabledExperimental(true);
+  // }
   return (
     // <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
     //   <KeyboardAvoidingView
