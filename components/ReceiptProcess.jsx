@@ -31,6 +31,7 @@ import { useGlobalContext } from "../context/GlobalProvider";
 import { router } from "expo-router";
 import * as FileSystem from "expo-file-system"; // for reading the image as blob
 import mime from "mime"; // helps get MIME type from file extension
+
 import GradientBackground from "./GradientBackground";
 
 const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
