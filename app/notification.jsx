@@ -21,6 +21,9 @@ import { useGlobalContext } from "../context/GlobalProvider";
 import GradientBackground from "../components/GradientBackground";
 import { useNavigation } from "expo-router";
 import icons from "../constants/icons";
+
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 const NotificationPage = () => {
   const { user, updateUnreadCount } = useGlobalContext();
   const [notifications, setNotifications] = useState([]);
@@ -28,6 +31,9 @@ const NotificationPage = () => {
   const [expandedId, setExpandedId] = useState(null);
   const [receiptDetails, setReceiptDetails] = useState({});
   const navigation = useNavigation();
+
+  dayjs.extend(relativeTime);
+  const [timeUpdate, setTimeUpdate] = useState(Date.now());
 
   const fetchUserNotifications = async () => {
     if (!user?.$id) return;
@@ -41,6 +47,11 @@ const NotificationPage = () => {
 
   useEffect(() => {
     fetchUserNotifications();
+    const interval = setInterval(() => {
+      setTimeUpdate(Date.now()); // Trigger re-render every 30s
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
   }, [user]);
 
   const handleRefresh = async () => {
@@ -83,7 +94,7 @@ const NotificationPage = () => {
           className="p-4 border-b border-gray-300 bg-onboarding flex-row justify-between font-pregular text-base"
         >
           <View className="flex-1 ">
-            <View className="flex-row items-center">
+            <View className="flex-row items-center ">
               {!item.read && (
                 <View className="w-2 h-2 bg-red-500 rounded-full mr-2" />
               )}
@@ -94,6 +105,11 @@ const NotificationPage = () => {
               >
                 {item.title}
               </Text>
+              <View className="flex-1 justify-end items-end">
+                <Text className="text-xs text-gray-400 mt-1 ">
+                  {dayjs(item.$createdAt).fromNow()}
+                </Text>
+              </View>
             </View>
             <Text
               className={`text-base mt-1 ${

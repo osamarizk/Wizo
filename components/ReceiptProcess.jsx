@@ -220,6 +220,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
       // const mimeType = mime.getType(fileName); // e.g., "image/jpeg"
 
       // Resize and compress the image before upload
+      // @ts-expect-error: manipulateAsync is deprecated but still supported
       const manipulatedImage = await ImageManipulator.manipulateAsync(
         imageUri,
         [{ resize: { width: 800 } }],
@@ -389,7 +390,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
         });
         // --- POINTS & BADGES INTEGRATION START ---
         // 1. Award points for receipt upload
-        const pointsEarned = 10; // Example: 10 points per receipt
+        const pointsEarned = 0; // Example: 10 points per receipt
         await updateUserPoints(user.$id, pointsEarned, "receipt_upload");
         console.log(
           `User ${user.$id} earned ${pointsEarned} points for receipt upload.`

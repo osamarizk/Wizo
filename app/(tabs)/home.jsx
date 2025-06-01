@@ -226,8 +226,21 @@ const Home = () => {
         // console.log(showBudgetPrompt);
 
         // NEW: Fetch user points and badges
-        const currentPoints = await getUserPoints(user.$id);
-        setUserTotalPoints(currentPoints?.points || 0);
+
+        const userPointsDocs = await getUserPoints(user.$id);
+        if (userPointsDocs.length > 0) {
+          const historyString = userPointsDocs[0].history;
+          const history = JSON.parse(historyString);
+
+          const totalPoints = history.reduce(
+            (sum, entry) => sum + (entry.points || 0),
+            0
+          );
+          setUserTotalPoints(totalPoints || 0);
+          console.log("Total Points from history:", totalPoints);
+        } else {
+          console.log("No points document found for this user.");
+        }
 
         const earnedBadges = await getUserEarnedBadges(user.$id);
         setUserBadges(earnedBadges);
