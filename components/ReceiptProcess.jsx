@@ -31,6 +31,7 @@ import { useGlobalContext } from "../context/GlobalProvider";
 import { router } from "expo-router";
 import * as FileSystem from "expo-file-system"; // for reading the image as blob
 import mime from "mime"; // helps get MIME type from file extension
+import * as ImageManipulator from "expo-image-manipulator";
 
 import GradientBackground from "./GradientBackground";
 
@@ -214,15 +215,31 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
       setHasSaved(true); // <-- Set hasSaved to true HERE
 
       const fileInfo = await FileSystem.getInfoAsync(imageUri);
-      const fileUri = fileInfo.uri;
+      // const fileUri = fileInfo.uri;
+      // const fileName = fileUri.split("/").pop();
+      // const mimeType = mime.getType(fileName); // e.g., "image/jpeg"
+
+      // Resize and compress the image before upload
+      const manipulatedImage = await ImageManipulator.manipulateAsync(
+        imageUri,
+        [{ resize: { width: 800 } }],
+        { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      const fileUri = manipulatedImage.uri;
       const fileName = fileUri.split("/").pop();
-      const mimeType = mime.getType(fileName); // e.g., "image/jpeg"
+      const mimeType = mime.getType(fileName); // still valid
 
       const uploadedFile = await uploadReceiptImage(
         fileUri,
         fileName,
         mimeType
       );
+
+      const manipulatedInfo = await FileSystem.getInfoAsync(fileUri);
+
+      console.log(`Original size: ${fileInfo.size} bytes`);
+      console.log(`Manipulated image Size: ${manipulatedInfo.size}`);
       // 1. Create a Date object from the ISO string
       const receiptDate = new Date(extractedData.datetime);
 
