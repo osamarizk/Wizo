@@ -586,7 +586,6 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                   <Text className="text-black font-pbold text-base">
                     📅 Date →
                   </Text>{" "}
-                  {/* NEW: Process the datetime string to remove 'Z' if present */}
                   {(() => {
                     const dateTimeString = extractedData.datetime;
                     const localDateTimeString = dateTimeString.endsWith("Z")
@@ -597,22 +596,16 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
                     return (
                       <>
-                        {displayDate.toLocaleDateString(
-                          undefined, // Use default locale
-                          {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                          }
-                        )}{" "}
-                        {displayDate.toLocaleTimeString(
-                          undefined, // Use default locale
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: true,
-                          }
-                        )}
+                        {displayDate.toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}{" "}
+                        {displayDate.toLocaleTimeString(undefined, {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                        })}
                       </>
                     );
                   })()}
@@ -681,14 +674,19 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                   {extractedData.subtotal}
                 </Text>
               )}
-              {extractedData.vat && !showAllItems && (
-                <Text className="text-red-900 text-base font-psemibold mb-1">
-                  <Text className="text-black font-pbold text-base">
-                    🧾 VAT →
-                  </Text>{" "}
-                  {extractedData.vat}
-                </Text>
-              )}
+
+              {/* VAT Display */}
+              {typeof extractedData.vat === "number" &&
+                !isNaN(extractedData.vat) &&
+                !showAllItems && ( // <--- MODIFIED CONDITION
+                  <Text className="text-red-900 text-base font-psemibold mb-1">
+                    <Text className="text-black font-pbold text-base">
+                      🧾 VAT →
+                    </Text>{" "}
+                    {extractedData.vat.toFixed(2)}{" "}
+                    {/* Added .toFixed(2) for consistent display */}
+                  </Text>
+                )}
             </View>
 
             {extractedData.total && (
