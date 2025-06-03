@@ -5,6 +5,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  Platform,
 } from "react-native";
 import React, { useState } from "react";
 import { Tabs, router } from "expo-router"; // Import router
@@ -36,7 +37,11 @@ const TabsLayout = () => {
             backgroundColor: "#FAFAFA",
             borderTopWidth: 2,
             borderTopColor: "#F4F0F0",
-            height: 84,
+            height: Platform.select({
+              // <--- Use Platform.select here
+              ios: 84, // Height for iOS
+              android: 100, // Height for Android
+            }),
             borderRadius: 10,
             borderCurve: 90,
           },

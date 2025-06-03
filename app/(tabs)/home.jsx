@@ -11,6 +11,7 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Platform,
 } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -139,35 +140,80 @@ const Home = () => {
   const [showSearchFilterModal, setShowSearchFilterModal] = useState(false); // <--- NEW STATE FOR SEARCH FILTER MODAL
   const [isSearchFilterExpanded, setIsSearchFilterExpanded] = useState(false); // <--- NEW STATE for collapsible filter
 
-  const isSearchActive =
-    searchQuery ||
-    selectedSearchCategory ||
-    selectedSearchSubcategory ||
-    searchStartDate ||
-    searchEndDate;
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const now = new Date();
-  const monthOptions = { month: "long" };
-  const monthName = now.toLocaleString("default", monthOptions); // 'default' uses the user's default locale
+  useEffect(() => {
+    if (user?.$id && !globalLoading) {
+      fetchData();
 
-  const greeting =
-    hours < 12
-      ? "Good Morning"
-      : hours < 18
-      ? "Good Afternoon"
-      : "Good Evening";
+      // uploadInitialData();
+    }
+  }, [user, fetchData, globalLoading]);
 
-  const closeModal = () => {
-    setShowSpendingModal(false);
-    setSelectedCategory(null); // IMPORTANT: Reset selectedCategory when closing
-  };
-  const onRefresh = async () => {
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      performSearch();
+    }, 300);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [
+    searchQuery,
+    selectedSearchCategory,
+    selectedSearchSubcategory,
+    searchStartDate,
+    searchEndDate,
+    performSearch,
+  ]);
+  useEffect(() => {
+    // This effect ensures search runs after allReceipts are loaded, but avoid running if a search is already active
+    if (
+      !isLoading &&
+      !refreshing &&
+      allReceipts.length > 0 &&
+      !searchQuery &&
+      !selectedSearchCategory &&
+      !selectedSearchSubcategory &&
+      !searchStartDate &&
+      !searchEndDate
+    ) {
+      performSearch();
+    }
+  }, [
+    allReceipts,
+    performSearch,
+    isLoading,
+    refreshing,
+    searchQuery,
+    selectedSearchCategory,
+    selectedSearchSubcategory,
+    searchStartDate,
+    searchEndDate,
+  ]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.$id && !globalLoading) {
+        fetchData();
+      }
+    }, [user, fetchData, globalLoading])
+  );
+
+  // The handler passed to UploadModal
+  const handleUploadSuccess = useCallback(() => {
+    setShowUploadModal(false); // Close the modal
+    // console.log("Upload successful, calling onRefresh...");
+    onRefresh(); // This will increment refreshKey, triggering useFocusEffect
+  }, [setShowUploadModal, onRefresh]);
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchData();
     setRefreshing(false);
     setIsDeleting(false);
     setIsDownloading(false);
-  };
+    console.log("onRefresh called, incrementing refreshKey...");
+    setRefreshKey((prevKey) => prevKey + 1);
+  }, []);
   const fetchData = useCallback(async () => {
     if (user?.$id) {
       setIsLoading(true);
@@ -252,7 +298,6 @@ const Home = () => {
       }
     }
   }, [user]);
-
   const performSearch = useCallback(async () => {
     setIsSearching(true); // <--- Set loading to true when search starts
 
@@ -400,63 +445,6 @@ const Home = () => {
       }
     }
   }, [user]);
-  useEffect(() => {
-    if (user?.$id && !globalLoading) {
-      fetchData();
-
-      // uploadInitialData();
-    }
-  }, [user, fetchData, globalLoading]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (user?.$id && !globalLoading) {
-        fetchData();
-      }
-    }, [user, fetchData, globalLoading])
-  );
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      performSearch();
-    }, 300);
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [
-    searchQuery,
-    selectedSearchCategory,
-    selectedSearchSubcategory,
-    searchStartDate,
-    searchEndDate,
-    performSearch,
-  ]);
-
-  useEffect(() => {
-    // This effect ensures search runs after allReceipts are loaded, but avoid running if a search is already active
-    if (
-      !isLoading &&
-      !refreshing &&
-      allReceipts.length > 0 &&
-      !searchQuery &&
-      !selectedSearchCategory &&
-      !selectedSearchSubcategory &&
-      !searchStartDate &&
-      !searchEndDate
-    ) {
-      performSearch();
-    }
-  }, [
-    allReceipts,
-    performSearch,
-    isLoading,
-    refreshing,
-    searchQuery,
-    selectedSearchCategory,
-    selectedSearchSubcategory,
-    searchStartDate,
-    searchEndDate,
-  ]);
 
   if (isLoading || refreshing) {
     return (
@@ -636,16 +624,6 @@ const Home = () => {
     );
   };
 
-  // Navigate to notification screen
-  const goToNotifications = () => {
-    router.push("/notifications");
-  };
-
-  // Navigate to wallet screen
-  const goToWallet = () => {
-    router.push("/wallet");
-  };
-
   // Function to show custom modal
   const showCustomModal = (title, message) => {
     setModalTitle(title);
@@ -783,7 +761,29 @@ const Home = () => {
       { cancelable: false }
     );
   };
-  // --- NEW RECEIPT OPTIONS HANDLERS END ---
+
+  const isSearchActive =
+    searchQuery ||
+    selectedSearchCategory ||
+    selectedSearchSubcategory ||
+    searchStartDate ||
+    searchEndDate;
+
+  const now = new Date();
+  const monthOptions = { month: "long" };
+  const monthName = now.toLocaleString("default", monthOptions); // 'default' uses the user's default locale
+
+  const greeting =
+    hours < 12
+      ? "Good Morning"
+      : hours < 18
+      ? "Good Afternoon"
+      : "Good Evening";
+
+  const closeModal = () => {
+    setShowSpendingModal(false);
+    setSelectedCategory(null); // IMPORTANT: Reset selectedCategory when closing
+  };
 
   return (
     <GradientBackground>
@@ -793,9 +793,9 @@ const Home = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           contentContainerStyle={{
-            paddingHorizontal: 25,
-            paddingTop: 25,
-            paddingBottom: 40,
+            paddingHorizontal: 15,
+            paddingTop: 40,
+            paddingBottom: 20,
           }}
           ListHeaderComponent={
             <>
@@ -1053,15 +1053,24 @@ const Home = () => {
                   onPress={() => router.push("/notification")}
                   className="relative p-2 rounded-full mt-1"
                 >
-                  <Text className="text-center text-gray-600 mb-2 text-base font-pregular">
+                  <Text className="text-center text-gray-600 mb-2  font-pregular">
                     Total Receipts
                   </Text>
 
-                  <Text className="text-center text-2xl font-bold text-gray-800 ">
+                  <Text className="text-center text-2xl font-pbold text-gray-800 ">
                     💁 Receipts : {receiptStats.totalCount}
                   </Text>
 
-                  <Text className="text-center text-base font-pregular text-gray-600">
+                  <Text
+                    className="text-center text-base font-pregular text-gray-600"
+                    style={{
+                      fontSize: Platform.select({
+                        // <--- Use Platform.select for fontSize
+                        ios: 14, // Smaller font size for iOS (e.g., original text-xs)
+                        android: 12, // Slightly larger for Android if needed, or keep 10
+                      }),
+                    }}
+                  >
                     <Text className="text-center text-base font-pregular text-[#4E17B3] mt-2 ">
                       {"("}
                       {receiptStats.thisMonthCount}
@@ -1084,13 +1093,31 @@ const Home = () => {
 
               {/* Spending Categories Charts */}
               {receiptStats.monthlySpending > 0 && (
-                <View className=" p-2  border-2 rounded-md border-[#9F54B6] mb-4">
+                <View
+                  className=" p-2  border-2 rounded-md border-[#9F54B6] mb-4"
+                  style={{
+                    fontSize: Platform.select({
+                      // <--- Use Platform.select for fontSize
+                      ios: 14, // Smaller font size for iOS (e.g., original text-xs)
+                      android: 11, // Slightly larger for Android if needed, or keep 10
+                    }),
+                  }}
+                >
                   <Text className="text-base font-pregular text-black -mb-1">
                     Spending Categories of{" "}
                     <Text className="font-psemibold text-xl text-[#b31731]">
                       {monthName}
                     </Text>
-                    <Text className="text-xl font-bold text-black font-pbold mt-2">
+                    <Text
+                      className="text-xl font-pbold text-black  mt-2"
+                      style={{
+                        fontSize: Platform.select({
+                          // <--- Use Platform.select for fontSize
+                          ios: 18, // Smaller font size for iOS (e.g., original text-xs)
+                          android: 14, // Slightly larger for Android if needed, or keep 10
+                        }),
+                      }}
+                    >
                       {" : "}
                       EGP {receiptStats.monthlySpending.toFixed(2)}
                     </Text>
@@ -1566,7 +1593,7 @@ const Home = () => {
           <UploadModal
             visible={showUploadModal}
             onClose={() => setShowUploadModal(false)}
-            onRefresh={onRefresh}
+            onUploadSuccess={handleUploadSuccess}
           />
         )}
 

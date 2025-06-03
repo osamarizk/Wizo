@@ -93,8 +93,8 @@ const SignIn = () => {
               className="w-[230px] h-[105px] mt-5"
             />
 
-            <Text className="text-3xl text-gray-700 font-pextrabold text-center mt-5">
-              Access Your O7 Account
+            <Text className="text-xl text-gray-700 font-pextrabold text-center mt-3">
+              Access Your Account
             </Text>
 
             <FormFiled
@@ -109,7 +109,7 @@ const SignIn = () => {
               title="Password"
               value={form.password}
               handleChangeText={(e) => setForm({ ...form, password: e })}
-              otherStyles="mt-7 "
+              otherStyles="mt-4 "
               keyboardType="password"
             />
 
@@ -122,7 +122,7 @@ const SignIn = () => {
             </Link> */}
 
               <TouchableOpacity onPress={() => setModalVisible(true)}>
-                <Text className="text-secondary text-lg font-psemibold mt-2">
+                <Text className="text-secondary text-base font-psemibold mt-2">
                   Forgot password?
                 </Text>
               </TouchableOpacity>
@@ -141,13 +141,14 @@ const SignIn = () => {
               containerStyle=" mt-5 w-full"
               isLoading={isSubmitting}
             />
+
             <View className="justify-center pt-5 flex-row gap-2">
-              <Text className="text-lg text-gray-700 font-semibold">
+              <Text className="text-base text-gray-700 font-semibold">
                 Don't have an Account?
               </Text>
               <Link
                 href="/sign-up"
-                className="text-lg font-psemibold text-secondary"
+                className="text-base font-psemibold text-secondary"
               >
                 Sign Up
               </Link>

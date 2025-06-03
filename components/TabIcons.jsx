@@ -1,4 +1,4 @@
-import { View, Text, Image } from "react-native";
+import { View, Text, Image, Platform } from "react-native";
 import React from "react";
 
 const TabIcons = ({ icon, color, name, focused }) => {
@@ -31,8 +31,19 @@ const TabIcons = ({ icon, color, name, focused }) => {
 
       {/* Always render the name of the tab */}
       <Text
-        className={`${focused ? "font-psemibold" : "font-pregular"} text-sm`}
-        style={{ color: color }}
+        className={`${
+          focused ? "font-psemibold" : "font-pregular"
+        } text-center`}
+        style={{
+          color: color,
+          fontSize: Platform.select({
+            // <--- Use Platform.select for fontSize
+            ios: 14, // Smaller font size for iOS (e.g., original text-xs)
+            android: 11, // Slightly larger for Android if needed, or keep 10
+          }),
+        }}
+        numberOfLines={1} // <--- IMPORTANT: Force text to a single line
+        ellipsizeMode="tail" // <--- IMPORTANT: Add ellipsis if it overflows
       >
         {name}
       </Text>

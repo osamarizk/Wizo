@@ -35,7 +35,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 
 import GradientBackground from "./GradientBackground";
 
-const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
+const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   const [showFullImage, setShowFullImage] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -423,9 +423,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
         const updatedUnreadCount = await countUnreadNotifications(user.$id); // Fetch updated unread count
         updateUnreadCount(updatedUnreadCount); // Update context with new unread count
         onCancel(); // Close the modal
-        onRefresh();
-        // Call the success callback passed from UploadModal
-        onUploadSuccess?.(); // Call the passed success handler
+        onProcessComplete?.(); // <--- Call the single success callback
         router.push("/home");
       } else {
         console.error("Invalid response from createReceipt:", response);
@@ -588,22 +586,36 @@ const ReceiptProcess = ({ imageUri, onCancel, onUploadSuccess, onRefresh }) => {
                   <Text className="text-black font-pbold text-base">
                     📅 Date →
                   </Text>{" "}
-                  {new Date(extractedData.datetime).toLocaleDateString(
-                    undefined,
-                    {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    }
-                  )}{" "}
-                  {new Date(extractedData.datetime).toLocaleTimeString(
-                    undefined,
-                    {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    }
-                  )}
+                  {/* NEW: Process the datetime string to remove 'Z' if present */}
+                  {(() => {
+                    const dateTimeString = extractedData.datetime;
+                    const localDateTimeString = dateTimeString.endsWith("Z")
+                      ? dateTimeString.slice(0, -1) // Remove 'Z'
+                      : dateTimeString;
+
+                    const displayDate = new Date(localDateTimeString);
+
+                    return (
+                      <>
+                        {displayDate.toLocaleDateString(
+                          undefined, // Use default locale
+                          {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          }
+                        )}{" "}
+                        {displayDate.toLocaleTimeString(
+                          undefined, // Use default locale
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: true,
+                          }
+                        )}
+                      </>
+                    );
+                  })()}
                 </Text>
               )}
 

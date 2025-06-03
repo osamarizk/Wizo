@@ -35,6 +35,8 @@ import terms from "../assets/icons/terms.png";
 import about from "../assets/icons/about.png";
 import help from "../assets/icons/help.png";
 import user from "../assets/icons/user.png";
+import trophy from "../assets/icons/trophy.png";
+import badgePlaceholder from "../assets/icons/badgePlaceholder.png";
 
 // budget.png
 // import receipt from "../assets/icons/receipt";
@@ -76,4 +78,6 @@ export default {
   about,
   help,
   user,
+  trophy,
+  badgePlaceholder,
 };

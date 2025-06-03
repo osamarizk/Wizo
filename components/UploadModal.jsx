@@ -12,7 +12,14 @@ import { pickImageFromCamera, pickImageFromGallery } from "../lib/imagePicker";
 import ReceiptProcess from "../components/ReceiptProcess";
 import { router } from "expo-router";
 
-const UploadModal = ({ visible, onClose, onUploadSuccess, onRefresh }) => {
+const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
+  console.log(
+    "Uploaded Receipts Model Rendered",
+    visible,
+    onClose,
+    onUploadSuccess
+    // onRefresh
+  );
   const [selectedImageUri, setSelectedImageUri] = useState(null);
   // console.log("Refreshing Value:", onRefresh);
 
@@ -27,6 +34,15 @@ const UploadModal = ({ visible, onClose, onUploadSuccess, onRefresh }) => {
       setSelectedImageUri(uri);
     }
   };
+
+  const handleProcessComplete = () => {
+    // This function will be called by ReceiptProcess
+    setSelectedImageUri(null); // Clear image
+    onUploadSuccess?.(); // Call the parent's (home.jsx's) success handler
+    onClose(); // Close the modal
+  };
+
+
 
   return (
     <Modal
@@ -87,8 +103,7 @@ const UploadModal = ({ visible, onClose, onUploadSuccess, onRefresh }) => {
             <ReceiptProcess
               imageUri={selectedImageUri}
               onCancel={handleCancel}
-              onRefresh={onRefresh}
-              onUploadSuccess={onUploadSuccess} // Pass onUploadSuccess down
+              onProcessComplete={handleProcessComplete}
             />
           )}
         </Pressable>
