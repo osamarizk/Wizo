@@ -248,7 +248,7 @@ const Home = () => {
         // console.log("stats", stats);
         // console.log("ReceiptStats...", stats);
         // console.log("allReceipts...", allReceipts);
-        console.log("all Receipts Length:", receiptStats.totalCount);
+        console.log("all Receipts count:", receiptStats.totalCount);
 
         const spendingByCategory = stats.monthlyCategorySpendingBreakdown || {};
         const totalItemsPriceForMonth = Object.values(
@@ -891,7 +891,7 @@ const Home = () => {
 
               {/* Points Display */}
 
-              {receiptStats.monthlySpending > 0 &&
+              {receiptStats.totalCount > 0 &&
                 (userTotalPoints > 0 || userBadges.length > 0) && (
                   <View className="flex-row items-center justify-between mb-3 mt-3">
                     <View className=" mt-1">
@@ -1104,7 +1104,7 @@ const Home = () => {
               </Modal>
 
               {/* Receipt Summary */}
-              {receiptStats.monthlySpending > 0 && (
+              {receiptStats.totalCount > 0 && (
                 <View className="p-2  mb-2 rounded-md border-slate-100 border-t-2 border-opacity-50 ">
                   <TouchableOpacity
                     onPress={() => router.push("/notification")}
@@ -1321,7 +1321,7 @@ const Home = () => {
               {/* Consolidated Receipts Latest Upload and Search Display Section */}
               {/* Collapsible Search Filter Section */}
 
-              {receiptStats.monthlySpending > 0 && (
+              {receiptStats.totalCount > 0 && (
                 <View className="p-2  mb-1 border-slate-100 border-t-2">
                   <View className="flex-row justify-between items-center">
                     <Text className="text-lg font-psemibold text-black">
@@ -1381,7 +1381,7 @@ const Home = () => {
               )}
 
               {/* Consolidated Receipts Display Section */}
-              {receiptStats.monthlySpending > 0 && (
+              {receiptStats.totalCount > 0 && (
                 <View className="p-4 border rounded-md border-[#9F54B6] mb-4 border-x-0 ">
                   <Text className="text-lg font-psemibold text-black mb-2">
                     {isSearchActive

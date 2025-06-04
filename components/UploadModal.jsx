@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Modal,
   View,
@@ -12,15 +12,39 @@ import icons from "../constants/icons";
 import { pickImageFromCamera, pickImageFromGallery } from "../lib/imagePicker";
 import ReceiptProcess from "../components/ReceiptProcess";
 import { router } from "expo-router";
+import { useGlobalContext } from "../context/GlobalProvider";
+import { getReceiptStats } from "../lib/appwrite";
+import { useFocusEffect } from "@react-navigation/native";
 
 const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
-  console.log(
-    "Uploaded Receipts Model Rendered",
-    visible,
-    onClose,
-    onUploadSuccess
-    // onRefresh
+  const [receiptStats, setReceiptStats] = useState({
+    totalCount: 0,
+    thisMonthCount: 0,
+    monthlySpending: 0,
+    latestDate: "N/A",
+  });
+  const { user } = useGlobalContext();
+
+  useEffect(() => {
+    if (user?.$id) {
+      fetchRecieptStats();
+      // uploadInitialData();
+    }
+  }, [user?.$id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.$id) {
+        fetchRecieptStats();
+      }
+    }, [fetchRecieptStats])
   );
+
+  const fetchRecieptStats = async () => {
+    const recieptData = await getReceiptStats(user.$id);
+    setReceiptStats(recieptData);
+  };
+
   const [selectedImageUri, setSelectedImageUri] = useState(null);
   // console.log("Refreshing Value:", onRefresh);
 
@@ -60,13 +84,16 @@ const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
         {/* This blocks background tap propagation */}
         <Pressable onPress={() => {}} className="mt-auto mb-[17vh] px-3 pt-2 ">
           {!selectedImageUri ? (
-            <View className="bg-onboarding rounded-xl px-4 pt-2 pb-2 shadow-lg shadow-gray-100 border-2 border-secondary opacity-95">
-              <View className="px-4 border-2 border-gradient-dark rounded-lg mb-5">
+            <View className="bg-onboarding  px-4 pt-2 pb-2  border ">
+              <View className="px-2 border-2 border-secondary  mb-5 mt-3">
                 <View className="flex-row items-center justify-between h-[7vh] gap-2 px-4">
-                  <Text className="font-psemibold text-base">
-                    Uploaded Receipts
+                  <Text className="font-pbold text-base text-gray-700">
+                    Uploaded Receipts #
                   </Text>
-                  <Text className="font-pextrabold text-lg"> ####</Text>
+                  <Text className="font-pextrabold text-lg">
+                    {" "}
+                    {receiptStats?.totalCount}
+                  </Text>
                 </View>
               </View>
 

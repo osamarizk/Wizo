@@ -462,7 +462,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   };
 
   return (
-    <View className=" px-2 pt-2 pb-1 max-h-[100vh] bg-[#cccccd] ">
+    <View className=" px-2 pt-10 pb-2  max-h-[90vh] bg-[#cccccd] ">
       <ScrollView
         contentContainerStyle={{
           alignItems: "center",
@@ -474,14 +474,14 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       >
         {extractedData && (
           <>
-            <Text className="text-xl text-black font-psemibold text-center mb-2 mt-4 ">
+            <Text className="text-xl text-black font-pbold text-center mb-2 mt-4 ">
               {
                 hasSaved && isProcessing // If hasSaved is true and still processing
                   ? "♥️ Saving your receipt"
-                  : "🎉Please confirm Receipt Data" // After extraction, before saving or if save failed
+                  : "Reciept Extracted Successfuly" // After extraction, before saving or if save failed
               }
             </Text>
-            {/* <Image 
+            {/* <Image
               source={images.success}
               className=" w-16 h-16 right-1 "
               resizeMode="contain"
@@ -553,7 +553,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         {/* Extracted Data Display - Hidden when hasSaved is true */}
         {extractedData && !hasSaved && (
           <>
-            <View className="w-full mt-1 px-8 py-1 rounded-xl mb-2">
+            <View className="w-full mt-2 px-8 py-1 rounded-xl mb-2">
               {extractedData.merchant && !showAllItems && (
                 <Text className="text-blue-900 font-psemibold mb-3 text-base">
                   <Text className="text-black font-semibold text-base ">
@@ -635,11 +635,16 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                       🛒 Items:
                     </Text>
                     {extractedData.items.length > 2 && ( // CHANGE THIS LINE: 3 is your desired default
-                      <TouchableOpacity onPress={toggleItems}>
-                        <Text className="font-pbold text-base text-blue-700 ml-1">
-                          {showAllItems ? "(▲ Show less)" : "(Show more ▼)"}
-                        </Text>
-                      </TouchableOpacity>
+                      <ScrollView
+                        className="flex-1"
+                        showsVerticalScrollIndicator={true}
+                      >
+                        <TouchableOpacity onPress={toggleItems}>
+                          <Text className="font-pbold text-base text-blue-700 ml-1">
+                            {showAllItems ? "(▲ Show less)" : "(Show more ▼)"}
+                          </Text>
+                        </TouchableOpacity>
+                      </ScrollView>
                     )}
                   </View>
 
@@ -670,7 +675,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
               )}
               {/* Subtotal Display */}
               {typeof extractedData.subtotal === "number" &&
-                !isNaN(extractedData.subtotal) &&
+                !isNaN(extractedData.vat) &&
+                extractedData.subtotal !== 0 &&
                 !showAllItems && ( // <--- MODIFIED CONDITION
                   <Text className="text-red-900 text-base font-psemibold mb-1">
                     <Text className="text-black font-pbold text-base">
@@ -680,7 +686,6 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                     {/* Added .toFixed(2) for consistent display */}
                   </Text>
                 )}
-
               {/* VAT Display */}
               {typeof extractedData.vat === "number" &&
                 !isNaN(extractedData.vat) &&
@@ -696,12 +701,18 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                 )}
             </View>
 
-            {extractedData.total && (
-              <Text className="text-blue-900 font-psemibold mb-1 text-xl">
-                <Text className="text-black font-pbold text-xl">💰 Total:</Text>{" "}
-                {extractedData.total}
-              </Text>
-            )}
+            {typeof extractedData.total === "number" &&
+              !isNaN(extractedData.total) &&
+              extractedData.total !== 0 &&
+              !showAllItems && ( // <--- MODIFIED CONDITION
+                <Text className="text-red-900 text-base font-psemibold mb-1">
+                  <Text className="text-black font-pbold text-base">
+                    💰 Total →
+                  </Text>{" "}
+                  {extractedData.total.toFixed(2)}{" "}
+                  {/* Added .toFixed(2) for consistent display */}
+                </Text>
+              )}
 
             {/* Consent checkbox */}
             <View className="flex-row items-center mt-4 gap-2 px-4">
