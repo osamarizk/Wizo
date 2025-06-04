@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   Pressable,
+  Platform,
 } from "react-native";
 import icons from "../constants/icons";
 import { pickImageFromCamera, pickImageFromGallery } from "../lib/imagePicker";
@@ -29,7 +30,9 @@ const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
   };
 
   const handleSelect = async (pickerFunc) => {
+    // set to handle android autorefreh
     const uri = await pickerFunc();
+
     if (uri) {
       setSelectedImageUri(uri);
     }
@@ -41,8 +44,6 @@ const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
     onUploadSuccess?.(); // Call the parent's (home.jsx's) success handler
     onClose(); // Close the modal
   };
-
-
 
   return (
     <Modal

@@ -180,6 +180,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   };
   const handleSave = async () => {
     console.log("extractedData", extractedData);
+
     if (!consentGiven) {
       Alert.alert(
         "Consent Required",
@@ -423,8 +424,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         const updatedUnreadCount = await countUnreadNotifications(user.$id); // Fetch updated unread count
         updateUnreadCount(updatedUnreadCount); // Update context with new unread count
         onCancel(); // Close the modal
+
         onProcessComplete?.(); // <--- Call the single success callback
-        router.push("/home");
       } else {
         console.error("Invalid response from createReceipt:", response);
         Alert.alert("Error", "Receipt was not saved. Please try again.");

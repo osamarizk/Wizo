@@ -22,6 +22,7 @@ import GradientBackground from "../../components/GradientBackground";
 const screenWidth = Dimensions.get("window").width;
 import { useFocusEffect } from "@react-navigation/native";
 import { BarChart } from "react-native-chart-kit"; // Import BarChart
+import eventEmitter from "../../utils/eventEmitter";
 
 const Spending = () => {
   const {
@@ -190,9 +191,25 @@ const Spending = () => {
     }
   }, [user?.$id]);
 
+  // Use useEffect to listen for the global refresh event
   useEffect(() => {
-    fetchData();
+    const handleGlobalRefresh = () => {
+      console.log(
+        "Spending: Global refresh event received. Triggering fetchData."
+      );
+      fetchData();
+    };
+
+    eventEmitter.on("refreshHome", handleGlobalRefresh); // Listen for 'refreshHome' event
+
+    return () => {
+      eventEmitter.off("refreshHome", handleGlobalRefresh);
+    };
   }, [fetchData]);
+
+  // useEffect(() => {
+  //   fetchData();
+  // }, [fetchData]);
 
   // This is the crucial part for refreshing when the screen comes into focus
   useFocusEffect(
@@ -574,7 +591,7 @@ const Spending = () => {
           <UploadModal
             visible={showUploadModal}
             onClose={() => setShowUploadModal(false)}
-            onRefresh={onRefresh}
+            onUploadSuccess={onRefresh}
           />
         )}
       </SafeAreaView>

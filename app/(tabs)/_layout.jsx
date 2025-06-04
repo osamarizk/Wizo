@@ -13,16 +13,21 @@ import TabIcons from "../../components/TabIcons";
 import icons from "../../constants/icons";
 import UploadModal from "../../components/UploadModal"; // Assuming this path
 import { useGlobalContext } from "../../context/GlobalProvider";
+import eventEmitter from "../../utils/eventEmitter"; // <--- IMPORT EVENT EMITTER
 
 const TabsLayout = () => {
   const { showUploadModal, setShowUploadModal } = useGlobalContext();
   const [activeTab, setActiveTab] = useState("home"); // Keep track of active tab
+  const [refreshing, setRefreshing] = useState(false);
 
+  console.log("TabsLayout Rendered...", showUploadModal, activeTab);
   // Function to handle successful upload and redirect
   const handleUploadSuccess = () => {
     setShowUploadModal(false); // Close the upload modal
-    router.replace("/home"); // Redirect to the home tab
+    eventEmitter.emit("refreshHome");
+    router.replace("/home"); // <--- ADD THIS LINE: Redirect to the Home tab
     setActiveTab("home"); // Update active tab state to reflect the redirection
+    // Update active tab state to reflect the redirection
   };
 
   return (
@@ -184,10 +189,11 @@ const TabsLayout = () => {
       </Tabs>
 
       {/* Upload Modal will be shown when showUploadModal is true */}
+
       {showUploadModal && (
         <UploadModal
           visible={showUploadModal}
-          onClose={() => setShowUploadModal(false)} // Simply close the modal on manual close
+          onClose={() => setShowUploadModal(false)}
           onUploadSuccess={handleUploadSuccess} // Pass the success handler
         />
       )}

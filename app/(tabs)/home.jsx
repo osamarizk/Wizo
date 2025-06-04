@@ -38,7 +38,7 @@ import {
   deleteReceiptById,
   getReceiptImageDownloadUrl,
 } from "../../lib/appwrite";
-import { router, useNavigation } from "expo-router";
+import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import UploadModal from "../../components/UploadModal";
 import { PieChart, BarChart, LineChart } from "react-native-chart-kit";
@@ -46,6 +46,7 @@ import { FlashList } from "@shopify/flash-list"; // Import FlashList
 import Collapsible from "react-native-collapsible"; // Import the collapsible component
 import ReceiptFull from "../../components/ReceiptFull";
 import { format } from "date-fns";
+import eventEmitter from "../../utils/eventEmitter";
 
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
@@ -150,6 +151,37 @@ const Home = () => {
     }
   }, [user, fetchData, globalLoading]);
 
+  // Use useEffect to listen for the global refresh event
+  useEffect(() => {
+    const handleGlobalRefresh = () => {
+      console.log("Home: Global refresh event received. Triggering fetchData.");
+      fetchData();
+    };
+
+    eventEmitter.on("refreshHome", handleGlobalRefresh);
+
+    return () => {
+      eventEmitter.off("refreshHome", handleGlobalRefresh);
+    };
+  }, [fetchData]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.$id && !globalLoading) {
+        fetchData();
+      }
+    }, [user, fetchData, globalLoading])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchData();
+    setRefreshing(false);
+    setIsDeleting(false);
+    setIsDownloading(false);
+    console.log("onRefresh called, incrementing refreshKey...");
+    setRefreshKey((prevKey) => prevKey + 1);
+  }, []);
   useEffect(() => {
     const handler = setTimeout(() => {
       performSearch();
@@ -191,29 +223,13 @@ const Home = () => {
     searchEndDate,
   ]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (user?.$id && !globalLoading) {
-        fetchData();
-      }
-    }, [user, fetchData, globalLoading])
-  );
-
   // The handler passed to UploadModal
   const handleUploadSuccess = useCallback(() => {
     setShowUploadModal(false); // Close the modal
     // console.log("Upload successful, calling onRefresh...");
     onRefresh(); // This will increment refreshKey, triggering useFocusEffect
   }, [setShowUploadModal, onRefresh]);
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchData();
-    setRefreshing(false);
-    setIsDeleting(false);
-    setIsDownloading(false);
-    console.log("onRefresh called, incrementing refreshKey...");
-    setRefreshKey((prevKey) => prevKey + 1);
-  }, []);
+
   const fetchData = useCallback(async () => {
     if (user?.$id) {
       setIsLoading(true);
@@ -285,6 +301,7 @@ const Home = () => {
           setUserTotalPoints(totalPoints || 0);
           console.log("Total Points from history:", totalPoints);
         } else {
+          setUserTotalPoints(0);
           console.log("No points document found for this user.");
         }
 
@@ -834,7 +851,7 @@ const Home = () => {
 
               {/* Points Display */}
               {(userTotalPoints > 0 || userBadges.length > 0) && (
-                <View className="flex-row items-center justify-between mb-1">
+                <View className="flex-row items-center justify-between mb-3 mt-3">
                   <View className=" mt-1">
                     <Text className="text-gray-600 font-pmedium text-lg">
                       Your Points:{" "}
@@ -859,19 +876,16 @@ const Home = () => {
                   </View>
                   {/* NEW: Set Up Budget Prompt (Moved to a more visible location) */}
                   {showBudgetPrompt && (
-                    <View className="mx-4 p-2 rounded-xl backdrop-blur-sm bg-transparent items-center">
+                    <View className="mx-4 p-2 rounded-xl backdrop-blur-sm bg-transparent items-left">
+                      {/* <Text className="text-gray-700 font-pregular text-base text-center">
+                        {`Set up your budget Now \n to track your spending!`}
+                      </Text> */}
                       <TouchableOpacity
                         onPress={SetupBudget}
-                        className=" p-2 items-center justify-center "
+                        className="mb-2 w-full bg-[#D03957] rounded-md p-3 items-center justify-center" // Adjust className for your desired style
                       >
-                        <Image
-                          source={icons.pie} // Reusing pie icon, or use a new one for budget prompt
-                          className="w-12 h-12 "
-                          resizeMode="contain"
-                          tintColor="#9F54B6" // A color that stands b-4
-                        />
-                        <Text className="text-gray-700 font-pregular text-base text-center">
-                          {`Set up your budget Now \n to track your spending!`}
+                        <Text className="text-white font-pmedium text-base">
+                          Setup Budget
                         </Text>
                       </TouchableOpacity>
                     </View>
