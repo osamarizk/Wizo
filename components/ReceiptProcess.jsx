@@ -668,19 +668,23 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                   )}
                 </View>
               )}
-
-              {extractedData.subtotal && !showAllItems && (
-                <Text className="text-red-900 text-base font-psemibold mb-1">
-                  <Text className="text-black font-pbold text-base">
-                    💵 Subtotal →
-                  </Text>{" "}
-                  {extractedData.subtotal}
-                </Text>
-              )}
+              {/* Subtotal Display */}
+              {typeof extractedData.subtotal === "number" &&
+                !isNaN(extractedData.subtotal) &&
+                !showAllItems && ( // <--- MODIFIED CONDITION
+                  <Text className="text-red-900 text-base font-psemibold mb-1">
+                    <Text className="text-black font-pbold text-base">
+                      💵 Subtotal →
+                    </Text>{" "}
+                    {extractedData.subtotal.toFixed(2)}{" "}
+                    {/* Added .toFixed(2) for consistent display */}
+                  </Text>
+                )}
 
               {/* VAT Display */}
               {typeof extractedData.vat === "number" &&
                 !isNaN(extractedData.vat) &&
+                extractedData.vat !== 0 &&
                 !showAllItems && ( // <--- MODIFIED CONDITION
                   <Text className="text-red-900 text-base font-psemibold mb-1">
                     <Text className="text-black font-pbold text-base">

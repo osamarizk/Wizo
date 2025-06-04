@@ -47,6 +47,7 @@ import Collapsible from "react-native-collapsible"; // Import the collapsible co
 import ReceiptFull from "../../components/ReceiptFull";
 import { format } from "date-fns";
 import eventEmitter from "../../utils/eventEmitter";
+import images from "../../constants/images";
 
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
@@ -247,6 +248,7 @@ const Home = () => {
         // console.log("stats", stats);
         // console.log("ReceiptStats...", stats);
         // console.log("allReceipts...", allReceipts);
+        console.log("all Receipts Length:", receiptStats.totalCount);
 
         const spendingByCategory = stats.monthlyCategorySpendingBreakdown || {};
         const totalItemsPriceForMonth = Object.values(
@@ -810,7 +812,7 @@ const Home = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           contentContainerStyle={{
-            paddingHorizontal: 15,
+            paddingHorizontal: 5,
             paddingTop: 40,
             paddingBottom: 20,
           }}
@@ -849,49 +851,89 @@ const Home = () => {
                 </TouchableOpacity>
               </View>
 
-              {/* Points Display */}
-              {(userTotalPoints > 0 || userBadges.length > 0) && (
-                <View className="flex-row items-center justify-between mb-3 mt-3">
-                  <View className=" mt-1">
-                    <Text className="text-gray-600 font-pmedium text-lg">
-                      Your Points:{" "}
-                      <Text className="font-pbold text-xl">
-                        {userTotalPoints}
-                      </Text>{" "}
-                      ✨
+              {receiptStats.totalCount === 0 && (
+                <View className="flex-1 justify-center items-center px-4 mt-5">
+                  <Image
+                    source={images.logoo7}
+                    resizeMode="contain"
+                    className="w-[230px] h-[105px] "
+                    // style={{ width: width * 0.9, height: height * 0.35 }}
+                  />
+                  <View className="p-4  rounded-lg  mb-6">
+                    <Text className="text-lg font-pextrabold text-black mb-4">
+                      Welcome, {user?.username || "Guest"}!
                     </Text>
-                    <TouchableOpacity
-                      onPress={() =>
-                        showCustomModal(
-                          "Your Badges",
-                          "View your earned achievements!"
-                        )
-                      }
-                      className="mt-2"
-                    >
-                      <Text className="text-gray-600 font-psemibold text-base underline">
-                        View My Badges ({userBadges.length})
-                      </Text>
-                    </TouchableOpacity>
+                    <Text className="text-base font-pregular text-gray-700 mb-3">
+                      🔥 Wizo is your personal finance companion that turns your
+                      everyday receipts into powerful insights. Snap a photo,
+                      and Wizo instantly extracts key data — like merchants,
+                      totals, and items — so you can track your spending, stay
+                      within budget, and understand where your money really
+                      goes.
+                    </Text>
+
+                    <Text className="text-base font-pregular text-gray-700 mb-3">
+                      🔥 But Wizo doesn’t stop with helping users — it also
+                      helps businesses make smarter decisions. With
+                      user-consented, anonymized spending data, Wizo offers
+                      valuable market insights to brands and retailers. It's a
+                      win-win: users gain control over their finances, while
+                      businesses get better tools to serve their customers.
+                    </Text>
+                    <Text className="text-base font-pregular text-gray-700 mb-3">
+                      🔥 Effortlessly track expenses, gain insights into your
+                      spending habits, and achieve your financial goals with
+                      ease!
+                    </Text>
                   </View>
-                  {/* NEW: Set Up Budget Prompt (Moved to a more visible location) */}
-                  {showBudgetPrompt && (
-                    <View className="mx-4 p-2 rounded-xl backdrop-blur-sm bg-transparent items-left">
-                      {/* <Text className="text-gray-700 font-pregular text-base text-center">
-                        {`Set up your budget Now \n to track your spending!`}
-                      </Text> */}
+                </View>
+              )}
+
+              {/* Points Display */}
+
+              {receiptStats.monthlySpending > 0 &&
+                (userTotalPoints > 0 || userBadges.length > 0) && (
+                  <View className="flex-row items-center justify-between mb-3 mt-3">
+                    <View className=" mt-1">
+                      <Text className="text-gray-600 font-pmedium text-lg">
+                        Your Points:{" "}
+                        <Text className="font-pbold text-xl">
+                          {userTotalPoints}
+                        </Text>{" "}
+                        ✨
+                      </Text>
                       <TouchableOpacity
-                        onPress={SetupBudget}
-                        className="mb-2 w-full bg-[#D03957] rounded-md p-3 items-center justify-center" // Adjust className for your desired style
+                        onPress={() =>
+                          showCustomModal(
+                            "Your Badges",
+                            "View your earned achievements!"
+                          )
+                        }
+                        className="mt-2"
                       >
-                        <Text className="text-white font-pmedium text-base">
-                          Setup Budget
+                        <Text className="text-gray-600 font-psemibold text-base underline">
+                          View My Badges ({userBadges.length})
                         </Text>
                       </TouchableOpacity>
                     </View>
-                  )}
-                </View>
-              )}
+                    {/* NEW: Set Up Budget Prompt (Moved to a more visible location) */}
+                    {showBudgetPrompt && (
+                      <View className="mx-4 p-2 rounded-xl backdrop-blur-sm bg-transparent items-left">
+                        {/* <Text className="text-gray-700 font-pregular text-base text-center">
+                        {`Set up your budget Now \n to track your spending!`}
+                      </Text> */}
+                        <TouchableOpacity
+                          onPress={SetupBudget}
+                          className="mb-2 w-full bg-[#D03957] rounded-md p-3 items-center justify-center" // Adjust className for your desired style
+                        >
+                          <Text className="text-white font-pmedium text-base">
+                            Setup Budget
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                )}
               {/* Custom Modal for Points/Badges */}
               <Modal
                 animationType="fade"
@@ -1062,53 +1104,55 @@ const Home = () => {
               </Modal>
 
               {/* Receipt Summary */}
-              <View className="  mb-4 border-2 rounded-md border-[#9F54B6]">
-                <TouchableOpacity
-                  onPress={() => router.push("/notification")}
-                  className="relative p-2 rounded-full mt-1"
-                >
-                  <Text className="text-center text-gray-600 mb-2  font-pregular">
-                    Total Receipts
-                  </Text>
-
-                  <Text className="text-center text-2xl font-pbold text-gray-800 ">
-                    💁 Receipts : {receiptStats.totalCount}
-                  </Text>
-
-                  <Text
-                    className="text-center text-base font-pregular text-gray-600"
-                    style={{
-                      fontSize: Platform.select({
-                        // <--- Use Platform.select for fontSize
-                        ios: 14, // Smaller font size for iOS (e.g., original text-xs)
-                        android: 12, // Slightly larger for Android if needed, or keep 10
-                      }),
-                    }}
+              {receiptStats.monthlySpending > 0 && (
+                <View className="p-2  mb-2 rounded-md border-slate-100 border-t-2 border-opacity-50 ">
+                  <TouchableOpacity
+                    onPress={() => router.push("/notification")}
+                    className="relative p-2 rounded-full mt-1"
                   >
-                    <Text className="text-center text-base font-pregular text-[#4E17B3] mt-2 ">
-                      {"("}
-                      {receiptStats.thisMonthCount}
-                      {") "}
+                    <Text className="text-center text-gray-600 mb-2  font-pregular">
+                      Total Receipts
                     </Text>
-                    R on {monthName} | {monthName} Spending : {""}
-                    <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 ">
-                      EGP {receiptStats.monthlySpending.toFixed(2)}
+
+                    <Text className="text-center text-2xl font-bold text-gray-800 mb-2 ">
+                      💁 Receipts : {receiptStats.totalCount}
                     </Text>
-                  </Text>
-                  <Text className="text-center text-base font-pregular text-gray-600 mt-1">
-                    Last Receipt Date:
-                    <Text className="text-center text-base font-pregular text-[#4E17B3] mt-1 ">
-                      {" "}
-                      {receiptStats.latestDate}
+
+                    <Text
+                      className=" text-base font-pregular text-gray-600"
+                      style={{
+                        fontSize: Platform.select({
+                          // <--- Use Platform.select for fontSize
+                          ios: 14, // Smaller font size for iOS (e.g., original text-xs)
+                          android: 12, // Slightly larger for Android if needed, or keep 10
+                        }),
+                      }}
+                    >
+                      <Text className="text-base font-pregular text-[#4E17B3] mt-4 ">
+                        🔥{"("}
+                        {receiptStats.thisMonthCount}
+                        {")"}
+                      </Text>
+                      R on {monthName} | {monthName} Spending : {""}
+                      <Text className="text-center text-base font-pregular text-[#4E17B3] mt-4 ">
+                        EGP {receiptStats.monthlySpending.toFixed(2)}
+                      </Text>
                     </Text>
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                    <Text className=" text-base font-pregular text-gray-600 mt-1">
+                      🔥 Last Receipt Date:
+                      <Text className="text-center text-base font-pregular text-[#4E17B3] mt-4 ">
+                        {" "}
+                        {receiptStats.latestDate}
+                      </Text>
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {/* Spending Categories Charts */}
               {receiptStats.monthlySpending > 0 && (
                 <View
-                  className=" p-2  border-2 rounded-md border-[#9F54B6] mb-4"
+                  className=" p-2 border-slate-100  border-t-2 border-opacity-50"
                   style={{
                     fontSize: Platform.select({
                       // <--- Use Platform.select for fontSize
@@ -1117,7 +1161,7 @@ const Home = () => {
                     }),
                   }}
                 >
-                  <Text className="text-base font-pregular text-black -mb-1">
+                  <Text className="text-base font-pregular text-black -mb-1  mt-2">
                     Spending Categories of{" "}
                     <Text className="font-psemibold text-xl text-[#b31731]">
                       {monthName}
@@ -1220,7 +1264,7 @@ const Home = () => {
 
               {/* Top Spending Insights */}
               {receiptStats.highestSpendingCategory && (
-                <View className=" p-4  border-2 rounded-md border-[#9F54B6] mb-4">
+                <View className=" p-4 mt-2 border-opacity-50 mb-4 border-t-2 border-slate-100">
                   <Text className="text-base font-pregular text-black mb-2">
                     Top Spending Insight of{" "}
                     <Text className="font-psemibold text-xl text-[#b31731]">
@@ -1276,79 +1320,138 @@ const Home = () => {
               )}
               {/* Consolidated Receipts Latest Upload and Search Display Section */}
               {/* Collapsible Search Filter Section */}
-              <View className="p-2  mb-1">
-                <View className="flex-row justify-between items-center">
-                  <Text className="text-lg font-psemibold text-black">
-                    Search & Filter
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      const isCurrentlyExpanded = isSearchFilterExpanded;
-                      setIsSearchFilterExpanded(!isCurrentlyExpanded); // Toggle the expansion state
 
-                      if (isCurrentlyExpanded) {
-                        // If the filter was expanded and is now being closed
-                        performSearch(); // Apply the currently set filters
-                        clearSearch(); // THEN, clear the filter inputs
-                      }
-                    }}
-                    className="p-2"
-                  >
-                    <Image
-                      source={
-                        isSearchFilterExpanded ? icons.action : icons.action
-                      } // Toggle icon
-                      className="w-8 h-8 tint-gray-600"
-                      resizeMode="contain"
-                    />
-                  </TouchableOpacity>
-                </View>
+              {receiptStats.monthlySpending > 0 && (
+                <View className="p-2  mb-1 border-slate-100 border-t-2">
+                  <View className="flex-row justify-between items-center">
+                    <Text className="text-lg font-psemibold text-black">
+                      Search & Filter
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        const isCurrentlyExpanded = isSearchFilterExpanded;
+                        setIsSearchFilterExpanded(!isCurrentlyExpanded); // Toggle the expansion state
 
-                {isSearchFilterExpanded && (
-                  <View>
-                    {/* This View wraps the SearchFilter content to add some top margin */}
-                    <SearchFilter
-                      searchQuery={searchQuery}
-                      setSearchQuery={setSearchQuery}
-                      selectedSearchCategory={selectedSearchCategory}
-                      setSelectedSearchCategory={setSelectedSearchCategory}
-                      selectedSearchSubcategory={selectedSearchSubcategory}
-                      setSelectedSearchSubcategory={
-                        setSelectedSearchSubcategory
-                      }
-                      searchStartDate={searchStartDate}
-                      setSearchStartDate={setSearchStartDate}
-                      searchEndDate={searchEndDate}
-                      setSearchEndDate={setSearchEndDate}
-                      showCalendarModal={showCalendarModal}
-                      setShowCalendarModal={setShowCalendarModal}
-                      markedDates={markedDates}
-                      setMarkedDates={setMarkedDates}
-                      categories={categories}
-                      performSearch={performSearch}
-                      clearSearch={clearSearch}
-                      setIsSearchFilterExpanded={setIsSearchFilterExpanded} // Pass new prop for internal collapse
-                    />
+                        if (isCurrentlyExpanded) {
+                          // If the filter was expanded and is now being closed
+                          performSearch(); // Apply the currently set filters
+                          clearSearch(); // THEN, clear the filter inputs
+                        }
+                      }}
+                      className="p-2"
+                    >
+                      <Image
+                        source={
+                          isSearchFilterExpanded ? icons.action : icons.action
+                        } // Toggle icon
+                        className="w-8 h-8 tint-gray-600"
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
                   </View>
-                )}
-              </View>
+
+                  {isSearchFilterExpanded && (
+                    <View>
+                      {/* This View wraps the SearchFilter content to add some top margin */}
+                      <SearchFilter
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                        selectedSearchCategory={selectedSearchCategory}
+                        setSelectedSearchCategory={setSelectedSearchCategory}
+                        selectedSearchSubcategory={selectedSearchSubcategory}
+                        setSelectedSearchSubcategory={
+                          setSelectedSearchSubcategory
+                        }
+                        searchStartDate={searchStartDate}
+                        setSearchStartDate={setSearchStartDate}
+                        searchEndDate={searchEndDate}
+                        setSearchEndDate={setSearchEndDate}
+                        showCalendarModal={showCalendarModal}
+                        setShowCalendarModal={setShowCalendarModal}
+                        markedDates={markedDates}
+                        setMarkedDates={setMarkedDates}
+                        categories={categories}
+                        performSearch={performSearch}
+                        clearSearch={clearSearch}
+                        setIsSearchFilterExpanded={setIsSearchFilterExpanded} // Pass new prop for internal collapse
+                      />
+                    </View>
+                  )}
+                </View>
+              )}
 
               {/* Consolidated Receipts Display Section */}
-              <View className="p-4 border-2 rounded-md border-[#9F54B6] mb-4  ">
-                <Text className="text-lg font-psemibold text-black mb-2">
-                  {isSearchActive
-                    ? "Search Results"
-                    : "Latest Uploaded Receipts"}
-                </Text>
+              {receiptStats.monthlySpending > 0 && (
+                <View className="p-4 border rounded-md border-[#9F54B6] mb-4 border-x-0 ">
+                  <Text className="text-lg font-psemibold text-black mb-2">
+                    {isSearchActive
+                      ? "Search Results"
+                      : "Latest Uploaded Receipts"}
+                  </Text>
 
-                {isSearching ? (
-                  <View className="flex-1 justify-center items-center py-8">
-                    <ActivityIndicator size="large" color="#9F54B6" />
-                    <Text className="text-gray-600 mt-2">Searching...</Text>
-                  </View>
-                ) : isSearchActive ? (
-                  filteredReceipts.length > 0 ? (
-                    filteredReceipts.map((item) => (
+                  {isSearching ? (
+                    <View className="flex-1 justify-center items-center py-8">
+                      <ActivityIndicator size="large" color="#9F54B6" />
+                      <Text className="text-gray-600 mt-2">Searching...</Text>
+                    </View>
+                  ) : isSearchActive ? (
+                    filteredReceipts.length > 0 ? (
+                      filteredReceipts.map((item) => (
+                        <View
+                          key={item.$id}
+                          className="flex-row items-center justify-between py-2 border-b border-gray-200 last:border-none"
+                        >
+                          <View className="flex-row items-center flex-1">
+                            <View className="rounded-md p-2 mr-2">
+                              <Image
+                                source={icons.bill}
+                                resizeMode="contain"
+                                className="w-7 h-7"
+                              />
+                            </View>
+                            <View className="flex-1">
+                              <Text
+                                className="text-lg font-semibold text-gray-800 font-psemibold"
+                                numberOfLines={1}
+                                ellipsizeMode="tail"
+                              >
+                                {item.merchant || "Unknown Merchant"}
+                              </Text>
+                              {item.datetime && (
+                                <Text className="text-sm text-gray-600">
+                                  {new Date(item.datetime).toLocaleDateString()}{" "}
+                                  |
+                                  {item.total
+                                    ? ` EGP ${parseFloat(item.total).toFixed(
+                                        2
+                                      )}`
+                                    : ""}
+                                </Text>
+                              )}
+                            </View>
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setSelectedReceipt(item);
+                              setShowReceiptOptionsModal(true);
+                              setIsDeleting(false);
+                              setIsDownloading(false);
+                            }}
+                            className="p-2"
+                          >
+                            <Image source={icons.dots} className="w-6 h-6" />
+                          </TouchableOpacity>
+                        </View>
+                      ))
+                    ) : (
+                      <View className="py-4 items-center">
+                        <Text className="text-black italic mb-3">
+                          No receipts found matching your search criteria.
+                        </Text>
+                      </View>
+                    )
+                  ) : latestReceipts.length > 0 ? (
+                    latestReceipts.map((item) => (
                       <View
                         key={item.$id}
                         className="flex-row items-center justify-between py-2 border-b border-gray-200 last:border-none"
@@ -1395,77 +1498,26 @@ const Home = () => {
                   ) : (
                     <View className="py-4 items-center">
                       <Text className="text-black italic mb-3">
-                        No receipts found matching your search criteria.
+                        ✨ No receipts uploaded yet. Let's get started! ✨
                       </Text>
-                    </View>
-                  )
-                ) : latestReceipts.length > 0 ? (
-                  latestReceipts.map((item) => (
-                    <View
-                      key={item.$id}
-                      className="flex-row items-center justify-between py-2 border-b border-gray-200 last:border-none"
-                    >
-                      <View className="flex-row items-center flex-1">
-                        <View className="rounded-md p-2 mr-2">
-                          <Image
-                            source={icons.bill}
-                            resizeMode="contain"
-                            className="w-7 h-7"
-                          />
-                        </View>
-                        <View className="flex-1">
-                          <Text
-                            className="text-lg font-semibold text-gray-800 font-psemibold"
-                            numberOfLines={1}
-                            ellipsizeMode="tail"
-                          >
-                            {item.merchant || "Unknown Merchant"}
-                          </Text>
-                          {item.datetime && (
-                            <Text className="text-sm text-gray-600">
-                              {new Date(item.datetime).toLocaleDateString()} |
-                              {item.total
-                                ? ` EGP ${parseFloat(item.total).toFixed(2)}`
-                                : ""}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
                       <TouchableOpacity
-                        onPress={() => {
-                          setSelectedReceipt(item);
-                          setShowReceiptOptionsModal(true);
-                          setIsDeleting(false);
-                          setIsDownloading(false);
-                        }}
-                        className="p-2"
+                        className=" rounded-full   items-center justify-center w-24 h-24 border-2 bg-slate-100 border-[#D24726]"
+                        onPress={() => setShowUploadModal(true)}
                       >
-                        <Image source={icons.dots} className="w-6 h-6" />
+                        <Image
+                          source={icons.camera}
+                          className="w-9 h-9 tint-primary"
+                          resizeMode="contain"
+                          tintColor="#D24726"
+                        />
+                        <Text className="text-[#D24726] text-sm mt-2 font-semibold">
+                          Upload
+                        </Text>
                       </TouchableOpacity>
                     </View>
-                  ))
-                ) : (
-                  <View className="py-4 items-center">
-                    <Text className="text-black italic mb-3">
-                      ✨ No receipts uploaded yet. Let's get started! ✨
-                    </Text>
-                    <TouchableOpacity
-                      className=" rounded-full   items-center justify-center w-24 h-24 border-2 bg-[#D24726] border-gray-100"
-                      onPress={() => setShowUploadModal(true)}
-                    >
-                      <Image
-                        source={icons.camera}
-                        className="w-8 h-8 tint-primary"
-                        resizeMode="contain"
-                        tintColor="#fff"
-                      />
-                      <Text className="text-white text-sm mt-2 font-semibold">
-                        Upload
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
+                  )}
+                </View>
+              )}
 
               {/* SearchFilter Modal */}
               <Modal
