@@ -34,6 +34,7 @@ import mime from "mime"; // helps get MIME type from file extension
 import * as ImageManipulator from "expo-image-manipulator";
 
 import GradientBackground from "./GradientBackground";
+import { ro } from "date-fns/locale";
 
 const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   const [showFullImage, setShowFullImage] = useState(false);
@@ -426,6 +427,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         onCancel(); // Close the modal
 
         onProcessComplete?.(); // <--- Call the single success callback
+        router.replace("/home");
       } else {
         console.error("Invalid response from createReceipt:", response);
         Alert.alert("Error", "Receipt was not saved. Please try again.");
