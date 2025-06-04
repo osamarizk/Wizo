@@ -427,7 +427,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         onCancel(); // Close the modal
 
         onProcessComplete?.(); // <--- Call the single success callback
-        router.replace("/home");
+        // router.replace("/home");
       } else {
         console.error("Invalid response from createReceipt:", response);
         Alert.alert("Error", "Receipt was not saved. Please try again.");

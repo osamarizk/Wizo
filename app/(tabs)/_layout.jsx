@@ -23,11 +23,25 @@ const TabsLayout = () => {
   console.log("TabsLayout Rendered...", showUploadModal, activeTab);
   // Function to handle successful upload and redirect
   const handleUploadSuccess = () => {
-    setShowUploadModal(false); // Close the upload modal
-    eventEmitter.emit("refreshHome");
-    router.replace("/home"); // <--- ADD THIS LINE: Redirect to the Home tab
-    setActiveTab("home"); // Update active tab state to reflect the redirection
-    // Update active tab state to reflect the redirection
+    console.log(
+      "TabsLayout: Upload success from modal. Starting dismissal and navigation."
+    );
+
+    // Step 1: Close the modal immediately
+    setShowUploadModal(false);
+    console.log("TabsLayout: setShowUploadModal(false) called.");
+
+    // Step 2: Add a small delay before emitting the event and navigating
+    // This gives React Native a moment to fully unmount the modal and update the UI
+    setTimeout(() => {
+      console.log("TabsLayout: Emitting refreshHome event after delay.");
+      eventEmitter.emit("refreshHome"); // Emit the global refresh event
+
+      console.log("TabsLayout: Navigating to /home after delay.");
+      router.replace("/home"); // Redirect to the Home tab
+      setActiveTab("home"); // Update active tab state to reflect the redirection
+      console.log("TabsLayout: Navigation and activeTab update complete.");
+    }, 100); // A sma
   };
 
   return (

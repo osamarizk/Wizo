@@ -248,7 +248,6 @@ const Home = () => {
         // console.log("stats", stats);
         // console.log("ReceiptStats...", stats);
         // console.log("allReceipts...", allReceipts);
-        console.log("all Receipts count:", receiptStats.totalCount);
 
         const spendingByCategory = stats.monthlyCategorySpendingBreakdown || {};
         const totalItemsPriceForMonth = Object.values(
