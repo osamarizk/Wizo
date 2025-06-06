@@ -24,6 +24,8 @@ import { format } from "date-fns";
 import icons from "../../constants/icons"; // Adjust path as needed
 import GradientBackground from "../../components/GradientBackground";
 import { useFocusEffect } from "@react-navigation/native";
+import SpendingHeatmap from "../../components/SpendingHeatmap"; // <--- Import SpendingHeatmap
+
 const screenWidth = Dimensions.get("window").width;
 
 const Spending = () => {
@@ -399,6 +401,12 @@ const Spending = () => {
                   </Text>
                 )}
               </View>
+
+              {/* NEW: Spending Heatmap */}
+              <SpendingHeatmap
+                allReceipts={allReceipts}
+                isLoading={isLoading}
+              />
 
               {/* Merchant Analysis Table */}
               <View className="p-4 border-t border-[#9F54B6] mb-4">
