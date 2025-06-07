@@ -14,17 +14,17 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PieChart, BarChart, LineChart } from "react-native-chart-kit";
-import { useGlobalContext } from "../../context/GlobalProvider"; // Adjust path as needed
+import { useGlobalContext } from "../../context/GlobalProvider";
 import {
   fetchUserReceipts,
   getAllCategories,
   getMonthlyReceiptSummary,
-} from "../../lib/appwrite"; // Adjust path as needed
-import { format } from "date-fns";
-import icons from "../../constants/icons"; // Adjust path as needed
+} from "../../lib/appwrite";
+import { format, subMonths, isSameMonth, isSameYear } from "date-fns"; // Import isSameMonth, isSameYear
+import icons from "../../constants/icons";
 import GradientBackground from "../../components/GradientBackground";
 import { useFocusEffect } from "@react-navigation/native";
-import SpendingHeatmap from "../../components/SpendingHeatmap"; // <--- Import SpendingHeatmap
+import SpendingHeatmap from "../../components/SpendingHeatmap";
 import SpendingTrendsChart from "../../components/SpendingTrendsChart";
 
 const screenWidth = Dimensions.get("window").width;
@@ -51,10 +51,18 @@ const Spending = () => {
   const [selectedItemPurchases, setSelectedItemPurchases] = useState([]);
   const [selectedItemName, setSelectedItemName] = useState("");
 
-  // NEW STATES FOR MONTHLY SUMMARY CHART AND MODAL
-  const [monthlySummary, setMonthlySummary] = useState([]); // Stores data from getMonthlyReceiptSummary
+  // STATES FOR MONTHLY SUMMARY CHART AND MODAL
+  const [monthlySummary, setMonthlySummary] = useState([]);
   const [showMonthlyDetailsModal, setShowMonthlyDetailsModal] = useState(false);
-  const [selectedMonthDetails, setSelectedMonthDetails] = useState(null); // Stores details of the clicked month
+  const [selectedMonthDetails, setSelectedMonthDetails] = useState(null);
+
+  // States for Spending Comparison
+  const [currentMonthSpending, setCurrentMonthSpending] = useState(0);
+  const [previousMonthSpending, setPreviousMonthSpending] = useState(0);
+  const [spendingChangePercentage, setSpendingChangePercentage] = useState(0);
+
+  // NEW STATE for Average Receipt Value
+  const [averageReceiptValue, setAverageReceiptValue] = useState(0);
 
   useEffect(() => {
     isMounted.current = true;
@@ -64,6 +72,7 @@ const Spending = () => {
       console.log("Spending: Component Unmounted");
     };
   }, []);
+
   const fetchData = useCallback(async () => {
     if (!user?.$id) {
       setIsLoading(false);
@@ -74,16 +83,70 @@ const Spending = () => {
     try {
       const [fetchedReceipts, fetchedCategories, fetchedMonthlySummary] =
         await Promise.all([
-          // <--- ADD fetchedMonthlySummary
           fetchUserReceipts(user.$id),
           getAllCategories(),
-          getMonthlyReceiptSummary(user.$id), // <--- Call the new function
+          getMonthlyReceiptSummary(user.$id),
         ]);
+
+      if (!isMounted.current) return; // Exit if component unmounted during async operation
+
       setAllReceipts(fetchedReceipts);
       setCategories(fetchedCategories);
-      setMonthlySummary(fetchedMonthlySummary); // <--- Set the monthly summary state
+      setMonthlySummary(fetchedMonthlySummary);
 
-      console.log("Fetched Monthly Summary:", monthlySummary);
+      console.log("Fetched Monthly Summary:", fetchedMonthlySummary);
+
+      // --- Process Data for Spending Comparison ---
+      const today = new Date();
+      const currentMonthKey = format(today, "yyyy-MM");
+      const previousMonthDate = subMonths(today, 1); // Get date object for previous month
+      const previousMonthKey = format(previousMonthDate, "yyyy-MM");
+
+      const currentMonthData = fetchedMonthlySummary.find(
+        (item) => item.month === currentMonthKey
+      );
+      const prevMonthData = fetchedMonthlySummary.find(
+        (item) => item.month === previousMonthKey
+      );
+
+      const currentSpending = currentMonthData
+        ? currentMonthData.totalSpending
+        : 0;
+      const previousSpending = prevMonthData ? prevMonthData.totalSpending : 0;
+
+      setCurrentMonthSpending(currentSpending);
+      setPreviousMonthSpending(previousSpending);
+
+      if (previousSpending > 0) {
+        const change =
+          ((currentSpending - previousSpending) / previousSpending) * 100;
+        setSpendingChangePercentage(change);
+      } else if (currentSpending > 0) {
+        setSpendingChangePercentage(100); // Spent something, but nothing last month
+      } else {
+        setSpendingChangePercentage(0); // No spending in both months
+      }
+
+      // --- NEW: Process Data for Average Receipt Value (Current Month) ---
+      let totalCurrentMonthSpending = 0;
+      let totalCurrentMonthReceipts = 0;
+      fetchedReceipts.forEach((receipt) => {
+        const receiptDate = new Date(receipt.datetime);
+        // Ensure only receipts from the current month are counted for average
+        if (isSameMonth(receiptDate, today) && isSameYear(receiptDate, today)) {
+          totalCurrentMonthSpending += parseFloat(receipt.total || 0);
+          totalCurrentMonthReceipts += 1;
+        }
+      });
+
+      if (totalCurrentMonthReceipts > 0) {
+        setAverageReceiptValue(
+          totalCurrentMonthSpending / totalCurrentMonthReceipts
+        );
+      } else {
+        setAverageReceiptValue(0);
+      }
+
       // --- Process Data for Merchant Analysis ---
       const merchantMap = {};
       fetchedReceipts.forEach((receipt) => {
@@ -156,7 +219,6 @@ const Spending = () => {
       console.error("Error fetching spending data:", error);
     } finally {
       if (isMounted.current) {
-        // <--- Crucial check before setting state
         setIsLoading(false);
         setRefreshing(false);
       } else {
@@ -179,7 +241,6 @@ const Spending = () => {
 
       return () => {
         console.log("Spending: useFocusEffect cleanup (screen blurred).");
-        // Ensure all modals are closed when leaving the screen
         setShowMerchantDetailsModal(false);
         setShowItemDetailsModal(false);
         setShowMonthlyDetailsModal(false);
@@ -207,10 +268,7 @@ const Spending = () => {
     setShowItemDetailsModal(true);
   };
 
-  // NEW: Function to handle month click on the Pie Chart
   const handleMonthClick = (data) => {
-    // 'data' here will be the object passed from the PieChart's onPress callback
-    // It contains 'id' (which is our monthKey like "YYYY-MM"), 'value' (totalSpending), etc.
     const clickedMonthDetails = monthlySummary.find(
       (item) => item.month === data.id
     );
@@ -232,25 +290,24 @@ const Spending = () => {
   };
 
   const gradientColors = [
-    "#264653", // Dark Blue
-    "#4E17B3", // Purple
-    "#F4A261", // Orange
-    "#D03957", // Red
-    "#2A9D8F", // Teal
-    "#F9C74F", //Yellow
-    "#90BE6D", // Green
-
-    "#8AC926", // Lime Green
-    "#9F54B6", // Darker Purple
-    "#E76F51", // Coral
-    "#CBF3F0", // Light Blue
-    "#FFBF69", // Gold
-    "#A3B18A", // Olive Green
-    "#588157", // Forest Green
-    "#F2CC8F", // Cream
-    "#E07A5F", // Salmon
-    "#3D405B", // Dark Slate Blue
-    "#6D83F2", // Light Slate Blue
+    "#264653",
+    "#4E17B3",
+    "#F4A261",
+    "#D03957",
+    "#2A9D8F",
+    "#F9C74F",
+    "#90BE6D",
+    "#8AC926",
+    "#9F54B6",
+    "#E76F51",
+    "#CBF3F0",
+    "#FFBF69",
+    "#A3B18A",
+    "#588157",
+    "#F2CC8F",
+    "#E07A5F",
+    "#3D405B",
+    "#6D83F2",
   ];
 
   const chartConfig = {
@@ -275,24 +332,22 @@ const Spending = () => {
   };
 
   // Prepare data for the Monthly Receipts Pie Chart
-  // Ensure all 12 months are represented, even if no receipts
   const currentYear = new Date().getFullYear();
   const allMonths = Array.from({ length: 12 }, (_, i) => {
     const monthNum = String(i + 1).padStart(2, "0");
     const monthKey = `${currentYear}-${monthNum}`;
     const existingData = monthlySummary.find((item) => item.month === monthKey);
     return {
-      name: format(new Date(currentYear, i, 1), "MMM"), // e.g., "Jan", "Feb"
-      population: existingData ? existingData.numberOfReceipts : 0, // Number of receipts
-      color: gradientColors[i % gradientColors.length], // Assign a color
+      name: format(new Date(currentYear, i, 1), "MMM"),
+      population: existingData ? existingData.numberOfReceipts : 0,
+      color: gradientColors[i % gradientColors.length],
       legendFontColor: "#7F7F7F",
       legendFontSize: 12,
-      id: monthKey, // Use monthKey as ID for easy lookup
-      totalSpending: existingData ? existingData.totalSpending : 0, // Include total spending for modal
+      id: monthKey,
+      totalSpending: existingData ? existingData.totalSpending : 0,
     };
   });
 
-  // Filter out months that have 0 receipts if you don't want them in the chart
   const chartDisplayMonths = allMonths.filter((month) => month.population > 0);
 
   if (isLoading || globalLoading) {
@@ -306,6 +361,21 @@ const Spending = () => {
     );
   }
 
+  // Determine text color and icon for spending change
+  const changeTextClass =
+    spendingChangePercentage > 0
+      ? "text-red-500" // Red for increase
+      : spendingChangePercentage < 0
+      ? "text-green-500" // Green for decrease
+      : "text-gray-500"; // Gray for no change
+
+  const changeIcon =
+    spendingChangePercentage > 0
+      ? icons.up // Assuming you have arrowUp icon
+      : spendingChangePercentage < 0
+      ? icons.down // Assuming you have arrowDown icon
+      : null; // No icon for no change
+
   return (
     <GradientBackground>
       <SafeAreaView className=" flex-1">
@@ -315,13 +385,13 @@ const Spending = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <View className="flex-row justify-between items-center mb-6 mt-4  ">
+          <View className="flex-row justify-between items-center mb-6 mt-4">
             <Text className="text-lg font-pbold text-black">
               Spending Insights
             </Text>
             <Image
-              source={icons.activity} // Use your eye icon
-              className="w-5 h-5 "
+              source={icons.activity}
+              className="w-5 h-5 right-48"
               tintColor="#9F54B6"
               resizeMode="contain"
             />
@@ -329,13 +399,13 @@ const Spending = () => {
 
           {allReceipts.length === 0 ? (
             <View className="flex-1 justify-center items-center h-[500px]">
-              <Text className="text-gray-300 text-lg font-pmedium">
+              <Text className="text-gray-600 text-lg font-pmedium">
                 No receipts uploaded yet. Start tracking your spending!
               </Text>
             </View>
           ) : (
             <>
-              {/* NEW: Monthly Receipts Pie Chart */}
+              {/* Receipts per Month Pie Chart */}
               <View className="p-4 mb-4 rounded-md bg-transparent border-t border-[#9F54B6]">
                 <Text className="text-base font-pbold text-black -mb-1">
                   Receipts per Month (Current Year)
@@ -356,7 +426,7 @@ const Spending = () => {
                           backgroundColor: "#e26a00",
                           backgroundGradientFrom: "#9F54B6",
                           backgroundGradientTo: "#ffa726",
-                          decimalPlaces: 0, // No decimal for receipt count
+                          decimalPlaces: 0,
                           color: (opacity = 1, index) =>
                             chartDisplayMonths[index]?.color ||
                             `rgba(26, 142, 255, ${opacity})`,
@@ -367,7 +437,7 @@ const Spending = () => {
                             fontSize: 10,
                           },
                         }}
-                        accessor={"population"} // Use 'population' for number of receipts
+                        accessor={"population"}
                         backgroundColor={"transparent"}
                         paddingLeft={0}
                         center={[0, 0]}
@@ -377,7 +447,7 @@ const Spending = () => {
                         stroke={"#E0E0E0"}
                         strokeWidth={2}
                         style={{ marginRight: 0 }}
-                        onPress={handleMonthClick} // <--- Handle click on slice
+                        onPress={handleMonthClick}
                       />
                     </View>
                     <View className="flex-1 flex-col">
@@ -387,7 +457,7 @@ const Spending = () => {
                       {chartDisplayMonths.map((item, index) => (
                         <TouchableOpacity
                           key={item.id}
-                          onPress={() => handleMonthClick(item)} // <--- Handle click on text
+                          onPress={() => handleMonthClick(item)}
                           className="flex-row items-center mb-2 "
                         >
                           <View
@@ -407,13 +477,97 @@ const Spending = () => {
                   </Text>
                 )}
               </View>
+              {/* Spending Comparison Card */}
+              <View className="p-4 mb-4 rounded-md bg-transparent border-t border-[#9F54B6] ">
+                <Text className="text-lg font-pbold text-black mb-1">
+                  Spending Comparison
+                </Text>
+                <Text className="text-sm font-pregular text-gray-700 mb-4">
+                  Compare your spending this month against the previous month.
+                </Text>
 
+                <View className="flex-row justify-around items-center">
+                  <View className="items-center">
+                    <Text className="text-base font-pmedium text-gray-600">
+                      {format(new Date(), "MMM")}
+                    </Text>
+                    <Text className="text-xl font-psemibold text-black">
+                      💵 {currentMonthSpending.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View className="items-center">
+                    <Text className="text-base font-pmedium text-gray-600">
+                      {format(subMonths(new Date(), 1), "MMM")}
+                    </Text>
+                    <Text className="text-xl font-psemibold text-black">
+                      💵 {previousMonthSpending.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Conditional rendering for change indicator */}
+                {previousMonthSpending > 0 || currentMonthSpending > 0 ? (
+                  <View className="flex-row items-center justify-center mt-4">
+                    <Text
+                      className={`text-base font-pbold mr-2 ${changeTextClass}`}
+                    >
+                      {spendingChangePercentage.toFixed(1)}%
+                    </Text>
+                    {changeIcon && (
+                      <Image
+                        source={changeIcon}
+                        className="w-4 h-4"
+                        tintColor={
+                          spendingChangePercentage > 0 ? "#EF4444" : "#22C55E"
+                        } // Tailwind red-500 / green-500
+                        resizeMode="contain"
+                      />
+                    )}
+                    <Text
+                      className={`text-sm font-pregular ml-1 ${changeTextClass}`}
+                    >
+                      {spendingChangePercentage > 0
+                        ? "Increase"
+                        : spendingChangePercentage < 0
+                        ? "Decrease"
+                        : "No Change"}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text className="text-gray-500 italic text-center mt-4">
+                    Not enough data for comparison yet.
+                  </Text>
+                )}
+              </View>
+
+              {/* NEW: Average Receipt Value Card */}
+              <View className="p-4 mb-4 rounded-md bg-transparent border-t border-[#9F54B6] ">
+                <Text className="text-lg font-pbold text-black mb-1">
+                  Average Receipt Value (Current Month)
+                </Text>
+                <Text className="text-sm font-pregular text-gray-700 mb-4">
+                  The average amount spent per receipt this month.
+                </Text>
+                {averageReceiptValue > 0 ? (
+                  <View className="items-center">
+                    <Text className="text-xl font-psemibold text-black">
+                      💵 {averageReceiptValue.toFixed(2)}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text className="text-gray-500 italic text-center">
+                    No receipts for this month to calculate average.
+                  </Text>
+                )}
+              </View>
+
+              {/* Spending Trends Chart */}
               <SpendingTrendsChart
                 monthlySummary={monthlySummary}
                 isLoading={isLoading}
               />
 
-              {/* NEW: Spending Heatmap */}
+              {/* Spending Heatmap */}
               <SpendingHeatmap
                 allReceipts={allReceipts}
                 isLoading={isLoading}
@@ -424,12 +578,50 @@ const Spending = () => {
                 <Text className="text-lg font-bold text-black mb-4">
                   Merchant Analysis
                 </Text>
+                {merchantAnalysis.length > 0 ? (
+                  <View className="mb-2">
+                    <Text className="text-lg font-pbold text-black mb-1 text-center">
+                      Merchant Visits Overview
+                    </Text>
+                    <Text className="text-sm text-gray-600 p-1 text-center">
+                      Displaying top 5 merchants by visits (default). Chart
+                      settings for this limit can be adjusted from the app's
+                      settings section.
+                    </Text>
+                    <BarChart
+                      data={merchantVisitsChartData}
+                      showBarTops={false}
+                      width={screenWidth - 64}
+                      withInnerLines={true}
+                      segments={3}
+                      height={280}
+                      yAxisLabel=""
+                      chartConfig={chartConfig}
+                      verticalLabelRotation={25}
+                      fromZero={true}
+                      showValuesOnTopOfBars={true}
+                      flatColor={true}
+                      style={{
+                        flex: 1,
+                        paddingRight: 25,
+                        marginVertical: 2,
+                        borderRadius: 50,
+                        marginBottom: 20,
+                      }}
+                    />
+                  </View>
+                ) : (
+                  <Text className="text-gray-500 italic text-center mb-4">
+                    No merchant data available for charting.
+                  </Text>
+                )}
+
                 <View className="flex-row bg-gray-300 py-2 px-3 border-b border-gray-300 rounded-t-md">
                   <Text className="flex-1 font-pbold text-black text-sm">
                     Merchant
                   </Text>
                   <Text className="w-1/4 font-pbold text-black text-sm text-right">
-                    Total (EGP)
+                    Total (💵 )
                   </Text>
                   <Text className="w-1/6 font-pbold text-black text-sm text-right">
                     Visits
@@ -462,7 +654,7 @@ const Spending = () => {
                         className="w-1/6 items-center justify-center"
                       >
                         <Image
-                          source={icons.eye} // Use your eye icon
+                          source={icons.eye}
                           className="w-5 h-5 tint-blue-500"
                           resizeMode="contain"
                         />
@@ -521,7 +713,7 @@ const Spending = () => {
                         className="w-1/6 items-center justify-center"
                       >
                         <Image
-                          source={icons.eye} // Use your eye icon
+                          source={icons.eye}
                           className="w-5 h-5 tint-blue-500"
                           resizeMode="contain"
                         />
@@ -558,7 +750,7 @@ const Spending = () => {
                 {selectedMerchantVisits.length > 0 ? (
                   selectedMerchantVisits.map((date, index) => (
                     <Text key={index} className="text-base text-gray-700 py-1">
-                      {format(new Date(date), "MMM dd, yyyy - hh:mm a")}
+                      {format(new Date(date), "MMM dd,yyyy - hh:mm a")}
                     </Text>
                   ))
                 ) : (
@@ -595,7 +787,7 @@ const Spending = () => {
                 {selectedItemPurchases.length > 0 ? (
                   selectedItemPurchases.map((date, index) => (
                     <Text key={index} className="text-base text-gray-700 py-1">
-                      {format(new Date(date), "MMM dd, yyyy - hh:mm a")}
+                      {format(new Date(date), "MMM dd,yyyy - hh:mm a")}
                     </Text>
                   ))
                 ) : (
@@ -619,16 +811,20 @@ const Spending = () => {
           animationType="slide"
           transparent={true}
           visible={showMonthlyDetailsModal}
-          onRequestClose={() => setShowMonthlyDetailsModal(false)}
+          onRequestClose={() => {
+            setShowMonthlyDetailsModal(false);
+            setSelectedMonthDetails(null);
+          }}
         >
-          {/* Change the outer Pressable to a simple View with centering styles */}
           <View style={styles.centeredView}>
-            {/* The modal content itself */}
-            <View style={styles.modalView}>
+            <View
+              style={styles.modalContent}
+              onStartShouldSetResponder={() => true}
+            >
               <Text className="text-xl font-pbold mb-4 text-center">
                 Monthly Summary for{" "}
                 {selectedMonthDetails
-                  ? format(new Date(selectedMonthDetails.month), "MMMM yyyy")
+                  ? format(new Date(selectedMonthDetails.month), "MMMM பிரதேச")
                   : ""}
               </Text>
               <View style={styles.tableHeader}>
@@ -639,13 +835,13 @@ const Spending = () => {
               {selectedMonthDetails ? (
                 <View style={styles.tableRow}>
                   <Text style={styles.rowText}>
-                    {format(new Date(selectedMonthDetails.month), "MMM yyyy")}{" "}
+                    {format(new Date(selectedMonthDetails.month), "MMM பிரதேச")}{" "}
                   </Text>
                   <Text style={styles.rowText}>
                     {selectedMonthDetails.numberOfReceipts}
                   </Text>
                   <Text style={styles.rowText}>
-                    ${selectedMonthDetails.totalSpending.toFixed(2)}
+                    💵 {selectedMonthDetails.totalSpending.toFixed(2)}
                   </Text>
                 </View>
               ) : (
@@ -654,7 +850,10 @@ const Spending = () => {
                 </Text>
               )}
               <TouchableOpacity
-                onPress={() => setShowMonthlyDetailsModal(false)}
+                onPress={() => {
+                  setShowMonthlyDetailsModal(false);
+                  setSelectedMonthDetails(null);
+                }}
                 className="bg-red-500 p-3 rounded-lg w-full items-center mt-4"
               >
                 <Text className="text-white font-pbold text-lg">Close</Text>
@@ -718,6 +917,24 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
     color: "#555",
+  },
+  // Ensure modalContent is defined or remove its usage from Monthly Details Modal
+  modalContent: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 35,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    width: screenWidth * 0.9,
+    maxHeight: "80%", // Added from previous modalView definition
   },
 });
 

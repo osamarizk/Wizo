@@ -536,7 +536,7 @@ const Home = () => {
             Merchant
           </Text>
           <Text className="w-1/4 font-pbold text-gray-700 text-sm text-right">
-            Total (EGP)
+            Total (💵 )
           </Text>
           <Text className="w-1/4 font-pbold text-gray-700 text-sm text-right">
             Visits
@@ -644,7 +644,7 @@ const Home = () => {
         data={categoryMonthlySpending}
         width={screenWidth * 0.7} // Adjust width as needed for modal
         height={200}
-        yAxisLabel="EGP "
+        yAxisLabel="💵  "
         chartConfig={chartConfig}
         bezier // Makes the line smooth
         style={{
@@ -1147,7 +1147,7 @@ const Home = () => {
                       </Text>
                       R on {monthName} | {monthName} Spending : {""}
                       <Text className="text-center text-base font-pregular text-[#4E17B3] mt-4 ">
-                        EGP {receiptStats.monthlySpending.toFixed(2)}
+                        💵  {receiptStats.monthlySpending.toFixed(2)}
                       </Text>
                     </Text>
                     <Text className=" text-base font-pregular text-gray-600 mt-1">
@@ -1189,7 +1189,7 @@ const Home = () => {
                       }}
                     >
                       {" : "}
-                      EGP {receiptStats.monthlySpending.toFixed(2)}
+                      💵  {receiptStats.monthlySpending.toFixed(2)}
                     </Text>
                   </Text>
 
@@ -1262,7 +1262,7 @@ const Home = () => {
                       </Text>
                       <Text className="font-pregular text-base mb-2">
                         Total Spending:{" "}
-                        {parseFloat(selectedCategory.population).toFixed(2)} EGP
+                        {parseFloat(selectedCategory.population).toFixed(2)} 💵 
                       </Text>
                       <Text className="text-lg font-bold ">
                         Merchant Breakdown
@@ -1329,7 +1329,7 @@ const Home = () => {
                       </Text>
                     </View>
                     <Text className="text-xl font-bold text-primary-500 font-pbold">
-                      EGP{" "}
+                      💵 {" "}
                       {receiptStats.highestSpendingCategory.amount.toFixed(2)}
                     </Text>
                   </View>
@@ -1444,7 +1444,7 @@ const Home = () => {
                                   {new Date(item.datetime).toLocaleDateString()}{" "}
                                   |
                                   {item.total
-                                    ? ` EGP ${parseFloat(item.total).toFixed(
+                                    ? ` 💵  ${parseFloat(item.total).toFixed(
                                         2
                                       )}`
                                     : ""}
@@ -1498,7 +1498,7 @@ const Home = () => {
                               <Text className="text-sm text-gray-600">
                                 {new Date(item.datetime).toLocaleDateString()} |
                                 {item.total
-                                  ? ` EGP ${parseFloat(item.total).toFixed(2)}`
+                                  ? ` 💵  ${parseFloat(item.total).toFixed(2)}`
                                   : ""}
                               </Text>
                             )}
@@ -1626,7 +1626,7 @@ const Home = () => {
                               <Text className="text-[#15493a] text-center font-psemibold text-base">
                                 {/* Display category or identifier */}
                                 Budget for {getCategoryName(budget.categoryId)}:
-                                EGP {budget.budgetAmount.toFixed(2)}
+                                💵  {budget.budgetAmount.toFixed(2)}
                               </Text>
                               <Text className="text-blue-800 text-center text-sm">
                                 View Details
@@ -1705,7 +1705,7 @@ const Home = () => {
               </Text>
               {selectedReceipt && (
                 <Text className="text-base text-center font-pregular text-gray-600 mb-2 mt-1">
-                  {selectedReceipt.merchant} - EGP{" "}
+                  {selectedReceipt.merchant} - 💵 {" "}
                   {parseFloat(selectedReceipt.total).toFixed(2)}
                 </Text>
               )}
