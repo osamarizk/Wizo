@@ -23,9 +23,9 @@ const TabsLayout = () => {
   console.log("TabsLayout Rendered...", showUploadModal, activeTab);
   // Function to handle successful upload and redirect
   const handleUploadSuccess = () => {
-    console.log(
-      "TabsLayout: Upload success from modal. Starting dismissal and navigation."
-    );
+    // console.log(
+    //   "TabsLayout: Upload success from modal. Starting dismissal and navigation."
+    // );
 
     // Step 1: Close the modal immediately
     setShowUploadModal(false);

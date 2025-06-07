@@ -35,6 +35,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 
 import GradientBackground from "./GradientBackground";
 import { ro } from "date-fns/locale";
+import { format } from "date-fns";
 
 const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   const [showFullImage, setShowFullImage] = useState(false);
@@ -209,6 +210,31 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         "Duplicate Receipt",
         "This receipt already exists and won't be saved again."
       );
+      console.log("Duplicate receipt detected:");
+      // NEW: Notification for Duplicate Receipt
+      try {
+        await createNotification({
+          user_id: user.$id,
+          title: "Duplicate Receipt Detected",
+          message: `Your receipt for ${
+            extractedData.merchant || "Unknown Merchant"
+          } on ${format(
+            new Date(extractedData.datetime),
+            "MMM dd, yyyy"
+          )} was a duplicate and not saved.`,
+          type: "system", // or 'warning'
+          receipt_id: null, // No new receipt created
+        });
+        const updatedUnreadCount = await countUnreadNotifications(user.$id);
+        updateUnreadCount(updatedUnreadCount);
+      } catch (notificationError) {
+        console.warn(
+          "Failed to create duplicate receipt notification:",
+          notificationError
+        );
+      }
+      // onCancel();
+      onProcessComplete?.();
       return;
     }
 
@@ -383,12 +409,17 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
       if (response && response.$id) {
         Alert.alert("Success", "Receipt saved successfully!");
-        // Create Receipt Upload notification
+        // Create Receipt Upload notification (Existing, added type)
         await createNotification({
           user_id: user.$id,
-          title: "Receipt Uploaded",
-          message: `${user.username} Your receipt was successfully uploaded.`,
+          title: "Receipt Processed",
+          message: `Your receipt for ${
+            extractedData.merchant || "Unknown"
+          } (${parseFloat(extractedData.total || 0).toFixed(
+            2
+          )}) has been successfully processed!`,
           receipt_id: response.$id,
+          type: "receipt", // <--- Added type
         });
         // --- POINTS & BADGES INTEGRATION START ---
         // 1. Award points for receipt upload
@@ -410,16 +441,16 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             `You earned new badges: ${badgeNames}! You earned Extra Points: ${pointsExtra}!`
           );
 
-          // Create Points notification
+          // Create Points notification (Existing, added type)
           await createNotification({
             user_id: user.$id,
-            title: "Points Earned",
-            message: `${user.username} you earned ${pointsExtra} Extra Points for  ${badgeNames}!`,
-            receipt_id: response.$id,
+            title: "Achievement Unlocked!",
+            message: `You earned ${pointsExtra} Extra Points for ${badgeNames}! Keep up the great work!`,
+            type: "points_award", // <--- Added type
+            // You might link to receipt_id or budget_id if relevant, but for a general achievement, it might be null
           });
           console.log(`User ${user.$id} earned badges: ${badgeNames}`);
         }
-        // --- POINTS & BADGES INTEGRATION END ---
 
         // Update the unread notification count in the context
         const updatedUnreadCount = await countUnreadNotifications(user.$id); // Fetch updated unread count
@@ -431,11 +462,47 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       } else {
         console.error("Invalid response from createReceipt:", response);
         Alert.alert("Error", "Receipt was not saved. Please try again.");
+        // NEW: Notification for Generic Save Failure
+        try {
+          await createNotification({
+            user_id: user.$id,
+            title: "Receipt Save Failed",
+            message: `Failed to save your receipt for ${
+              extractedData.merchant || "Unknown"
+            }. Please try again.`,
+            type: "error", // or 'system'
+          });
+          const updatedUnreadCount = await countUnreadNotifications(user.$id);
+          updateUnreadCount(updatedUnreadCount);
+        } catch (notificationError) {
+          console.warn(
+            "Failed to create save failure notification:",
+            notificationError
+          );
+        }
       }
     } catch (error) {
       console.error("Save error:", error);
       Alert.alert("Error", "Could not save receipt.");
       setHasSaved(false); // Reset if save fails
+      // NEW: Notification for Catch-all Save Error
+      try {
+        await createNotification({
+          user_id: user.$id,
+          title: "Receipt Processing Error",
+          message: `An unexpected error occurred while saving your receipt. Error: ${
+            error.message || "Unknown error"
+          }.`,
+          type: "error", // or 'system'
+        });
+        const updatedUnreadCount = await countUnreadNotifications(user.$id);
+        updateUnreadCount(updatedUnreadCount);
+      } catch (notificationError) {
+        console.warn(
+          "Failed to create catch-all error notification:",
+          notificationError
+        );
+      }
     } finally {
       setIsProcessing(false);
     }

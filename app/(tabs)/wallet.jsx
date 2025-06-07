@@ -25,17 +25,24 @@ import {
   getWalletTransactions,
   updateWalletTransaction,
   deleteWalletTransaction,
+  createNotification, // <--- IMPORTANT: Ensure createNotification is imported
+  countUnreadNotifications, // <--- IMPORTANT: Ensure countUnreadNotifications is imported
 } from "../../lib/appwrite";
 import { format, isSameMonth, isSameYear } from "date-fns";
 import icons from "../../constants/icons";
 import GradientBackground from "../../components/GradientBackground";
 import { useFocusEffect } from "@react-navigation/native";
-// Removed: import { getCurrencySymbol } from "../../constants/currencies"; // This import is no longer needed
 
 const screenWidth = Dimensions.get("window").width;
 
 const Wallet = () => {
-  const { user, isLoading: globalLoading } = useGlobalContext();
+  // Ensure updateUnreadCount is destructured from useGlobalContext
+  const {
+    user,
+    isLoading: globalLoading,
+    updateUnreadCount,
+  } = useGlobalContext();
+
   const [walletBalance, setWalletBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -46,13 +53,11 @@ const Wallet = () => {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // States for editing/deleting
   const [selectedTransactionForEdit, setSelectedTransactionForEdit] =
     useState(null);
   const [isConfirmDeleteModalVisible, setIsConfirmDeleteModalVisible] =
     useState(false);
 
-  // States for Wallet Insights
   const [monthlyDeposits, setMonthlyDeposits] = useState(0);
   const [monthlyExpensesWithdrawals, setMonthlyExpensesWithdrawals] =
     useState(0);
@@ -94,7 +99,6 @@ const Wallet = () => {
         (a, b) => new Date(b.datetime) - new Date(a.datetime)
       );
 
-      // Calculate monthly insights
       let currentMonthDeposits = 0;
       let currentMonthExpensesWithdrawals = 0;
       let totalCashExpensesAmount = 0;
@@ -105,14 +109,12 @@ const Wallet = () => {
         const amount = parseFloat(tx.amount || 0);
         const txDate = new Date(tx.datetime);
 
-        // Update overall balance
         if (tx.type === "deposit") {
           balance += amount;
         } else if (tx.type === "withdrawal" || tx.type === "manual_expense") {
           balance -= amount;
         }
 
-        // Calculate monthly deposits/expenses for current month
         if (isSameMonth(txDate, today) && isSameYear(txDate, today)) {
           if (tx.type === "deposit") {
             currentMonthDeposits += amount;
@@ -127,7 +129,6 @@ const Wallet = () => {
       setWalletBalance(balance);
       setTransactions(sortedTransactions);
 
-      // Set states for insights
       setMonthlyDeposits(currentMonthDeposits);
       setMonthlyExpensesWithdrawals(currentMonthExpensesWithdrawals);
       setAverageCashExpense(
@@ -202,6 +203,9 @@ const Wallet = () => {
     setIsProcessingTransaction(true);
     try {
       const amount = parseFloat(transactionAmount);
+      let notificationTitle = "";
+      let notificationMessage = "";
+      let notificationType = "wallet"; // Default type for wallet actions
 
       if (selectedTransactionForEdit) {
         const updates = {
@@ -217,6 +221,10 @@ const Wallet = () => {
         console.log("handleSaveTransaction: Updates:", updates);
         await updateWalletTransaction(selectedTransactionForEdit.$id, updates);
         Alert.alert("Success", "Transaction updated successfully!");
+        notificationTitle = "Wallet Transaction Updated";
+        notificationMessage = `Your ${transactionType} transaction for $${amount.toFixed(
+          2
+        )} has been updated.`;
         console.log("handleSaveTransaction: Transaction UPDATE successful.");
       } else {
         console.log(
@@ -229,7 +237,29 @@ const Wallet = () => {
           transactionDescription
         );
         Alert.alert("Success", "Transaction recorded successfully!");
+        notificationTitle = "New Wallet Transaction";
+        notificationMessage = `A new ${transactionType} transaction of $${amount.toFixed(
+          2
+        )} has been recorded.`;
         console.log("handleSaveTransaction: New transaction ADD successful.");
+      }
+
+      // Create notification for successful transaction save/update
+      try {
+        await createNotification({
+          user_id: user.$id,
+          title: notificationTitle,
+          message: notificationMessage,
+          type: notificationType,
+        });
+        // Update the unread notification count in the global context
+        const updatedUnreadCount = await countUnreadNotifications(user.$id);
+        updateUnreadCount(updatedUnreadCount);
+      } catch (notificationError) {
+        console.warn(
+          "Failed to create wallet transaction notification:",
+          notificationError
+        );
       }
 
       console.log("handleSaveTransaction: Re-fetching all wallet data...");
@@ -242,6 +272,25 @@ const Wallet = () => {
         "Failed",
         error.message || "Could not save transaction. Please try again."
       );
+      // Create notification for transaction save/update failure
+      try {
+        await createNotification({
+          user_id: user.$id,
+          title: "Wallet Transaction Failed",
+          message: `Failed to save your wallet transaction: ${
+            error.message || "Unknown error"
+          }.`,
+          type: "error", // Use 'error' type for failures
+        });
+        // Update the unread notification count in the global context
+        const updatedUnreadCount = await countUnreadNotifications(user.$id);
+        updateUnreadCount(updatedUnreadCount);
+      } catch (notificationError) {
+        console.warn(
+          "Failed to create wallet transaction failure notification:",
+          notificationError
+        );
+      }
     } finally {
       setIsProcessingTransaction(false);
       console.log("handleSaveTransaction: Finished processing.");
@@ -254,6 +303,7 @@ const Wallet = () => {
     selectedTransactionForEdit,
     fetchWalletData,
     isProcessingTransaction,
+    updateUnreadCount, // Add updateUnreadCount to dependencies
   ]);
 
   const openTransactionModal = (transaction = null) => {
@@ -288,13 +338,62 @@ const Wallet = () => {
       if (isProcessingTransaction) return;
       setIsProcessingTransaction(true);
       try {
+        // Find the transaction to get details for the notification before deleting
+        const transactionToDelete = transactions.find(
+          (tx) => tx.$id === transactionId
+        );
+
         await deleteWalletTransaction(transactionId);
         Alert.alert("Success", "Transaction deleted successfully!");
         console.log("handleDeleteConfirm: Transaction DELETE successful.");
+
+        // Create notification for successful deletion
+        if (transactionToDelete) {
+          try {
+            await createNotification({
+              user_id: user.$id,
+              title: "Wallet Transaction Deleted",
+              message: `Your ${
+                transactionToDelete.type
+              } transaction for $${parseFloat(
+                transactionToDelete.amount
+              ).toFixed(2)} has been deleted.`,
+              type: "wallet", // Use 'wallet' type
+            });
+            // Update the unread notification count in the global context
+            const updatedUnreadCount = await countUnreadNotifications(user.$id);
+            updateUnreadCount(updatedUnreadCount);
+          } catch (notificationError) {
+            console.warn(
+              "Failed to create delete notification:",
+              notificationError
+            );
+          }
+        }
+
         await fetchWalletData();
       } catch (error) {
         console.error("handleDeleteConfirm: Deletion failed:", error);
         Alert.alert("Error", error.message || "Failed to delete transaction.");
+        // Create notification for deletion failure
+        try {
+          await createNotification({
+            user_id: user.$id,
+            title: "Wallet Transaction Deletion Failed",
+            message: `Failed to delete your wallet transaction: ${
+              error.message || "Unknown error"
+            }.`,
+            type: "error", // Use 'error' type for failures
+          });
+          // Update the unread notification count in the global context
+          const updatedUnreadCount = await countUnreadNotifications(user.$id);
+          updateUnreadCount(updatedUnreadCount);
+        } catch (notificationError) {
+          console.warn(
+            "Failed to create deletion failure notification:",
+            notificationError
+          );
+        }
       } finally {
         setIsProcessingTransaction(false);
         setIsConfirmDeleteModalVisible(false);
@@ -302,7 +401,14 @@ const Wallet = () => {
         console.log("handleDeleteConfirm: Finished processing.");
       }
     },
-    [fetchWalletData, isProcessingTransaction]
+    // Ensure all dependencies are included
+    [
+      fetchWalletData,
+      isProcessingTransaction,
+      transactions,
+      user?.$id,
+      updateUnreadCount,
+    ]
   );
 
   const getTransactionTypeDescription = () => {
@@ -359,15 +465,14 @@ const Wallet = () => {
               Current Balance
             </Text>
             <Text className="text-4xl font-pbold text-center text-black">
-              ${walletBalance.toFixed(2)} {/* Reverted to $ */}
+              ${walletBalance.toFixed(2)}
             </Text>
           </View>
 
           {/* Monthly Cash Flow Summary */}
           <View className="bg-transparent p-4 rounded-lg mb-2 border-t border-[#9F54B6]">
             <Text className="text-lg font-pbold text-black mb-3">
-              Monthly Cash Flow ({format(new Date(), "MMM, yyyy")}){" "}
-              {/* Fixed format string */}
+              Monthly Cash Flow ({format(new Date(), "MMM,yyyy")})
             </Text>
             <View className="flex-row justify-around items-center">
               <View className="items-center">
@@ -375,7 +480,7 @@ const Wallet = () => {
                   Deposits
                 </Text>
                 <Text className="text-xl font-psemibold text-green-600">
-                  +${monthlyDeposits.toFixed(2)} {/* Reverted to $ */}
+                  +${monthlyDeposits.toFixed(2)}
                 </Text>
               </View>
               <View className="items-center">
@@ -383,15 +488,13 @@ const Wallet = () => {
                   Expenses/Withdrawals
                 </Text>
                 <Text className="text-xl font-psemibold text-red-600">
-                  -${monthlyExpensesWithdrawals.toFixed(2)}{" "}
-                  {/* Reverted to $ */}
+                  -${monthlyExpensesWithdrawals.toFixed(2)}
                 </Text>
               </View>
             </View>
             <Text className="text-sm font-pregular text-gray-700 text-center mt-3">
               Net Flow: $
-              {(monthlyDeposits - monthlyExpensesWithdrawals).toFixed(2)}{" "}
-              {/* Reverted to $ */}
+              {(monthlyDeposits - monthlyExpensesWithdrawals).toFixed(2)}
             </Text>
           </View>
 
@@ -402,7 +505,7 @@ const Wallet = () => {
             </Text>
             {averageCashExpense > 0 ? (
               <Text className="text-3xl font-psemibold text-center text-black">
-                ${averageCashExpense.toFixed(2)} {/* Reverted to $ */}
+                ${averageCashExpense.toFixed(2)}
               </Text>
             ) : (
               <Text className="text-gray-500 italic text-center">
@@ -452,7 +555,7 @@ const Wallet = () => {
                       </Text>
                     ) : null}
                     <Text className="text-gray-400 text-xs mt-1">
-                      {format(new Date(tx.datetime), "MMM dd,PPPP HH:mm")}
+                      {format(new Date(tx.datetime), "MMM dd,yyyy HH:mm")}
                     </Text>
                   </View>
                   <View className="flex-row items-center">
@@ -463,8 +566,7 @@ const Wallet = () => {
                           : "text-red-600"
                       }`}
                     >
-                      {tx.type === "deposit" ? "+" : "-"} ${" "}
-                      {/* Reverted to $ */}
+                      {tx.type === "deposit" ? "+" : "-"} $
                       {parseFloat(tx.amount).toFixed(2)}
                     </Text>
                     <TouchableOpacity
