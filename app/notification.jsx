@@ -11,14 +11,14 @@ import {
   Platform,
   Image,
   Pressable,
-  RefreshControl, // <--- ADDED THIS IMPORT for RefreshControl
+  RefreshControl,
 } from "react-native";
 import {
   fetchNotifications,
   markNotificationAsRead,
   countUnreadNotifications,
   fetchReceipt,
-  fetchBudget, // <--- Correctly import YOUR fetchBudget function
+  fetchBudget,
 } from "../lib/appwrite";
 import { useGlobalContext } from "../context/GlobalProvider";
 import GradientBackground from "../components/GradientBackground";
@@ -27,7 +27,7 @@ import icons from "../constants/icons";
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import { format } from "date-fns"; // <--- ADDED THIS IMPORT for date formatting
+import { format } from "date-fns";
 
 // Enable LayoutAnimation for smooth transitions on Android
 if (Platform.OS === "android") {
@@ -59,7 +59,6 @@ const NotificationPage = () => {
         "NotificationPage: Fetching notifications for user:",
         user.$id
       );
-      // fetchNotifications now returns just the documents array from lib/appwrite.js
       const fetched = await fetchNotifications(user.$id);
 
       // Client-side filtering for expired notifications
@@ -246,7 +245,7 @@ const NotificationPage = () => {
                         🧾 Merchant: {receipt.merchant || "N/A"}
                       </Text>
                       <Text className="text-sm text-gray-800">
-                        💵 Total: {parseFloat(receipt.total || 0).toFixed(2)}
+                        💵 Total: ${parseFloat(receipt.total || 0).toFixed(2)}
                       </Text>
                       <Text className="text-sm text-gray-800">
                         📅 Date:{" "}
@@ -285,8 +284,7 @@ const NotificationPage = () => {
                       </Text>
                       <Text className="text-sm text-gray-800">
                         🏷️ Category ID: {budget.categoryId || "N/A"}
-                      </Text>{" "}
-                      {/* Assuming 'name' might not be in budget */}
+                      </Text>
                       <Text className="text-sm text-gray-800">
                         ➡️ Starts:{" "}
                         {format(new Date(budget.startDate), "MMM dd,yyyy")}
@@ -307,7 +305,13 @@ const NotificationPage = () => {
                 </View>
               )}
 
-              {/* If there's a 'type' field, you could show different info based on it */}
+              {/* Display Expiry Date if available */}
+              {item.expiresAt && new Date(item.expiresAt) > new Date() && (
+                <Text className="text-xs text-red-500 mt-2 font-pmedium">
+                  ⚠️ Expires:{" "}
+                  {format(new Date(item.expiresAt), "MMM dd,yyyy HH:mm")}
+                </Text>
+              )}
               {item.type &&
               item.type !== "system" &&
               (item.type === "wallet" || item.type === "budget_alert") &&
@@ -345,6 +349,14 @@ const NotificationPage = () => {
               tintColor="#333"
             />
           </TouchableOpacity>
+        </View>
+
+        {/* NEW: Expiry Information Text */}
+        <View className="px-4 py-2 bg-gray-50 border-b border-gray-100">
+          <Text className="text-sm text-gray-600 font-pregular">
+            Important notifications may have an expiry date and will disappear
+            automatically once expired.
+          </Text>
         </View>
 
         {notifications.length === 0 && !refreshing ? (

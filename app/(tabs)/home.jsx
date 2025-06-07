@@ -38,6 +38,8 @@ import {
   deleteReceiptById,
   getReceiptImageDownloadUrl,
   getMonthlyReceiptSummary,
+  createNotification,
+  getFutureDate,
 } from "../../lib/appwrite";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -689,6 +691,31 @@ const Home = () => {
       console.log("Image_URL", imageUrl);
       setDisplayedReceiptImageUri(imageUrl);
       setShowReceiptDetailsModal(true); // Open the details modal
+
+      // NEW: Notification for successful view
+      try {
+        await createNotification({
+          user_id: user.$id,
+          title: "Receipt Viewed",
+          message: `You viewed the receipt for ${
+            selectedReceipt.merchant || "Unknown Merchant"
+          } from ${format(
+            new Date(selectedReceipt.datetime),
+            "MMM dd, yyyy"
+          )}.`,
+          type: "receipt_action",
+          expiresAt: getFutureDate(7), // <--- Expiry: 7 days for success notifications
+          receipt_id: selectedReceipt.$id,
+        });
+        const updatedUnreadCount = await countUnreadNotifications(user.$id);
+
+        setUnreadCount(updatedUnreadCount);
+      } catch (notificationError) {
+        console.warn(
+          "Failed to create 'view receipt' notification:",
+          notificationError
+        );
+      }
     } catch (error) {
       console.error("Error fetching receipt image:", error);
       Alert.alert("Error", `Failed to load receipt image: ${error.message}`);
@@ -742,6 +769,29 @@ const Home = () => {
         UTI: "public.jpeg",
       });
 
+      // NEW: Notification for successful download and share
+      try {
+        await createNotification({
+          user_id: user.$id,
+          title: "Receipt Downloaded & Shared",
+          message: `Your receipt for ${
+            selectedReceipt.merchant || "Unknown Merchant"
+          } from ${format(
+            new Date(selectedReceipt.datetime),
+            "MMM dd, yyyy"
+          )} has been downloaded and shared successfully!`,
+          type: "receipt_action",
+          expiresAt: getFutureDate(7), // <--- Expiry: 7 days for success notifications
+          receipt_id: selectedReceipt.$id,
+        });
+        const updatedUnreadCount = await countUnreadNotifications(user.$id);
+        setUnreadCount(updatedUnreadCount);
+      } catch (notificationError) {
+        console.warn(
+          "Failed to create 'download success' notification:",
+          notificationError
+        );
+      }
       // Alert.alert("Success", "Receipt image downloaded and shared!");
     } catch (error) {
       console.error("Error in handleDowanLoadReceipt:", error);
@@ -775,6 +825,38 @@ const Home = () => {
               await deleteReceiptById(selectedReceipt.$id); // Implement this Appwrite function
               Alert.alert("Success", "Receipt deleted successfully.");
               onRefresh(); // Refresh the list to reflect deletion
+
+              // NEW: Notification for successful deletion - WITHOUT receipt_id
+              try {
+                await createNotification({
+                  user_id: user.$id,
+                  title: "Receipt Deleted",
+                  message: `The receipt for ${
+                    selectedReceipt.merchant || "Unknown Merchant"
+                  } (${parseFloat(selectedReceipt.total).toFixed(
+                    2
+                  )}) from ${format(
+                    new Date(selectedReceipt.datetime),
+                    "MMM dd,yyyy"
+                  )} has been permanently deleted.`,
+                  type: "receipt_action",
+                  expiresAt: getFutureDate(7), // <--- Expiry: 7 days for success notifications
+                  // IMPORTANT: Do NOT pass receipt_id here, to prevent it from being immediately deleted
+                  // receipt_id: selectedReceipt.$id, // <--- REMOVED THIS LINE
+                });
+                console.log(
+                  "Successfully created 'receipt deleted' notification."
+                );
+                const updatedUnreadCount = await countUnreadNotifications(
+                  user.$id
+                );
+                setUnreadCount(updatedUnreadCount); // Use setUnreadCount as per your setup
+              } catch (notificationError) {
+                console.warn(
+                  "Failed to create 'delete success' notification after receipt deletion:",
+                  notificationError
+                );
+              }
             } catch (error) {
               console.error("Error deleting receipt:", error);
               Alert.alert(
@@ -1147,7 +1229,7 @@ const Home = () => {
                       </Text>
                       R on {monthName} | {monthName} Spending : {""}
                       <Text className="text-center text-base font-pregular text-[#4E17B3] mt-4 ">
-                        💵  {receiptStats.monthlySpending.toFixed(2)}
+                        💵 {receiptStats.monthlySpending.toFixed(2)}
                       </Text>
                     </Text>
                     <Text className=" text-base font-pregular text-gray-600 mt-1">
@@ -1189,7 +1271,7 @@ const Home = () => {
                       }}
                     >
                       {" : "}
-                      💵  {receiptStats.monthlySpending.toFixed(2)}
+                      💵 {receiptStats.monthlySpending.toFixed(2)}
                     </Text>
                   </Text>
 
@@ -1262,7 +1344,7 @@ const Home = () => {
                       </Text>
                       <Text className="font-pregular text-base mb-2">
                         Total Spending:{" "}
-                        {parseFloat(selectedCategory.population).toFixed(2)} 💵 
+                        {parseFloat(selectedCategory.population).toFixed(2)} 💵
                       </Text>
                       <Text className="text-lg font-bold ">
                         Merchant Breakdown
@@ -1329,7 +1411,7 @@ const Home = () => {
                       </Text>
                     </View>
                     <Text className="text-xl font-bold text-primary-500 font-pbold">
-                      💵 {" "}
+                      💵{" "}
                       {receiptStats.highestSpendingCategory.amount.toFixed(2)}
                     </Text>
                   </View>
@@ -1626,7 +1708,7 @@ const Home = () => {
                               <Text className="text-[#15493a] text-center font-psemibold text-base">
                                 {/* Display category or identifier */}
                                 Budget for {getCategoryName(budget.categoryId)}:
-                                💵  {budget.budgetAmount.toFixed(2)}
+                                💵 {budget.budgetAmount.toFixed(2)}
                               </Text>
                               <Text className="text-blue-800 text-center text-sm">
                                 View Details
@@ -1705,7 +1787,7 @@ const Home = () => {
               </Text>
               {selectedReceipt && (
                 <Text className="text-base text-center font-pregular text-gray-600 mb-2 mt-1">
-                  {selectedReceipt.merchant} - 💵 {" "}
+                  {selectedReceipt.merchant} - 💵{" "}
                   {parseFloat(selectedReceipt.total).toFixed(2)}
                 </Text>
               )}

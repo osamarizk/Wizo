@@ -25,6 +25,7 @@ import {
   updateUserPoints,
   checkAndAwardBadges,
   checkSession,
+  getFutureDate,
 } from "../lib/appwrite";
 import Checkbox from "expo-checkbox"; // Make sure expo-checkbox is installed
 import { useGlobalContext } from "../context/GlobalProvider";
@@ -223,6 +224,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             "MMM dd, yyyy"
           )} was a duplicate and not saved.`,
           type: "system", // or 'warning'
+          expiresAt: getFutureDate(14), // <--- Expiry: 14 days for warnings
           receipt_id: null, // No new receipt created
         });
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
@@ -420,6 +422,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           )}) has been successfully processed!`,
           receipt_id: response.$id,
           type: "receipt", // <--- Added type
+          expiresAt: getFutureDate(7), // <--- Expiry: 14 days for warnings
         });
         // --- POINTS & BADGES INTEGRATION START ---
         // 1. Award points for receipt upload
@@ -447,6 +450,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             title: "Achievement Unlocked!",
             message: `You earned ${pointsExtra} Extra Points for ${badgeNames}! Keep up the great work!`,
             type: "points_award", // <--- Added type
+            expiresAt: getFutureDate(7), // <--- Expiry: 14 days for warnings
             // You might link to receipt_id or budget_id if relevant, but for a general achievement, it might be null
           });
           console.log(`User ${user.$id} earned badges: ${badgeNames}`);
@@ -471,6 +475,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
               extractedData.merchant || "Unknown"
             }. Please try again.`,
             type: "error", // or 'system'
+            expiresAt: getFutureDate(14), // <--- Expiry: 14 days for warnings
           });
           const updatedUnreadCount = await countUnreadNotifications(user.$id);
           updateUnreadCount(updatedUnreadCount);
@@ -494,6 +499,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             error.message || "Unknown error"
           }.`,
           type: "error", // or 'system'
+          expiresAt: getFutureDate(14), // <--- Expiry: 14 days for warnings
         });
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
         updateUnreadCount(updatedUnreadCount);

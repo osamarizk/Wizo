@@ -27,6 +27,7 @@ import {
   deleteWalletTransaction,
   createNotification, // <--- IMPORTANT: Ensure createNotification is imported
   countUnreadNotifications, // <--- IMPORTANT: Ensure countUnreadNotifications is imported
+  getFutureDate,
 } from "../../lib/appwrite";
 import { format, isSameMonth, isSameYear } from "date-fns";
 import icons from "../../constants/icons";
@@ -251,6 +252,7 @@ const Wallet = () => {
           title: notificationTitle,
           message: notificationMessage,
           type: notificationType,
+          expiresAt: getFutureDate(7), // <--- Expiry: 7 days for success notifications
         });
         // Update the unread notification count in the global context
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
@@ -281,6 +283,7 @@ const Wallet = () => {
             error.message || "Unknown error"
           }.`,
           type: "error", // Use 'error' type for failures
+          expiresAt: getFutureDate(14), // <--- Expiry: 7 days for success notifications
         });
         // Update the unread notification count in the global context
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
@@ -359,6 +362,7 @@ const Wallet = () => {
                 transactionToDelete.amount
               ).toFixed(2)} has been deleted.`,
               type: "wallet", // Use 'wallet' type
+              expiresAt: getFutureDate(7), // <--- Expiry: 7 days for success notifications
             });
             // Update the unread notification count in the global context
             const updatedUnreadCount = await countUnreadNotifications(user.$id);
@@ -384,6 +388,7 @@ const Wallet = () => {
               error.message || "Unknown error"
             }.`,
             type: "error", // Use 'error' type for failures
+            expiresAt: getFutureDate(14), // <--- Expiry: 7 days for success notifications
           });
           // Update the unread notification count in the global context
           const updatedUnreadCount = await countUnreadNotifications(user.$id);
