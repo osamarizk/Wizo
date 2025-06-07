@@ -37,6 +37,7 @@ import {
   getUserEarnedBadges,
   deleteReceiptById,
   getReceiptImageDownloadUrl,
+  getMonthlyReceiptSummary,
 } from "../../lib/appwrite";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -48,6 +49,7 @@ import ReceiptFull from "../../components/ReceiptFull";
 import { format } from "date-fns";
 import eventEmitter from "../../utils/eventEmitter";
 import images from "../../constants/images";
+import SpendingTrendsChart from "../../components/SpendingTrendsChart";
 
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
@@ -141,6 +143,7 @@ const Home = () => {
   const [isSearching, setIsSearching] = useState(false); // <--- NEW STATE
   const [showSearchFilterModal, setShowSearchFilterModal] = useState(false); // <--- NEW STATE FOR SEARCH FILTER MODAL
   const [isSearchFilterExpanded, setIsSearchFilterExpanded] = useState(false); // <--- NEW STATE for collapsible filter
+  const [monthlySummary, setMonthlySummary] = useState([]);
 
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -235,16 +238,25 @@ const Home = () => {
     if (user?.$id) {
       setIsLoading(true);
       try {
-        const [count, stats, allReceipts, isBudgetInitialized] =
-          await Promise.all([
-            countUnreadNotifications(user.$id),
-            getReceiptStats(user.$id),
-            fetchUserReceipts(user.$id),
-            checkBudgetInitialization(user.$id), // Fetch budget status
-          ]);
+        const [
+          count,
+          stats,
+          allReceipts,
+          fetchedMonthlySummary,
+          isBudgetInitialized,
+        ] = await Promise.all([
+          countUnreadNotifications(user.$id),
+          getReceiptStats(user.$id),
+          fetchUserReceipts(user.$id),
+          getMonthlyReceiptSummary(user.$id), // Fetch monthly summary
+          checkBudgetInitialization(user.$id), // Fetch budget status
+        ]);
         setUnreadCount(count);
         setReceiptStats(stats);
         setAllReceipts(allReceipts); // Set all receipts to state
+        setMonthlySummary(fetchedMonthlySummary); // Set monthly summary data
+        console.log("Fetched Monthly Summary for Home Page:", monthlySummary);
+        setLatestReceipts(allReceipts.slice(0, 5)); // Maybe show latest 5 receipts
         // console.log("stats", stats);
         // console.log("ReceiptStats...", stats);
         // console.log("allReceipts...", allReceipts);
@@ -313,6 +325,7 @@ const Home = () => {
         console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
+        setRefreshing(false);
       }
     }
   }, [user]);
@@ -1104,7 +1117,7 @@ const Home = () => {
 
               {/* Receipt Summary */}
               {receiptStats.totalCount > 0 && (
-                <View className="p-2  mb-2 rounded-md border-slate-100 border-t-2 border-opacity-50 ">
+                <View className="p-2  mb-2 rounded-md border-t border-[#9F54B6] border-opacity-50 ">
                   <TouchableOpacity
                     onPress={() => router.push("/notification")}
                     className="relative p-2 rounded-full mt-1"
@@ -1151,7 +1164,7 @@ const Home = () => {
               {/* Spending Categories Charts */}
               {receiptStats.monthlySpending > 0 && (
                 <View
-                  className=" p-2 border-slate-100  border-t-2 border-opacity-50"
+                  className=" p-2 border-t border-[#9F54B6] border-opacity-50"
                   style={{
                     fontSize: Platform.select({
                       // <--- Use Platform.select for fontSize
@@ -1218,6 +1231,16 @@ const Home = () => {
                   )}
                 </View>
               )}
+              {/* /* NEW: Spending Trends Chart */}
+              {receiptStats.totalCount > 0 && (
+                <View className="my-3 p-2">
+                  {/* Pass monthlySummary and isLoading to the chart component */}
+                  <SpendingTrendsChart
+                    monthlySummary={monthlySummary}
+                    isLoading={isLoading}
+                  />
+                </View>
+              )}
               {/* Category Details Modal */}
               {selectedCategory && (
                 <Modal
@@ -1263,7 +1286,7 @@ const Home = () => {
 
               {/* Top Spending Insights */}
               {receiptStats.highestSpendingCategory && (
-                <View className=" p-4 mt-2 border-opacity-50 mb-4 border-t-2 border-slate-100">
+                <View className=" p-4 mt-2 border-opacity-50 mb-4 border-t border-[#9F54B6]">
                   <Text className="text-base font-pregular text-black mb-2">
                     Top Spending Insight of{" "}
                     <Text className="font-psemibold text-xl text-[#b31731]">
@@ -1321,7 +1344,7 @@ const Home = () => {
               {/* Collapsible Search Filter Section */}
 
               {receiptStats.totalCount > 0 && (
-                <View className="p-2  mb-1 border-slate-100 border-t-2">
+                <View className="p-2  mb-1 border-t border-[#9F54B6]">
                   <View className="flex-row justify-between items-center">
                     <Text className="text-lg font-psemibold text-black">
                       Search & Filter

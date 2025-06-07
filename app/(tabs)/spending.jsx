@@ -25,6 +25,7 @@ import icons from "../../constants/icons"; // Adjust path as needed
 import GradientBackground from "../../components/GradientBackground";
 import { useFocusEffect } from "@react-navigation/native";
 import SpendingHeatmap from "../../components/SpendingHeatmap"; // <--- Import SpendingHeatmap
+import SpendingTrendsChart from "../../components/SpendingTrendsChart";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -339,6 +340,11 @@ const Spending = () => {
                 <Text className="text-base font-pbold text-black -mb-1">
                   Receipts per Month (Current Year)
                 </Text>
+                <Text className="text-sm font-pregular text-gray-700 text-left mb-4 mt-2">
+                  This chart illustrates how many receipts you've uploaded each
+                  month throughout the current year. Tap on a month in the chart
+                  or the list to view its summary.
+                </Text>
                 {chartDisplayMonths.length > 0 ? (
                   <View className="flex-row items-center justify-center gap-2 ">
                     <View className="w-[150px] h-[150px] justify-center items-center ">
@@ -401,6 +407,11 @@ const Spending = () => {
                   </Text>
                 )}
               </View>
+
+              <SpendingTrendsChart
+                monthlySummary={monthlySummary}
+                isLoading={isLoading}
+              />
 
               {/* NEW: Spending Heatmap */}
               <SpendingHeatmap
