@@ -5,6 +5,7 @@ import {
   TouchableWithoutFeedback,
   UIManager,
   View,
+  Image
 } from "react-native";
 import React from "react";
 import { useLoadFonts } from "../lib/useLoadFonts";

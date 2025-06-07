@@ -145,7 +145,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         data.data.cardLastFourDigits || "null"
       );
       data.data.cashierId = String(data.data.cashierId || "null");
-      data.data.paymentMethod = String(data.data.paymentMethod || "null");
+      data.data.paymentMethod = String(data.data.paymentMethod || "cash");
       data.data.storeBranchId = String(data.data.storeBranchId || "null");
       data.data.transactionId = String(data.data.transactionId || "null");
 
@@ -343,7 +343,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         items: JSON.stringify(itemsWithIds || []), // Already handles array/null to empty array string
         cardLastFourDigits: String(extractedData.cardLastFourDigits || "null"),
         cashierId: String(extractedData.cashierId || "null"),
-        payment_method: String(extractedData.paymentMethod || "null"),
+        payment_method: String(extractedData.paymentMethod || "cash"),
         storeBranchId: String(extractedData.storeBranchId || "null"),
         transactionId: String(extractedData.transactionId || "null"),
         loyalty_points: (() => {
