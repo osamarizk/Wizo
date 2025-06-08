@@ -8,38 +8,34 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
-  Alert, // Keep Alert for general errors, but modal for badges
+  Alert,
   LayoutAnimation,
   UIManager,
   Platform,
-  Modal, // Added Modal import
-  Pressable, // Added Pressable import
-  StyleSheet, // Added StyleSheet import for modal styles
+  Modal,
+  Pressable,
+  StyleSheet,
 } from "react-native";
-import { useGlobalContext } from "../../context/GlobalProvider"; // Your existing context
-import GradientBackground from "../../components/GradientBackground"; // Your existing component
-import { useNavigation, useFocusEffect } from "expo-router"; // Your existing navigation
-import Collapsible from "react-native-collapsible"; // Your existing dependency
-import icons from "../../constants/icons"; // Your existing icons
+import { useGlobalContext } from "../../context/GlobalProvider";
+import GradientBackground from "../../components/GradientBackground";
+import { useNavigation, useFocusEffect } from "expo-router";
+import Collapsible from "react-native-collapsible";
+import icons from "../../constants/icons";
 
-// Assuming 'date-fns' is installed for date formatting
-import { format } from "date-fns"; // FIX: Corrected import syntax here
+import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 
-// Import your Appwrite functions from your lib file
 import {
   getUserBudgets,
   chkBudgetInitialization,
-  getCategories,
-  getCategories2Bud, // Your new function for Budget page
+  getCategories2Bud,
   getUserPoints,
   getUserEarnedBadges,
-  // getReceiptStats, // Uncomment if you re-introduce receiptStats logic
-} from "../../lib/appwrite"; // Adjust this path as needed to your appwrite functions file
+  getReceiptsForPeriod,
+} from "../../lib/appwrite";
 
-// Enable LayoutAnimation for smooth transitions on Android
 if (Platform.OS === "android") {
   UIManager.setLayoutAnimationEnabledExperimental &&
-    UIManager.setLayoutAnimationEnabledExperimental(true);
+    UIManager.setLayoutLayoutAnimationEnabledExperimental(true);
 }
 
 const Budget = () => {
@@ -54,12 +50,19 @@ const Budget = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [categoriesMap, setCategoriesMap] = useState({});
+  const [monthlySpendingSummary, setMonthlySpendingSummary] = useState([]);
 
-  // States for custom modal
   const [showPointsBadgeModal, setShowPointsBadgeModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
-  // const [receiptStats, setReceiptStats] = useState({ totalCount: 0 }); // Uncomment if you re-introduce receiptStats logic
+
+  // --- Added console.log for component render cycle ---
+  console.log(
+    "Budget Component Rendered. isLoadingData:",
+    isLoadingData,
+    "refreshing:",
+    refreshing
+  );
 
   const showCustomModal = (title, message) => {
     setModalTitle(title);
@@ -73,20 +76,28 @@ const Budget = () => {
     setModalMessage("");
   };
 
-  // Function to fetch all categories and build the map
   const fetchAllCategories = useCallback(async () => {
-    if (!user?.$id) return;
+    if (!user?.$id) {
+      console.log("fetchAllCategories: User ID not available.");
+      return;
+    }
+    console.log("fetchAllCategories: Attempting to fetch categories...");
     try {
-      // Using your new Appwrite function getCategories2Bud()
       const categories = await getCategories2Bud();
       const map = {};
       categories.forEach((cat) => {
         map[cat.$id] = cat.name;
       });
       setCategoriesMap(map);
-      console.log("Fetched categories:", categories);
+      console.log(
+        "fetchAllCategories: Fetched categories successfully. Map size:",
+        Object.keys(map).length
+      );
     } catch (error) {
-      console.error("Error fetching all categories:", error);
+      console.error(
+        "fetchAllCategories: Error fetching all categories:",
+        error
+      );
       Alert.alert("Error", "Failed to load categories.");
     }
   }, [user?.$id]);
@@ -96,66 +107,138 @@ const Budget = () => {
   };
 
   const fetchBudgetData = useCallback(async () => {
+    console.log("fetchBudgetData: Function started.");
     if (!user?.$id) {
+      console.log(
+        "fetchBudgetData: User ID not available, stopping data fetch."
+      );
       setIsLoadingData(false);
       return;
     }
 
     if (!refreshing) {
+      console.log("fetchBudgetData: Setting isLoadingData to TRUE.");
       setIsLoadingData(true);
     }
 
     try {
+      console.log("fetchBudgetData: Checking budget initialization...");
       const initialized = await chkBudgetInitialization(user.$id);
       setIsBudgetInitialized(initialized);
+      console.log("fetchBudgetData: Budget initialized status:", initialized);
 
-      if (initialized) {
-        const budgets = await getUserBudgets(user.$id);
-        setUserBudgets(budgets);
-        console.log("Fetched user budgets:", budgets);
-      } else {
-        setUserBudgets([]);
-      }
+      const budgets = initialized ? await getUserBudgets(user.$id) : [];
+      setUserBudgets(budgets);
+      console.log(
+        "fetchBudgetData: Fetched user budgets, count:",
+        budgets.length
+      );
 
+      console.log("fetchBudgetData: Fetching user points...");
       const userPointsDocs = await getUserPoints(user.$id);
       if (userPointsDocs && userPointsDocs.length > 0) {
         setUserTotalPoints(userPointsDocs[0].points || 0);
       } else {
         setUserTotalPoints(0);
       }
-      console.log("User Total Points fetched:", userTotalPoints);
+      console.log(
+        "fetchBudgetData: User Total Points fetched:",
+        userTotalPoints
+      );
 
+      console.log("fetchBudgetData: Fetching earned badges...");
       const earnedBadges = await getUserEarnedBadges(user.$id);
       setUserBadges(earnedBadges);
-      console.log("User Badges fetched:", earnedBadges);
+      console.log(
+        "fetchBudgetData: User Badges fetched, count:",
+        earnedBadges.length
+      );
 
-      // if (typeof getReceiptStats === 'function') { // Uncomment if re-introducing receiptStats
-      //     const stats = await getReceiptStats(user.$id);
-      //     setReceiptStats(stats);
-      // }
+      console.log("fetchBudgetData: Calling fetchAllCategories...");
+      await fetchAllCategories(); // Ensure categories are loaded for mapping
 
-      await fetchAllCategories(); // Ensure categories are fetched before budgets
+      console.log("fetchBudgetData: Fetching receipts for current month...");
+      const now = new Date();
+      const currentMonthStart = startOfMonth(now);
+      const currentMonthEnd = endOfMonth(now);
+
+      const receipts = await getReceiptsForPeriod(
+        user.$id,
+        currentMonthStart.toISOString(),
+        currentMonthEnd.toISOString()
+      );
+      console.log(
+        "fetchBudgetData: Fetched receipts for period, count:",
+        receipts.length
+      );
+
+      const spendingByCat = {};
+      receipts.forEach((receipt) => {
+        const categoryId = receipt.categoryId;
+        const amount = parseFloat(receipt.total);
+        if (categoryId && !isNaN(amount)) {
+          spendingByCat[categoryId] = (spendingByCat[categoryId] || 0) + amount;
+        }
+      });
+
+      console.log("fetchBudgetData: Processing spending summary...");
+      const summary = Object.keys(spendingByCat)
+        .map((categoryId) => {
+          const categoryName = getCategoryName(categoryId);
+          const spent = spendingByCat[categoryId];
+          const budgetForCategory = budgets.find(
+            (b) => b.categoryId === categoryId
+          );
+          const budgetedAmount = budgetForCategory
+            ? parseFloat(budgetForCategory.budgetAmount)
+            : 0;
+          const percentageOfBudget =
+            budgetedAmount > 0 ? (spent / budgetedAmount) * 100 : 0;
+          const remaining = budgetedAmount - spent;
+
+          return {
+            categoryId,
+            categoryName,
+            spent,
+            budgetedAmount,
+            percentageOfBudget: Math.min(100, percentageOfBudget),
+            isOverBudget: budgetedAmount > 0 && spent > budgetedAmount,
+            remaining: remaining,
+          };
+        })
+        .sort((a, b) => b.spent - a.spent);
+
+      setMonthlySpendingSummary(summary);
+      console.log("fetchBudgetData: Monthly spending summary updated.");
     } catch (error) {
-      console.error("Error fetching budget data:", error);
+      console.error("fetchBudgetData: !!! ERROR during data fetch !!!", error);
       Alert.alert("Error", "Failed to load budget data.");
     } finally {
+      console.log(
+        "fetchBudgetData: Setting isLoadingData to FALSE in finally block."
+      );
       setIsLoadingData(false);
       setRefreshing(false);
+      console.log("fetchBudgetData: Function finished.");
     }
-  }, [user?.$id, refreshing, fetchAllCategories]);
+  }, [user?.$id, refreshing, fetchAllCategories]); // userBudgets removed as dependency (correct)
 
   useFocusEffect(
     useCallback(() => {
-      console.log("Budget screen focused, fetching data...");
+      console.log(
+        "useFocusEffect: Budget screen focused, triggering data fetch..."
+      );
       fetchBudgetData();
       return () => {
+        console.log("useFocusEffect: Budget screen unfocused.");
         setIsExpanded(false);
         closeCustomModal();
       };
-    }, [fetchBudgetData])
+    }, [fetchBudgetData]) // fetchBudgetData is wrapped in useCallback, so this should be stable
   );
 
   const onRefresh = useCallback(async () => {
+    console.log("onRefresh: Triggered.");
     setRefreshing(true);
     await fetchBudgetData();
   }, [fetchBudgetData]);
@@ -195,12 +278,10 @@ const Budget = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          {/* Removed old pointsBadgesSection from here */}
-
           <View style={styles.headerContainer}>
             <Text style={styles.headerTitle}>My Budgets</Text>
             <Image
-              source={icons.pie} // Using pie icon for budget, adjust as needed
+              source={icons.pie}
               style={styles.headerIcon}
               tintColor="#9F54B6"
               resizeMode="contain"
@@ -212,12 +293,10 @@ const Budget = () => {
             and financial goals.
           </Text>
 
-          {/* NEW LOCATION: Consolidated Earnings and Setup Prompt Section */}
           {(userTotalPoints > 0 ||
             userBadges.length > 0 ||
             showBudgetPrompt) && (
             <View style={styles.combinedEarningsAndPromptContainer}>
-              {/* Points and Badges display (styled for earnings) */}
               {(userTotalPoints > 0 || userBadges.length > 0) && (
                 <View style={styles.earningsDisplayContainer}>
                   <View style={styles.earningsItem}>
@@ -250,7 +329,6 @@ const Budget = () => {
                 </View>
               )}
 
-              {/* Setup Budget Prompt (appears if budget is not initialized) */}
               {showBudgetPrompt && (
                 <View style={styles.setupBudgetPromptBelowEarnings}>
                   <TouchableOpacity
@@ -258,11 +336,68 @@ const Budget = () => {
                     style={styles.setupBudgetButton}
                   >
                     <Text style={styles.setupBudgetButtonText}>
-                      Start Your First Budget
+                      Setup Budget
                     </Text>
                   </TouchableOpacity>
                 </View>
               )}
+            </View>
+          )}
+
+          {monthlySpendingSummary.length > 0 && (
+            <View style={styles.spendingOverviewContainer}>
+              <Text style={styles.spendingOverviewTitle}>
+                Monthly Spending Overview
+              </Text>
+              {monthlySpendingSummary.map((item, index) => (
+                <View
+                  key={item.categoryId || index}
+                  style={styles.spendingItem}
+                >
+                  <Text style={styles.spendingCategoryText}>
+                    {item.categoryName}
+                  </Text>
+                  <Text style={styles.spendingAmountText}>
+                    ${item.spent.toFixed(2)}
+                    {item.budgetedAmount > 0 && (
+                      <Text
+                        style={
+                          item.isOverBudget
+                            ? styles.overBudgetWarning
+                            : styles.budgetRemaining
+                        }
+                      >
+                        {" "}
+                        / ${item.budgetedAmount.toFixed(2)}
+                      </Text>
+                    )}
+                  </Text>
+                  {item.budgetedAmount > 0 && (
+                    <View style={styles.progressBarBackground}>
+                      <View
+                        style={[
+                          styles.progressBarFill,
+                          { width: `${item.percentageOfBudget}%` },
+                          item.isOverBudget && styles.progressBarOverBudget,
+                        ]}
+                      />
+                    </View>
+                  )}
+                  {item.budgetedAmount > 0 && (
+                    <Text
+                      style={
+                        item.isOverBudget
+                          ? styles.overBudgetText
+                          : styles.inBudgetText
+                      }
+                    >
+                      {item.isOverBudget
+                        ? `Over by $${Math.abs(item.remaining).toFixed(2)}`
+                        : `Remaining: $${item.remaining.toFixed(2)}`}
+                    </Text>
+                  )}
+                </View>
+              ))}
             </View>
           )}
 
@@ -300,8 +435,7 @@ const Budget = () => {
                           📊 Budget for {getCategoryName(budget.categoryId)}
                         </Text>
                         <Text style={styles.budgetCardAmount}>
-                          🎯 Amount: $
-                          {parseFloat(budget.budgetAmount).toFixed(2)}
+                          ${parseFloat(budget.budgetAmount).toFixed(2)}
                         </Text>
                         <Text style={styles.budgetCardDates}>
                           {format(new Date(budget.startDate), "MMM dd,yyyy")} -{" "}
@@ -327,12 +461,14 @@ const Budget = () => {
             </View>
           )}
 
-          {/* Fallback prompt if no budgets and no points/badges to display */}
-          {/* {!(userTotalPoints > 0 || userBadges.length > 0) &&
+          {!(userTotalPoints > 0 || userBadges.length > 0) &&
             userBudgets.length === 0 &&
+            monthlySpendingSummary.length === 0 &&
             !isLoadingData && (
               <View style={styles.noBudgetsContainer}>
-                <Text style={styles.noBudgetsText}>No budgets set up yet.</Text>
+                <Text style={styles.noBudgetsText}>
+                  No budgets or spending data yet.
+                </Text>
                 <TouchableOpacity
                   onPress={SetupBudget}
                   style={styles.setupFirstBudgetButton}
@@ -342,14 +478,12 @@ const Budget = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-            )} */}
+            )}
 
-          {/* Spacer at the bottom */}
           <View style={styles.spacer} />
         </ScrollView>
       </SafeAreaView>
 
-      {/* Custom Modal for Points/Badges */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -409,7 +543,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: "#FFFFFF",
     marginTop: 16,
-    fontFamily: "pextralight", // Assuming these font families are defined in your project
+    fontFamily: "pextralight",
     fontSize: 18,
   },
   safeArea: {
@@ -420,9 +554,7 @@ const styles = StyleSheet.create({
     height: "100%",
     padding: 16,
   },
-  // Removed old pointsBadgesSection styles
   pointsContainer: {
-    // Keeping these styles in case they are used elsewhere, though the direct `pointsBadgesSection` is removed.
     marginTop: 4,
     flex: 1,
   },
@@ -445,7 +577,6 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
   setupBudgetPromptContainer: {
-    // Keeping this style, but its usage shifts
     marginLeft: 16,
     padding: 8,
     borderRadius: 16,
@@ -491,23 +622,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     marginTop: 8,
   },
-  // Styles for the combined earnings and prompt container
   combinedEarningsAndPromptContainer: {
-    marginBottom: 20, // Add spacing below this entire section
-    paddingHorizontal: 5, // Small padding for the whole block
+    marginBottom: 20,
   },
   earningsDisplayContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     alignItems: "center",
-    backgroundColor: "#f0f9ff", // light blue background
+    backgroundColor: "#f0f9ff",
     borderRadius: 12,
     paddingVertical: 15,
-    marginBottom: 10, // Added spacing between earnings and prompt
+    paddingHorizontal: 10,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: "#bfdbfe", // blue-200
-    elevation: 2, // subtle shadow for Android
-    shadowColor: "#000", // subtle shadow for iOS
+    borderColor: "#bfdbfe",
+    elevation: 2,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -515,22 +645,21 @@ const styles = StyleSheet.create({
   earningsItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
   },
   earningsItemButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    backgroundColor: "#e0f2fe", // slightly darker blue on hover/press
+    backgroundColor: "#e0f2fe",
     borderRadius: 8,
     paddingVertical: 8,
+    paddingHorizontal: 12,
     marginLeft: 10,
   },
   earningsIcon: {
     width: 24,
     height: 24,
     marginRight: 8,
-    tintColor: "#2563eb", // blue-600
+    tintColor: "#2563eb",
   },
   arrowIcon: {
     width: 16,
@@ -541,16 +670,87 @@ const styles = StyleSheet.create({
   earningsText: {
     fontSize: 16,
     fontFamily: "pmedium",
-    color: "#1e40af", // blue-800
+    color: "#1e40af",
   },
   earningsValue: {
     fontFamily: "pbold",
     fontSize: 18,
-    color: "#0a3d62", // even darker blue
+    color: "#0a3d62",
   },
-  // New style for the setup budget prompt when it's below earnings
   setupBudgetPromptBelowEarnings: {
-    paddingHorizontal: 10, // Match padding of earnings container
+    paddingHorizontal: 0,
+  },
+
+  spendingOverviewContainer: {
+    backgroundColor: "#ffffff",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  spendingOverviewTitle: {
+    fontSize: 18,
+    fontFamily: "psemibold",
+    color: "#000000",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  spendingItem: {
+    marginBottom: 15,
+    alignItems: "flex-start",
+  },
+  spendingCategoryText: {
+    fontSize: 16,
+    fontFamily: "pmedium",
+    color: "#333",
+    marginBottom: 5,
+  },
+  spendingAmountText: {
+    fontSize: 15,
+    fontFamily: "pregular",
+    color: "#555",
+    marginBottom: 5,
+  },
+  progressBarBackground: {
+    height: 10,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 5,
+    width: "100%",
+    overflow: "hidden",
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: "#22c55e",
+    borderRadius: 5,
+  },
+  progressBarOverBudget: {
+    backgroundColor: "#ef4444",
+  },
+  inBudgetText: {
+    fontSize: 13,
+    fontFamily: "pregular",
+    color: "#10b981",
+    marginTop: 5,
+  },
+  overBudgetText: {
+    fontSize: 13,
+    fontFamily: "pregular",
+    color: "#dc2626",
+    marginTop: 5,
+  },
+  budgetRemaining: {
+    color: "#6b7280",
+    fontSize: 14,
+  },
+  overBudgetWarning: {
+    color: "#dc2626",
+    fontSize: 14,
   },
   currentBudgetsContainer: {
     padding: 16,

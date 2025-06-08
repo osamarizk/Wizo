@@ -913,7 +913,7 @@ const Home = () => {
           ListHeaderComponent={
             <>
               {/* Header Section */}
-              <View className="flex-row justify-between items-center mb-2 mt-1 ">
+              <View className="flex-row justify-between items-center mb-4 mt-1 p-4">
                 <View>
                   <Text className="text-base text-gray-500 font-pregular">
                     {greeting}
@@ -1116,7 +1116,7 @@ const Home = () => {
                     </Text>
 
                     <Text className="text-center text-2xl font-bold text-gray-800 mb-2 ">
-                      💁 Receipts : {receiptStats.totalCount}
+                      ®️ Receipts : {receiptStats.totalCount}
                     </Text>
 
                     <Text
