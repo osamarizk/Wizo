@@ -305,8 +305,9 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           // Check if item.category exists and is not an empty string before calling the function
           if (item.category) {
             const categoryDoc = await getCategoryByName(item.category);
+            console.log("categoryDoc before Saving...", categoryDoc);
             // Assuming getCategoryByName also returns the document or null
-            categoryId = categoryDoc ? categoryDoc.$id : null;
+            categoryId = categoryDoc ? categoryDoc : null;
           }
 
           let subcategoryId = null;
@@ -314,7 +315,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           if (item.subcategory) {
             const subcategoryDoc = await getSubcategoryByName(item.subcategory);
             // getSubcategoryByName now returns the document or null as per previous changes
-            subcategoryId = subcategoryDoc ? subcategoryDoc.$id : null;
+            subcategoryId = subcategoryDoc ? subcategoryDoc : null;
           }
 
           return {

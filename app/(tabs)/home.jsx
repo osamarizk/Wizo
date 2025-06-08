@@ -1116,7 +1116,8 @@ const Home = () => {
                     </Text>
 
                     <Text className="text-center text-2xl font-bold text-gray-800 mb-2 ">
-                      ®️ Receipts : {receiptStats.totalCount}
+                      <Text className=" text-2xl font-pextralight ">®️</Text>{" "}
+                      Receipts : {receiptStats.totalCount}
                     </Text>
 
                     <Text
