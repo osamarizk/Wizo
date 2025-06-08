@@ -17,6 +17,7 @@ const GlobalProvider = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [hasBudget, setHasBudget] = useState(false); // Add hasBudget state
+  const [isBudgetInitialized, setIsBudgetInitialized] = useState(false); // <--- Add this state
 
   useEffect(() => {
     getCurrentUser()
@@ -84,6 +85,8 @@ const GlobalProvider = ({ children }) => {
         globalLoading,
         hasBudget, // Include hasBudget in the context value
         setHasBudget, // Include setHasBudget in the context value
+        isBudgetInitialized, // <--- Expose it
+        setIsBudgetInitialized, // <--- Expose the setter
       }}
     >
       {children}

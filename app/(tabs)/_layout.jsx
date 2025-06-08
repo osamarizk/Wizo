@@ -14,6 +14,7 @@ import icons from "../../constants/icons";
 import UploadModal from "../../components/UploadModal"; // Assuming this path
 import { useGlobalContext } from "../../context/GlobalProvider";
 import eventEmitter from "../../utils/eventEmitter"; // <--- IMPORT EVENT EMITTER
+import { Image } from "react-native";
 
 const TabsLayout = () => {
   const { showUploadModal, setShowUploadModal } = useGlobalContext();
@@ -43,6 +44,59 @@ const TabsLayout = () => {
       console.log("TabsLayout: Navigation and activeTab update complete.");
     }, 100); // A sma
   };
+
+  function BudgetTabBarIcon({ focused, color }) {
+    // Use 'hasBudget' from your global context to determine if a budget is initialized
+    const { hasBudget } = useGlobalContext();
+
+    return (
+      // Main container for the tab icon, mimicking the non-upload styling of your TabIcons
+      <View className="items-center justify-center gap-1 w-16">
+        <View className="relative items-center justify-center">
+          {/* Your Budget icon */}
+          <Image
+            source={icons.pie}
+            resizeMode="contain"
+            // Apply tint color similar to other non-upload icons
+            tintColor={focused ? color : "#888"}
+            // Fixed size for the icon itself, matching TabIcons' non-upload size
+            className="w-6 h-6"
+          />
+          {/* Conditionally render the badge when no budget is initialized */}
+          {!hasBudget && (
+            <View
+              // Tailwind classes for the badge's appearance and positioning
+              className="absolute -top-1.5 -right-1.5 bg-red-500 rounded-full w-5 h-5 items-center justify-center z-10"
+            >
+              {/* The badge content, a simple exclamation mark */}
+              <Text className="text-white text-xs font-pbold">!</Text>
+            </View>
+          )}
+        </View>
+
+        {/* The text label for the tab */}
+        <Text
+          // Apply font styling based on 'focused' state
+          className={`${
+            focused ? "font-psemibold" : "font-pregular"
+          } text-center`}
+          style={{
+            // Apply dynamic color based on 'focused' state
+            color: color,
+            // Apply platform-specific font size, mirroring your TabIcons logic
+            fontSize: Platform.select({
+              ios: 14,
+              android: 11,
+            }),
+          }}
+          numberOfLines={1} // Ensure text stays on one line
+          ellipsizeMode="tail" // Add ellipsis if text overflows
+        >
+          Budget {/* Directly set the name for the Budget tab */}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <>
@@ -163,13 +217,8 @@ const TabsLayout = () => {
           options={{
             title: "Budget",
             headerShown: false,
-            tabBarIcon: ({ color, focused }) => (
-              <TabIcons
-                icon={icons.pie}
-                color={color}
-                name="Budget"
-                focused={activeTab === "budget"}
-              />
+            tabBarIcon: ({ focused, color }) => (
+              <BudgetTabBarIcon focused={focused} color={color} />
             ),
           }}
           listeners={{
