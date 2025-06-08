@@ -70,7 +70,7 @@ export default async ({ req, res, log, error }) => {
     while (hasMore) {
       const response = await databases.listDocuments(
         databaseId,
-        notificationsCollectionId,
+        notificationCollectionId,
         [
           Query.lessThanEqual("expiresAt", nowISO), // Notifications whose expiry date is in the past
           Query.limit(limit),
