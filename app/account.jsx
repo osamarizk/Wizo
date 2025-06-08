@@ -10,12 +10,12 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import UploadModal from "../../components/UploadModal";
+import UploadModal from "../components/UploadModal";
 import { router, useFocusEffect } from "expo-router";
-import { useGlobalContext } from "../../context/GlobalProvider"; // Adjust path as needed
-import icons from "../../constants/icons"; // Adjust path as needed
-import GradientBackground from "../../components/GradientBackground"; // If you use this for background
-import { signOut } from "../../lib/appwrite"; // Adjust path to your appwrite.js file
+import { useGlobalContext } from "../context/GlobalProvider"; // Adjust path as needed
+import icons from "../constants/icons"; // Adjust path as needed
+import GradientBackground from "../components/GradientBackground"; // If you use this for background
+import { signOut } from "../lib/appwrite"; // Adjust path to your appwrite.js file
 
 const Account = () => {
   const {
