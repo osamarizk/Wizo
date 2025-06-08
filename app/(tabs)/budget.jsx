@@ -258,7 +258,7 @@ const Budget = () => {
                     style={styles.setupBudgetButton}
                   >
                     <Text style={styles.setupBudgetButtonText}>
-                      Setup Budget
+                      Start Your First Budget
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -328,7 +328,7 @@ const Budget = () => {
           )}
 
           {/* Fallback prompt if no budgets and no points/badges to display */}
-          {!(userTotalPoints > 0 || userBadges.length > 0) &&
+          {/* {!(userTotalPoints > 0 || userBadges.length > 0) &&
             userBudgets.length === 0 &&
             !isLoadingData && (
               <View style={styles.noBudgetsContainer}>
@@ -342,7 +342,7 @@ const Budget = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-            )}
+            )} */}
 
           {/* Spacer at the bottom */}
           <View style={styles.spacer} />
