@@ -5,7 +5,7 @@
 // APPWRITE_DATABASE_ID (type: text) - Your database ID
 // APPWRITE_NOTIFICATIONS_COLLECTION_ID (type: text) - Your notifications collection ID
 
-import { Client, Databases, Query } from "node-appwrite";
+import { Client, Databases, Query } from "appwrite";
 
 export const config = {
   endpoint: "https://cloud.appwrite.io/v1",
