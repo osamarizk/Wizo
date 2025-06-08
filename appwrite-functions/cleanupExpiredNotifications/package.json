@@ -1,0 +1,9 @@
+{
+    "name": "cleanup-expired-notifications",
+    "version": "1.0.0",
+    "description": "Appwrite Function to clean up expired notifications",
+    "main": "index.js",
+    "dependencies": {
+        "node-appwrite": "^11.0.0"
+    }
+}
