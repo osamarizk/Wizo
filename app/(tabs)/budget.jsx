@@ -8,17 +8,17 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
-  Alert,
-  LayoutAnimation,
+  Alert, // Keep Alert for confirmation dialog
+  LayoutAnimation, // Still needed for other animations if any
   UIManager,
   Platform,
   Modal,
   Pressable,
 } from "react-native";
-import { useGlobalContext } from "../../context/GlobalProvider"; // Import useGlobalContext
+import { useGlobalContext } from "../../context/GlobalProvider";
 import GradientBackground from "../../components/GradientBackground";
 import { useNavigation, useFocusEffect } from "expo-router";
-import Collapsible from "react-native-collapsible";
+// Collapsible is removed as it's no longer needed for "Your Current Budgets"
 import icons from "../../constants/icons";
 
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
@@ -26,11 +26,18 @@ import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import {
   getUserBudgets,
   chkBudgetInitialization,
-  getCategories2Bud, // This is the function for global categories
+  getCategories2Bud,
   getUserPoints,
   getUserEarnedBadges,
   getReceiptsForPeriod,
+  deleteBudget,
+  createNotification,
+  countUnreadNotifications,
 } from "../../lib/appwrite";
+
+// Import the new modal components (ensure paths are correct relative to Budget.jsx)
+import BudgetDetailsModal from "../../components/BudgetDetailsModal";
+import BudgetSetupModal from "../../components/BudgetSetupModal";
 
 if (Platform.OS === "android") {
   UIManager.setLayoutAnimationEnabledExperimental &&
@@ -38,27 +45,45 @@ if (Platform.OS === "android") {
 }
 
 const Budget = () => {
-  // Destructure hasBudget and checkBudgetInitialization from global context
   const {
     user,
     isLoading: globalLoading,
     hasBudget,
     checkBudgetInitialization,
+    updateUnreadCount,
   } = useGlobalContext();
   const navigation = useNavigation();
 
   const [userBudgets, setUserBudgets] = useState([]);
   const [userTotalPoints, setUserTotalPoints] = useState(0);
   const [userBadges, setUserBadges] = useState([]);
-  const [isLoadingData, setIsLoadingData] = useState(true); // Manages component's local data fetching state
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [categoriesMap, setCategoriesMap] = useState({}); // State for the categories map
+  const [categoriesMap, setCategoriesMap] = useState({});
   const [monthlySpendingSummary, setMonthlySpendingSummary] = useState([]);
 
   const [showPointsBadgeModal, setShowPointsBadgeModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
-  const [modalMessage, setModalMessage] = useState("");
+  const [modalMessage, setModalMessage] = useState(""); // Corrected: ensure useState is used
+
+  // States to control the new dedicated modals
+  const [showBudgetDetailsModal, setShowBudgetDetailsModal] = useState(false);
+  const [selectedBudgetIdForDetails, setSelectedBudgetIdForDetails] =
+    useState(null);
+
+  const [showBudgetSetupModal, setShowBudgetSetupModal] = useState(false);
+  const [initialBudgetDataForSetup, setInitialBudgetDataForSetup] =
+    useState(null);
+
+  // State for the action menu (3 dots) - now also controlled as a modal
+  const [showActionMenuModal, setShowActionMenuModal] = useState(false);
+  const [actionMenuBudgetData, setActionMenuBudgetData] = useState(null); // The budget object for the currently open menu
+  const [actionMenuPosition, setActionMenuPosition] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  });
 
   console.log(
     "Budget Component Rendered. isLoadingData:",
@@ -79,11 +104,10 @@ const Budget = () => {
     setModalMessage("");
   };
 
-  // Modified fetchAllCategories to return the map directly
   const fetchAllCategories = useCallback(async () => {
     if (!user?.$id) {
       console.log("fetchAllCategories: User ID not available.");
-      return {}; // Return empty map if user not available
+      return {};
     }
     console.log("fetchAllCategories: Attempting to fetch categories...");
     try {
@@ -92,26 +116,25 @@ const Budget = () => {
       categories.forEach((cat) => {
         map[cat.$id] = cat.name;
       });
-      setCategoriesMap(map); // Still update state for other uses/re-renders
+      setCategoriesMap(map);
       console.log(
         "fetchAllCategories: Fetched categories successfully. Map size:",
         Object.keys(map).length
       );
       console.log("Categories Map contents:", map);
-      return map; // Return the map immediately
+      return map;
     } catch (error) {
       console.error(
         "fetchAllCategories: Error fetching all categories:",
         error
       );
       Alert.alert("Error", "Failed to load categories.");
-      return {}; // Return empty map on error
+      return {};
     }
   }, [user?.$id]);
 
-  // getCategoryName now accepts an optional map argument
   const getCategoryName = (categoryId, providedCategoriesMap) => {
-    const mapToUse = providedCategoriesMap || categoriesMap; // Use provided map first, fallback to state map
+    const mapToUse = providedCategoriesMap || categoriesMap;
     const name = mapToUse[categoryId];
     console.log(
       "getCategoryName: Looking for categoryId:",
@@ -137,31 +160,26 @@ const Budget = () => {
       return;
     }
 
-    // Only set to true if not already refreshing (from pull-to-refresh)
-    // This prevents the spinner from flickering if multiple things trigger fetchBudgetData quickly
     if (!refreshing) {
       console.log("fetchBudgetData: Setting isLoadingData to TRUE.");
       setIsLoadingData(true);
     }
 
     try {
-      // Get the categories map directly from the function's return value for immediate use
       console.log(
         "fetchBudgetData: Calling fetchAllCategories and getting returned map for immediate use..."
       );
-      const latestCategoriesMap = await fetchAllCategories(); // This updates state AND returns the map
+      const latestCategoriesMap = await fetchAllCategories();
 
       console.log(
         "fetchBudgetData: Checking budget initialization globally..."
       );
-      // Call the global function to update the hasBudget state in GlobalProvider
       const initialized = await checkBudgetInitialization(user.$id);
       console.log(
         "fetchBudgetData: Budget initialized status (global):",
         initialized
       );
 
-      // Fetch budgets
       const budgets = initialized ? await getUserBudgets(user.$id) : [];
       setUserBudgets(budgets);
       console.log(
@@ -244,23 +262,22 @@ const Budget = () => {
         spendingByCat
       );
 
-      // Collect all unique category IDs from both spending and budgets
-      const allCategoryIds = new Set([
-        ...Object.keys(spendingByCat),
-        ...budgets.map((b) => b.categoryId),
-      ]);
+      // ONLY include categories that have an active budget for monthly spending summary
+      const categoriesWithActiveBudgets = new Set(
+        budgets.map((b) => b.categoryId)
+      );
       console.log(
-        "fetchBudgetData: All unique category IDs to summarize:",
-        Array.from(allCategoryIds)
+        "fetchBudgetData: Categories with active budgets:",
+        Array.from(categoriesWithActiveBudgets)
       );
 
       console.log(
-        "fetchBudgetData: Processing spending summary using latestCategoriesMap..."
+        "fetchBudgetData: Processing spending summary using latestCategoriesMap and active budgets..."
       );
-      const summary = Array.from(allCategoryIds)
+      const summary = Array.from(categoriesWithActiveBudgets) // Iterate only over categories with active budgets
         .map((categoryId) => {
           const categoryName = getCategoryName(categoryId, latestCategoriesMap);
-          const spent = spendingByCat[categoryId] || 0;
+          const spent = spendingByCat[categoryId] || 0; // Get spending for this category
           const budgetForCategory = budgets.find(
             (b) => b.categoryId === categoryId
           );
@@ -281,7 +298,7 @@ const Budget = () => {
             remaining: remaining,
           };
         })
-        .sort((a, b) => b.spent - a.spent);
+        .sort((a, b) => b.spent - a.spent); // Sort by amount spent
 
       setMonthlySpendingSummary(summary);
       console.log("fetchBudgetData: Monthly spending summary updated.");
@@ -292,11 +309,11 @@ const Budget = () => {
       console.log(
         "fetchBudgetData: Setting isLoadingData to FALSE in finally block."
       );
-      setIsLoadingData(false); // Crucially set to false here
+      setIsLoadingData(false);
       setRefreshing(false);
       console.log("fetchBudgetData: Function finished.");
     }
-  }, [user?.$id, refreshing, fetchAllCategories]); // Dependency array
+  }, [user?.$id, refreshing, fetchAllCategories]);
 
   useFocusEffect(
     useCallback(() => {
@@ -306,36 +323,86 @@ const Budget = () => {
       fetchBudgetData();
       return () => {
         console.log("useFocusEffect: Budget screen unfocused.");
-        setIsExpanded(false);
+        // Ensure all modals and menus are closed on unfocus
         closeCustomModal();
+        setShowActionMenuModal(false); // Close action menu modal
+        setActionMenuBudgetData(null);
+        setShowBudgetDetailsModal(false);
+        setSelectedBudgetIdForDetails(null);
+        setShowBudgetSetupModal(false);
+        setInitialBudgetDataForSetup(null);
       };
-    }, [fetchBudgetData]) // fetchBudgetData is already a useCallback, so this is stable
+    }, [fetchBudgetData])
   );
 
   const onRefresh = useCallback(async () => {
     console.log("onRefresh: Triggered.");
     setRefreshing(true);
+    setShowActionMenuModal(false); // Close action menu on refresh
+    setActionMenuBudgetData(null);
     await fetchBudgetData();
   }, [fetchBudgetData]);
 
-  const SetupBudget = () => {
-    navigation.navigate("budget-set");
+  const handleSetupBudget = () => {
+    setInitialBudgetDataForSetup(null);
+    setShowBudgetSetupModal(true);
   };
 
-  const ViewBudget = (budgetId) => {
-    navigation.navigate("budget-dtl", { budgetId: budgetId });
+  const handleViewBudgetDetails = (budgetId) => {
+    setSelectedBudgetIdForDetails(budgetId);
+    setShowBudgetDetailsModal(true);
   };
 
-  const toggleExpanded = () => {
-    LayoutAnimation.easeInEaseOut();
-    setIsExpanded(!isExpanded);
+  const handleUpdateBudget = (budget) => {
+    setInitialBudgetDataForSetup(budget);
+    setShowBudgetSetupModal(true);
   };
 
-  // Use global hasBudget directly for conditional rendering
+  const handleDeleteBudget = async (budgetId) => {
+    setShowActionMenuModal(false); // Close menu immediately
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this budget? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          onPress: async () => {
+            try {
+              await deleteBudget(budgetId);
+              Alert.alert("Success", "Budget deleted successfully.");
+              await createNotification({
+                user_id: user.$id,
+                title: "Budget Deleted",
+                message: "A budget was successfully deleted.",
+                budget_id: budgetId,
+              });
+              const updatedUnreadCount = await countUnreadNotifications(
+                user.$id
+              );
+              updateUnreadCount(updatedUnreadCount);
+              onRefresh();
+            } catch (error) {
+              console.error("Error deleting budget:", error);
+              Alert.alert("Error", "Failed to delete budget.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const toggleActionMenu = (event, budget) => {
+    // Measure the position of the touched element to position the modal correctly
+    event.target.measure((x, y, width, height, pageX, pageY) => {
+      setActionMenuPosition({ x: pageX, y: pageY, width, height });
+      setActionMenuBudgetData(budget);
+      setShowActionMenuModal(true);
+    });
+  };
+
   const showBudgetPrompt = !hasBudget;
 
-  // Simplified loading condition: only show loading when data is actively being fetched.
-  // The presence or absence of budgets/data will be handled by rendering logic below.
   if (isLoadingData || globalLoading) {
     return (
       <GradientBackground>
@@ -361,6 +428,14 @@ const Budget = () => {
           {/* Header with "My Budgets" and "Add New Budget" button */}
           <View className="flex-row justify-between items-center mb-2 mt-4">
             <Text className="text-lg font-pbold text-black">My Budgets</Text>
+            <TouchableOpacity
+              onPress={handleSetupBudget}
+              className="bg-[#D03957] rounded-md p-3 items-center justify-center mt-3"
+            >
+              <Text className="text-white font-psemibold text-base">
+                Add New Budget
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <Text className="text-sm font-pregular text-gray-600 text-left mb-4 mt-2">
@@ -368,29 +443,16 @@ const Budget = () => {
             and financial goals.
           </Text>
 
-          {showBudgetPrompt && (
-            <View className="px-0">
-              <TouchableOpacity
-                onPress={SetupBudget}
-                className="mb-4 w-full bg-red-600 rounded-md py-3 items-center justify-center"
-              >
-                <Text className="text-white font-pmedium text-base">
-                  Setup Budget
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
           {(userTotalPoints > 0 ||
             userBadges.length > 0 ||
             showBudgetPrompt) && (
             <View className="mb-5">
               {(userTotalPoints > 0 || userBadges.length > 0) && (
-                <View className="flex-row justify-around items-center bg-transparent  py-4 px-2.5 mb-2 border-2 border-[#9F54B6]">
+                <View className="flex-row justify-around items-center bg-transparent py-4 px-2.5 mb-2 border-2 border-[#9F54B6] rounded-xl">
                   <View className="flex-row items-center">
                     <Image
                       source={icons.star}
-                      className="w-8 h-8 mr-2 text-blue-700"
+                      className="w-8 h-8 mr-2"
                       tintColor="red"
                     />
                     <Text className="text-base font-pmedium text-slate-800">
@@ -409,32 +471,38 @@ const Budget = () => {
                     }
                     className="flex-row items-center bg-blue-300 rounded-lg py-2 px-3 ml-2"
                   >
-                    <Image
-                      source={icons.medal}
-                      className="w-8 h-8 mr-2 text-blue-700"
-                    />
+                    <Image source={icons.medal} className="w-8 h-8 mr-2" />
                     <Text className="text-base font-pmedium text-black">
                       Badges:{" "}
                       <Text className="font-pbold text-lg text-black">
                         {userBadges.length}
                       </Text>
                     </Text>
-                    <Image
-                      source={icons.arrowRight}
-                      className="w-4 h-4 ml-2 text-blue-700"
-                    />
+                    <Image source={icons.arrowRight} className="w-4 h-4 ml-2" />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {showBudgetPrompt && (
+                <View className="px-0">
+                  <TouchableOpacity
+                    onPress={handleSetupBudget}
+                    className="mb-4 w-full bg-red-600 rounded-md py-3 items-center justify-center"
+                  >
+                    <Text className="text-white font-pmedium text-base">
+                      Setup Budget
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
             </View>
           )}
 
-          {userBudgets.length > 0 && monthlySpendingSummary.length > 0 && (
+          {monthlySpendingSummary.length > 0 && (
             <View className="bg-transparent p-4 mb-5 border-t border-[#9F54B6]">
               <Text className="text-lg font-psemibold text-black mb-2 text-center">
                 Monthly Spending Overview
               </Text>
-              {/* New explanatory text for Monthly Spending Overview */}
               <Text className="text-sm font-pregular text-gray-600 text-center mb-4">
                 Track your current month's spending across categories, comparing
                 it to your set budgets. Stay on top of your financial goals!
@@ -491,62 +559,52 @@ const Budget = () => {
               <Text className="text-lg font-psemibold text-black mb-4 text-center">
                 Your Current Budgets
               </Text>
+              <View className="mt-2">
+                {userBudgets.map((budget) => (
+                  <View
+                    key={budget.$id}
+                    className="p-4 mb-3 border border-gray-200 rounded-lg bg-white shadow-xs flex-row justify-between items-center"
+                  >
+                    <View className="flex-1">
+                      <Text className="text-base font-psemibold text-black mb-1">
+                        📊 Budget for {getCategoryName(budget.categoryId)}
+                      </Text>
+                      <Text className="text-sm text-gray-700">
+                        ${parseFloat(budget.budgetAmount).toFixed(2)}
+                      </Text>
+                      <Text className="text-xs text-gray-600">
+                        {format(new Date(budget.startDate), "MMM dd,yyyy")} -{" "}
+                        {format(new Date(budget.endDate), "MMM dd,yyyy")}
+                      </Text>
+                    </View>
 
-              <TouchableOpacity
-                onPress={toggleExpanded}
-                className="w-full flex-row items-center justify-center p-2 mb-4 bg-gray-100 rounded-lg"
-              >
-                <Text className="text-base font-pregular text-blue-700 text-center">
-                  {isExpanded ? "Hide Budgets" : "Show My Budgets"}
-                </Text>
-                <Image
-                  source={isExpanded ? icons.up : icons.down}
-                  className="w-5 h-5 ml-2"
-                  tintColor="#333"
-                  resizeMode="contain"
-                />
-              </TouchableOpacity>
-
-              <Collapsible collapsed={!isExpanded}>
-                {isExpanded && (
-                  <View className="mt-2">
-                    {userBudgets.map((budget) => (
-                      <TouchableOpacity
-                        key={budget.$id}
-                        onPress={() => ViewBudget(budget.$id)}
-                        className="p-4 mb-3 border border-gray-200 rounded-lg bg-white shadow-xs"
-                      >
-                        <Text className="text-base font-psemibold text-black mb-1">
-                          📊 Budget for {getCategoryName(budget.categoryId)}
-                        </Text>
-                        <Text className="text-sm text-gray-700">
-                          ${parseFloat(budget.budgetAmount).toFixed(2)}
-                        </Text>
-                        <Text className="text-xs text-gray-600">
-                          {format(new Date(budget.startDate), "MMM dd,yyyy")} -{" "}
-                          {format(new Date(budget.endDate), "MMM dd,yyyy")}
-                        </Text>
-                        <Text className="text-sm text-blue-700 mt-2 text-right font-pmedium">
-                          View Details
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    <TouchableOpacity
+                      onPress={(event) => toggleActionMenu(event, budget)}
+                      className="p-2"
+                    >
+                      <Image
+                        source={icons.dots}
+                        className="w-5 h-5"
+                        tintColor="#777"
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
                   </View>
-                )}
-              </Collapsible>
+                ))}
+              </View>
             </View>
           )}
 
           {!(userTotalPoints > 0 || userBadges.length > 0) &&
             userBudgets.length === 0 &&
             monthlySpendingSummary.length === 0 &&
-            !hasBudget && ( // Use hasBudget here too
+            !hasBudget && (
               <View className="bg-gray-100 p-6 rounded-lg mb-6 border border-gray-200 items-center">
                 <Text className="text-base font-pmedium text-gray-600 text-center mb-3">
                   No budgets or spending data yet.
                 </Text>
                 <TouchableOpacity
-                  onPress={SetupBudget}
+                  onPress={handleSetupBudget}
                   className="bg-green-500 rounded-md py-3 px-4 items-center justify-center"
                 >
                   <Text className="text-white font-psemibold text-lg">
@@ -560,6 +618,7 @@ const Budget = () => {
         </ScrollView>
       </SafeAreaView>
 
+      {/* Modal for Points/Badges */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -621,6 +680,87 @@ const Budget = () => {
           </View>
         </Pressable>
       </Modal>
+
+      {/* Action Menu Modal (for 3 dots) */}
+      {showActionMenuModal && actionMenuBudgetData && (
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={showActionMenuModal}
+          onRequestClose={() => setShowActionMenuModal(false)}
+        >
+          <Pressable
+            className="flex-1"
+            onPress={() => setShowActionMenuModal(false)}
+          >
+            <View
+              style={{
+                position: "absolute",
+                top: actionMenuPosition.y + actionMenuPosition.height + 5, // Position below the icon
+                left: Math.max(
+                  10,
+                  actionMenuPosition.x + actionMenuPosition.width - 120
+                ), // Adjusted left to prevent going off-screen and align right
+                // Removed the duplicate 'left' key
+              }}
+              className="bg-white border border-gray-200 rounded-lg shadow-lg z-10 w-32"
+              onStartShouldSetResponder={() => true} // Prevent closing when tapping inside the menu
+            >
+              <TouchableOpacity
+                onPress={() => {
+                  setShowActionMenuModal(false);
+                  handleViewBudgetDetails(actionMenuBudgetData.$id);
+                }}
+                className="px-4 py-2 border-b border-gray-100"
+              >
+                <Text className="text-gray-800 font-pregular">
+                  View Details
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowActionMenuModal(false);
+                  handleUpdateBudget(actionMenuBudgetData);
+                }}
+                className="px-4 py-2 border-b border-gray-100"
+              >
+                <Text className="text-gray-800 font-pregular">Update</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowActionMenuModal(false);
+                  handleDeleteBudget(actionMenuBudgetData.$id);
+                }}
+                className="px-4 py-2"
+              >
+                <Text className="text-red-500 font-pregular">Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Modal>
+      )}
+
+      {/* Budget Details Modal */}
+      <BudgetDetailsModal
+        isVisible={showBudgetDetailsModal}
+        onClose={() => setShowBudgetDetailsModal(false)}
+        budgetId={selectedBudgetIdForDetails}
+        onUpdate={(budgetData) => {
+          setShowBudgetDetailsModal(false);
+          handleUpdateBudget(budgetData);
+        }}
+      />
+
+      {/* Budget Setup/Update Modal */}
+      <BudgetSetupModal
+        isVisible={showBudgetSetupModal}
+        onClose={() => setShowBudgetSetupModal(false)}
+        initialBudgetData={initialBudgetDataForSetup}
+        onSaveSuccess={() => {
+          onRefresh();
+          setShowBudgetSetupModal(false);
+        }}
+      />
     </GradientBackground>
   );
 };
