@@ -361,15 +361,6 @@ const Budget = () => {
           {/* Header with "My Budgets" and "Add New Budget" button */}
           <View className="flex-row justify-between items-center mb-2 mt-4">
             <Text className="text-lg font-pbold text-black">My Budgets</Text>
-            {/* The "Add New Budget" button moved here */}
-            <TouchableOpacity
-              onPress={SetupBudget}
-              className="bg-[#D03957] rounded-md p-3 items-center justify-center mt-3"
-            >
-              <Text className="text-white font-psemibold text-base">
-                Add New Budget
-              </Text>
-            </TouchableOpacity>
           </View>
 
           <Text className="text-sm font-pregular text-gray-600 text-left mb-4 mt-2">
@@ -377,20 +368,34 @@ const Budget = () => {
             and financial goals.
           </Text>
 
+          {showBudgetPrompt && (
+            <View className="px-0">
+              <TouchableOpacity
+                onPress={SetupBudget}
+                className="mb-4 w-full bg-red-600 rounded-md py-3 items-center justify-center"
+              >
+                <Text className="text-white font-pmedium text-base">
+                  Setup Budget
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {(userTotalPoints > 0 ||
             userBadges.length > 0 ||
             showBudgetPrompt) && (
             <View className="mb-5">
               {(userTotalPoints > 0 || userBadges.length > 0) && (
-                <View className="flex-row justify-around items-center bg-blue-50 rounded-xl py-4 px-2.5 mb-2 border border-blue-200 shadow-sm">
+                <View className="flex-row justify-around items-center bg-transparent  py-4 px-2.5 mb-2 border-2 border-[#9F54B6]">
                   <View className="flex-row items-center">
                     <Image
                       source={icons.star}
-                      className="w-6 h-6 mr-2 text-blue-700"
+                      className="w-8 h-8 mr-2 text-blue-700"
+                      tintColor="red"
                     />
-                    <Text className="text-base font-pmedium text-blue-800">
+                    <Text className="text-base font-pmedium text-slate-800">
                       Points:{" "}
-                      <Text className="font-pbold text-lg text-blue-900">
+                      <Text className="font-pbold text-lg text-red-600">
                         {userTotalPoints}
                       </Text>
                     </Text>
@@ -402,15 +407,15 @@ const Budget = () => {
                         "View your earned achievements!"
                       )
                     }
-                    className="flex-row items-center bg-blue-100 rounded-lg py-2 px-3 ml-2"
+                    className="flex-row items-center bg-blue-300 rounded-lg py-2 px-3 ml-2"
                   >
                     <Image
                       source={icons.medal}
-                      className="w-6 h-6 mr-2 text-blue-700"
+                      className="w-8 h-8 mr-2 text-blue-700"
                     />
-                    <Text className="text-base font-pmedium text-blue-800">
+                    <Text className="text-base font-pmedium text-black">
                       Badges:{" "}
-                      <Text className="font-pbold text-lg text-blue-900">
+                      <Text className="font-pbold text-lg text-black">
                         {userBadges.length}
                       </Text>
                     </Text>
@@ -421,23 +426,10 @@ const Budget = () => {
                   </TouchableOpacity>
                 </View>
               )}
-
-              {showBudgetPrompt && (
-                <View className="px-0">
-                  <TouchableOpacity
-                    onPress={SetupBudget}
-                    className="mb-2 w-full bg-red-600 rounded-md py-3 items-center justify-center"
-                  >
-                    <Text className="text-white font-pmedium text-base">
-                      Setup Budget
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
             </View>
           )}
 
-          {monthlySpendingSummary.length > 0 && (
+          {userBudgets.length > 0 && monthlySpendingSummary.length > 0 && (
             <View className="bg-transparent p-4 mb-5 border-t border-[#9F54B6]">
               <Text className="text-lg font-psemibold text-black mb-2 text-center">
                 Monthly Spending Overview
