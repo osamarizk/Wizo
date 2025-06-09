@@ -129,7 +129,15 @@ const NotificationPage = () => {
           }
         }
 
-        if (associatedBudgetId && !budgetDetails[associatedBudgetId]) {
+        // Only attempt to fetch budget if it's not a "Budget Deleted" notification AND details are not already fetched
+        const notificationItem = notifications.find(
+          (n) => n.$id === notificationId
+        );
+        if (
+          associatedBudgetId &&
+          !budgetDetails[associatedBudgetId] &&
+          notificationItem?.title !== "Budget Deleted"
+        ) {
           try {
             const budget = await fetchBudget(associatedBudgetId);
             if (budget) {
@@ -138,6 +146,7 @@ const NotificationPage = () => {
                 [associatedBudgetId]: budget,
               }));
             } else {
+              // This case handles when a budget might have been deleted AFTER notification was created
               console.warn("Budget not found for ID:", associatedBudgetId);
             }
           } catch (err) {
@@ -182,7 +191,9 @@ const NotificationPage = () => {
       const receipt = item.receipt_id ? receiptDetails[item.receipt_id] : null;
       const budget = item.budget_id ? budgetDetails[item.budget_id] : null;
 
-      const hasAssociatedDetails = item.receipt_id || item.budget_id;
+      // Determine if associated details *can* be viewed (i.e., not a "Budget Deleted" notification)
+      const canViewAssociatedDetails =
+        (item.receipt_id || item.budget_id) && item.title !== "Budget Deleted";
 
       return (
         <View className="bg-onboarding mx-4 mb-2 rounded-lg shadow-sm overflow-hidden border border-gray-200">
@@ -219,7 +230,8 @@ const NotificationPage = () => {
                 {item.message}
               </Text>
 
-              {hasAssociatedDetails && !isExpanded && (
+              {/* Only show "Tap to view details" if it's not expanded AND details can be viewed */}
+              {canViewAssociatedDetails && !isExpanded && (
                 <Text className="text-xs text-blue-500 mt-2 font-pmedium">
                   Tap to view details ↗️
                 </Text>
@@ -268,12 +280,13 @@ const NotificationPage = () => {
                 </View>
               )}
 
+              {/* Only display budget details if the budget object is actually loaded/found */}
               {item.budget_id && (
                 <View className="mb-2">
                   <Text className="font-psemibold text-sm text-black mb-1">
                     Budget Details:
                   </Text>
-                  {budget ? (
+                  {budget ? ( // Only render if budget object is valid
                     <View>
                       <Text className="text-sm text-gray-800">
                         📊 Name: {budget.name || "N/A"}
@@ -298,20 +311,24 @@ const NotificationPage = () => {
                     <View className="flex-row items-center">
                       <ActivityIndicator size="small" color="#999" />
                       <Text className="text-xs text-gray-500 italic ml-2">
-                        Loading budget...
+                        {/* Differentiate loading vs. not found */}
+                        {item.title === "Budget Deleted"
+                          ? "Budget no longer exists."
+                          : "Loading budget..."}
                       </Text>
                     </View>
                   )}
                 </View>
               )}
 
-              {/* Display Expiry Date if available */}
+              {/* Display Expiry Date if available and not expired */}
               {item.expiresAt && new Date(item.expiresAt) > new Date() && (
                 <Text className="text-xs text-red-500 mt-2 font-pmedium">
                   ⚠️ Expires:{" "}
                   {format(new Date(item.expiresAt), "MMM dd,yyyy HH:mm")}
                 </Text>
               )}
+              {/* Display Type if applicable and not a receipt/budget type */}
               {item.type &&
               item.type !== "system" &&
               (item.type === "wallet" || item.type === "budget_alert") &&

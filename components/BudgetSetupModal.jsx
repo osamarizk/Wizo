@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   Alert,
   ScrollView,
-  StyleSheet,
+  // StyleSheet, // Removed: no longer needed as styles are inline with Tailwind
   Modal,
   Pressable,
   ActivityIndicator,
@@ -17,9 +17,9 @@ import CustomButton from "../components/CustomButton"; // Adjust path as needed
 import { useGlobalContext } from "../context/GlobalProvider"; // Adjust path as needed
 import {
   createBudget,
-  getUserBudgets, // This is for checking existing budgets during initial load, not for on-the-fly checks
+  getUserBudgets, // Used for checking existing budgets for overlap validation
   updateBudget,
-  getAllCategories, // Renamed from getCategories to match your GlobalProvider source
+  getAllCategories,
   getSubcategoriesByCategory,
   createNotification,
   countUnreadNotifications,
@@ -50,16 +50,14 @@ const BudgetSetupModal = ({
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user) return; // Wait for user to be available
+      if (!user) return;
 
       setLoading(true);
       try {
-        // Fetch categories
         const fetchedCategories = await getAllCategories();
         setCategories(fetchedCategories);
 
         if (initialBudgetData) {
-          // Update mode: pre-fill form with initial budget data
           setBudgetAmount(String(initialBudgetData.budgetAmount));
           setSelectedCategory(initialBudgetData.categoryId);
           setSelectedSubcategory(initialBudgetData.subcategoryId || null);
@@ -82,14 +80,13 @@ const BudgetSetupModal = ({
             setSubcategories(fetchedSubcategories);
           }
         } else {
-          // Create mode: reset form
           setBudgetAmount("");
           setSelectedCategory(null);
           setSelectedSubcategory(null);
           setStartDate(undefined);
           setEndDate(undefined);
           setIsExistingBudget(false);
-          setSubcategories([]); // Clear subcategories for new budget
+          setSubcategories([]);
         }
       } catch (error) {
         console.error("Error fetching data for budget setup modal:", error);
@@ -103,12 +100,10 @@ const BudgetSetupModal = ({
     };
 
     if (isVisible) {
-      // Only fetch data when modal is visible
       fetchData();
     }
-  }, [isVisible, user, initialBudgetData]); // Re-fetch when modal visibility or initial data changes
+  }, [isVisible, user, initialBudgetData]);
 
-  // Fetch subcategories when the selected category changes
   useEffect(() => {
     const fetchRelatedSubcategories = async () => {
       if (selectedCategory) {
@@ -118,7 +113,6 @@ const BudgetSetupModal = ({
             selectedCategory
           );
           setSubcategories(fetchedSubcategories);
-          // If the previously selected subcategory is not in the new list, clear it
           if (
             selectedSubcategory &&
             !fetchedSubcategories.some((sub) => sub.$id === selectedSubcategory)
@@ -137,7 +131,7 @@ const BudgetSetupModal = ({
       }
     };
     fetchRelatedSubcategories();
-  }, [selectedCategory]); // Depend only on selectedCategory
+  }, [selectedCategory]);
 
   const handleSaveBudget = async () => {
     if (!budgetAmount.trim() || !selectedCategory || !startDate || !endDate) {
@@ -166,7 +160,7 @@ const BudgetSetupModal = ({
     try {
       let budgetId;
       if (isExistingBudget && initialBudgetData?.$id) {
-        // Update existing budget
+        // --- UPDATE EXISTING BUDGET FLOW ---
         budgetId = initialBudgetData.$id;
         await updateBudget(
           budgetId,
@@ -178,7 +172,47 @@ const BudgetSetupModal = ({
         );
         Alert.alert("Success", "Budget updated successfully.");
       } else {
-        // Create new budget
+        // --- CREATE NEW BUDGET FLOW ---
+        // *** Validation for existing/overlapping budgets ***
+        const existingBudgets = await getUserBudgets(user.$id);
+        const newBudgetStartDate = startDate.getTime(); // Get timestamp for easier comparison
+        const newBudgetEndDate = endDate.getTime();
+
+        const isOverlap = existingBudgets.some((existingBudget) => {
+          const existingBudgetStartDate = new Date(
+            existingBudget.startDate
+          ).getTime();
+          const existingBudgetEndDate = new Date(
+            existingBudget.endDate
+          ).getTime();
+
+          // Check if categories match
+          const categoryMatch = existingBudget.categoryId === selectedCategory;
+
+          // Check if subcategories match (if selected)
+          const subcategoryMatch = selectedSubcategory
+            ? existingBudget.subcategoryId === selectedSubcategory
+            : true; // If no subcategory is selected, consider it a match for the category level
+
+          // Check for date overlap:
+          // (StartDateA <= EndDateB) && (EndDateA >= StartDateB)
+          const datesOverlap =
+            newBudgetStartDate <= existingBudgetEndDate &&
+            newBudgetEndDate >= existingBudgetStartDate;
+
+          // If both category/subcategory and dates overlap, then it's an existing budget
+          return categoryMatch && subcategoryMatch && datesOverlap;
+        });
+
+        if (isOverlap) {
+          Alert.alert(
+            "Budget Conflict",
+            "A budget for this category/subcategory already exists or overlaps with the selected dates. Please update the existing budget instead, or choose different dates/category."
+          );
+          setLoading(false);
+          return; // Stop function execution
+        }
+
         const newBudget = await createBudget(
           user.$id,
           selectedCategory,
@@ -190,9 +224,9 @@ const BudgetSetupModal = ({
         budgetId = newBudget.$id;
         Alert.alert("Success", "Budget created successfully.");
       }
-      setHasBudget(true); // Update global state
+      setHasBudget(true);
 
-      // Create notification
+      // Create notification for both create and update
       await createNotification({
         user_id: user.$id,
         title: isExistingBudget ? "Budget Updated" : "Budget Created",
@@ -202,12 +236,11 @@ const BudgetSetupModal = ({
         budget_id: budgetId,
       });
 
-      // Update the unread notification count
       const updatedUnreadCount = await countUnreadNotifications(user.$id);
       updateUnreadCount(updatedUnreadCount);
 
-      onSaveSuccess(); // Trigger refresh in parent
-      onClose(); // Close the modal
+      onSaveSuccess();
+      onClose();
     } catch (error) {
       console.error("Error saving budget:", error);
       Alert.alert("Error", "Failed to save budget. Please try again.");
@@ -226,7 +259,7 @@ const BudgetSetupModal = ({
   };
 
   if (!isVisible) {
-    return null; // Don't render if not visible
+    return null;
   }
 
   return (
@@ -270,10 +303,10 @@ const BudgetSetupModal = ({
                 Category
               </Text>
               <Dropdown
-                style={styles.dropdown}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                inputSearchStyle={styles.inputSearchStyle}
+                className="h-12.5 bg-white rounded-xl p-3 shadow-lg border-2 border-[#9F54B6]"
+                placeholderStyle={{ fontSize: 16, color: "#7b7b8b" }}
+                selectedTextStyle={{ fontSize: 18, color: "#000" }}
+                inputSearchStyle={{ height: 40, fontSize: 16 }}
                 data={categories.map((cat) => ({
                   label: cat.name,
                   value: cat.$id,
@@ -287,7 +320,7 @@ const BudgetSetupModal = ({
                 value={selectedCategory}
                 onChange={(item) => {
                   setSelectedCategory(item.value);
-                  setSelectedSubcategory(null); // Reset subcategory when category changes
+                  setSelectedSubcategory(null);
                 }}
               />
             </View>
@@ -297,10 +330,10 @@ const BudgetSetupModal = ({
                 Subcategory
               </Text>
               <Dropdown
-                style={styles.dropdown}
-                placeholderStyle={styles.placeholderStyle}
-                selectedTextStyle={styles.selectedTextStyle}
-                inputSearchStyle={styles.inputSearchStyle}
+                className="h-12.5 bg-white rounded-xl p-3 shadow-lg border-2 border-[#9F54B6]"
+                placeholderStyle={{ fontSize: 16, color: "#7b7b8b" }}
+                selectedTextStyle={{ fontSize: 18, color: "#000" }}
+                inputSearchStyle={{ height: 40, fontSize: 16 }}
                 data={subcategories.map((sub) => ({
                   label: sub.name,
                   value: sub.$id,
@@ -342,20 +375,19 @@ const BudgetSetupModal = ({
                   onRequestClose={() => setShowStartDatePicker(false)}
                 >
                   <Pressable
-                    style={styles.calendarOverlay}
-                    onPress={() => setShowStartDatePicker(false)} // Close when tapping outside
+                    className="flex-1 justify-center items-center bg-black/50"
+                    onPress={() => setShowStartDatePicker(false)}
                   >
                     <View
-                      style={styles.calendarContainer}
+                      className="bg-white rounded-lg p-5 items-center shadow-lg"
                       onStartShouldSetResponder={() => true}
                     >
                       <Calendar
-                        style={styles.calendar}
+                        className="mt-2.5 rounded-lg border border-gray-300 shadow-md w-11/12 max-w-[400px]"
                         onDayPress={(day) => {
                           handleDateSelect(day, "start");
                           setShowStartDatePicker(false);
                         }}
-                        // minDate={new Date()} // Uncomment if you want to restrict past dates
                         markedDates={
                           startDate
                             ? {
@@ -401,20 +433,20 @@ const BudgetSetupModal = ({
                   onRequestClose={() => setShowEndDatePicker(false)}
                 >
                   <Pressable
-                    style={styles.calendarOverlay}
-                    onPress={() => setShowEndDatePicker(false)} // Close when tapping outside
+                    className="flex-1 justify-center items-center bg-black/50"
+                    onPress={() => setShowEndDatePicker(false)}
                   >
                     <View
-                      style={styles.calendarContainer}
+                      className="bg-white rounded-lg p-5 items-center shadow-lg"
                       onStartShouldSetResponder={() => true}
                     >
                       <Calendar
-                        style={styles.calendar}
+                        className="mt-2.5 rounded-lg border border-gray-300 shadow-md w-11/12 max-w-[400px]"
                         onDayPress={(day) => {
                           handleDateSelect(day, "end");
                           setShowEndDatePicker(false);
                         }}
-                        minDate={startDate || new Date()} // End date cannot be before start date
+                        minDate={startDate || new Date()}
                         markedDates={
                           endDate
                             ? {
@@ -461,59 +493,5 @@ const BudgetSetupModal = ({
     </Modal>
   );
 };
-
-const styles = StyleSheet.create({
-  dropdown: {
-    height: 50,
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-    borderWidth: 2,
-    borderColor: "#9F54B6",
-  },
-  placeholderStyle: {
-    fontSize: 16,
-    color: "#7b7b8b",
-  },
-  selectedTextStyle: {
-    fontSize: 18,
-    color: "#000",
-  },
-  inputSearchStyle: {
-    height: 40,
-    fontSize: 16,
-  },
-  calendar: {
-    marginTop: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    elevation: 2,
-    width: "90%", // Adjust width for responsiveness
-    maxWidth: 400, // Max width for larger screens
-  },
-  calendarOverlay: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
-  },
-  calendarContainer: {
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 20,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-});
 
 export default BudgetSetupModal;

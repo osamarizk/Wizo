@@ -358,7 +358,8 @@ const Budget = () => {
     setShowBudgetSetupModal(true);
   };
 
-  const handleDeleteBudget = async (budgetId) => {
+  const handleDeleteBudget = async (budgetToDelete) => {
+    // Changed from budgetId to budgetToDelete object
     setShowActionMenuModal(false); // Close menu immediately
     Alert.alert(
       "Confirm Delete",
@@ -369,19 +370,38 @@ const Budget = () => {
           text: "Delete",
           onPress: async () => {
             try {
-              await deleteBudget(budgetId);
+              await deleteBudget(budgetToDelete.$id); // Use the ID from the object
               Alert.alert("Success", "Budget deleted successfully.");
+
+              // Create notification for delete action with specific details
               await createNotification({
                 user_id: user.$id,
                 title: "Budget Deleted",
-                message: "A budget was successfully deleted.",
-                budget_id: budgetId,
+                message: `The budget for ${getCategoryName(
+                  budgetToDelete.categoryId
+                )} ($${parseFloat(budgetToDelete.budgetAmount).toFixed(
+                  2
+                )}) from ${format(
+                  new Date(budgetToDelete.startDate),
+                  "PPP"
+                )} to ${format(
+                  new Date(budgetToDelete.endDate),
+                  "PPP"
+                )} has been deleted.`,
+                budget_id: budgetToDelete.$id, // Still link for historical context if needed
+                // Add specific fields for deleted budget details
+                deleted_budget_amount: parseFloat(budgetToDelete.budgetAmount),
+                deleted_budget_category_id: budgetToDelete.categoryId,
+                deleted_budget_start_date: budgetToDelete.startDate,
+                deleted_budget_end_date: budgetToDelete.endDate,
               });
+              // Update unread count
               const updatedUnreadCount = await countUnreadNotifications(
                 user.$id
               );
               updateUnreadCount(updatedUnreadCount);
-              onRefresh();
+
+              onRefresh(); // Refresh the list after deletion
             } catch (error) {
               console.error("Error deleting budget:", error);
               Alert.alert("Error", "Failed to delete budget.");
@@ -397,6 +417,7 @@ const Budget = () => {
     event.target.measure((x, y, width, height, pageX, pageY) => {
       setActionMenuPosition({ x: pageX, y: pageY, width, height });
       setActionMenuBudgetData(budget);
+      // console.log("Action of Menue Delete data", actionMenuBudgetData);
       setShowActionMenuModal(true);
     });
   };
@@ -430,7 +451,7 @@ const Budget = () => {
             <Text className="text-lg font-pbold text-black">My Budgets</Text>
             <TouchableOpacity
               onPress={handleSetupBudget}
-              className="bg-[#D03957] rounded-md p-3 items-center justify-center mt-3"
+              className="bg-red-600 rounded-md p-3 items-center justify-center mt-3 w-60"
             >
               <Text className="text-white font-psemibold text-base">
                 Add New Budget
@@ -498,12 +519,22 @@ const Budget = () => {
             </View>
           )}
 
+          {/* NEW: Button to navigate to Budget Insights */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate("budget-insights")} // Assuming "BudgetInsights" is the route name
+            className="bg-purple-600 rounded-md p-3 items-center justify-center mt-3 mb-6"
+          >
+            <Text className="text-white font-psemibold text-base">
+              View Budget Insights 📊
+            </Text>
+          </TouchableOpacity>
+
           {monthlySpendingSummary.length > 0 && (
-            <View className="bg-transparent p-4 mb-5 border-t border-[#9F54B6]">
-              <Text className="text-lg font-psemibold text-black mb-2 text-center">
+            <View className="bg-transparent p-4  border-t border-[#9F54B6]">
+              <Text className="text-base font-pbold text-black mb-2">
                 Monthly Spending Overview
               </Text>
-              <Text className="text-sm font-pregular text-gray-600 text-center mb-4">
+              <Text className="text-sm font-pregular text-gray-600  mb-4">
                 Track your current month's spending across categories, comparing
                 it to your set budgets. Stay on top of your financial goals!
               </Text>
@@ -529,7 +560,7 @@ const Budget = () => {
                     )}
                   </Text>
                   {item.budgetedAmount > 0 && (
-                    <View className="h-3.5 bg-white rounded-md w-full overflow-hidden">
+                    <View className="h-4 bg-white  w-full overflow-hidden">
                       <View
                         className={`h-full ${
                           item.isOverBudget ? "bg-red-500" : "bg-green-500"
@@ -555,15 +586,15 @@ const Budget = () => {
           )}
 
           {userBudgets.length > 0 && (
-            <View className="p-4 mb-4 rounded-xl border-t border-purple-400">
-              <Text className="text-lg font-psemibold text-black mb-4 text-center">
+            <View className="p-2 mb-4 rounded-xl border-t border-purple-400">
+              <Text className="text-base font-pbold text-black mb-4 ">
                 Your Current Budgets
               </Text>
               <View className="mt-2">
                 {userBudgets.map((budget) => (
                   <View
                     key={budget.$id}
-                    className="p-4 mb-3 border border-gray-200 rounded-lg bg-white shadow-xs flex-row justify-between items-center"
+                    className="p-4 mb-3 border border-gray-200 rounded-lg bg-slate-200 shadow-xs flex-row justify-between items-center"
                   >
                     <View className="flex-1">
                       <Text className="text-base font-psemibold text-black mb-1">

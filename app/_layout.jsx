@@ -5,7 +5,7 @@ import {
   TouchableWithoutFeedback,
   UIManager,
   View,
-  Image
+  Image,
 } from "react-native";
 import React from "react";
 import { useLoadFonts } from "../lib/useLoadFonts";
@@ -38,7 +38,7 @@ const RootLayout = () => {
           name="notification"
           options={{ presentation: "modal", headerShown: false }}
         />
-        <Stack.Screen name="budget-dtl" options={{ headerShown: false }} />
+        <Stack.Screen name="budget-insights" options={{ headerShown: false }} />
         <Stack.Screen name="budget-set" options={{ headerShown: false }} />
       </Stack>
     </GlobalProvider>

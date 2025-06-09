@@ -115,6 +115,7 @@ const BudgetDetailsModal = ({ isVisible, onClose, budgetId, onUpdate }) => {
         onPress={onClose}
       >
         <View
+          // Original: bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-md max-h-[80%]
           className="bg-white rounded-lg shadow-lg p-6 w-11/12 max-w-md max-h-[80%]"
           onStartShouldSetResponder={() => true}
         >
