@@ -388,7 +388,7 @@ const BudgetInsights = () => {
                     </View>
 
                     {/* Month Navigation (for Pie Chart only) */}
-                    <View className="flex-row justify-center items-center mb-6 bg-white p-3 rounded-xl shadow-md">
+                    <View className="flex-row justify-center items-center mb-6 bg-slate-200 p-3 rounded-xl ">
                         <TouchableOpacity
                             onPress={() => navigateMonth("prev")}
                             className="p-2.5 rounded-full bg-gray-200"

@@ -560,7 +560,7 @@ const Budget = () => {
                     )}
                   </Text>
                   {item.budgetedAmount > 0 && (
-                    <View className="h-4 bg-white  w-full overflow-hidden">
+                    <View className="h-4 bg-white rounded-md  w-full overflow-hidden">
                       <View
                         className={`h-full ${
                           item.isOverBudget ? "bg-red-500" : "bg-green-500"

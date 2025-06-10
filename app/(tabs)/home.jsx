@@ -930,19 +930,39 @@ const Home = () => {
                       : "User"}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  onPress={() => router.push("/notification")}
-                  className="relative p-2 rounded-full mt-1"
-                >
-                  <Image source={icons.notification} className="w-6 h-6" />
-                  {unreadCount > 0 && (
-                    <View className="absolute -top-1 -right-1 bg-red-600 rounded-full w-5 h-5 items-center justify-center">
-                      <Text className="text-white text-xs font-bold">
-                        {unreadCount}
-                      </Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
+
+                <View className="flex-row items-center space-x-6">
+                  <TouchableOpacity
+                    onPress={() => router.push("/notification")}
+                    className="relative p-2 rounded-full mt-1"
+                  >
+                    <Image
+                      source={icons.notification}
+                      className="w-6 h-6"
+                      tintColor="#4E17B3"
+                    />
+                    {unreadCount > 0 && (
+                      <View className="absolute -top-1 -right-1 bg-red-600 rounded-full w-5 h-5 items-center justify-center">
+                        <Text className="text-white text-xs font-bold">
+                          {unreadCount}
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+
+                  {/* NEW: Profile Icon */}
+                  <TouchableOpacity
+                    onPress={() => router.push("/account")} // Replace "/account-page" with your actual route for the Account/Profile screen
+                    className="p-2"
+                  >
+                    <Image
+                      source={icons.gear} // Assuming you have a 'profile' icon in your icons.js
+                      className="w-7 h-7"
+                      tintColor="#4E17B3" // Adjust tint color as needed
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {receiptStats.totalCount === 0 && (

@@ -39,7 +39,7 @@ const RootLayout = () => {
           options={{ presentation: "modal", headerShown: false }}
         />
         <Stack.Screen name="budget-insights" options={{ headerShown: false }} />
-        <Stack.Screen name="budget-set" options={{ headerShown: false }} />
+        <Stack.Screen name="account" options={{ headerShown: false }} />
       </Stack>
     </GlobalProvider>
     // </KeyboardAvoidingView>

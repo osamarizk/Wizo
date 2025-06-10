@@ -11,13 +11,14 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import UploadModal from "../components/UploadModal";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useNavigation } from "expo-router";
 import { useGlobalContext } from "../context/GlobalProvider"; // Adjust path as needed
 import icons from "../constants/icons"; // Adjust path as needed
 import GradientBackground from "../components/GradientBackground"; // If you use this for background
 import { signOut } from "../lib/appwrite"; // Adjust path to your appwrite.js file
 
 const Account = () => {
+  const navigation = useNavigation();
   const {
     user,
     setUser,
@@ -73,10 +74,10 @@ const Account = () => {
   // Define menu options, now including the logout item
   const menuOptions = [
     {
-      id: "profileSettings",
-      title: "Profile Settings",
+      id: "appSettings",
+      title: "Application Settings",
       icon: icons.settings, // Make sure you have a settings icon
-      onPress: () => router.push("/profile-settings"), // Use onPress directly
+      onPress: () => router.push("/app-settings"), // Use onPress directly
     },
     {
       id: "privacyPolicy",
@@ -115,19 +116,23 @@ const Account = () => {
     <GradientBackground>
       {/* Use your GradientBackground component if applicable */}
       <SafeAreaView className="flex-1">
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          className="px-4 py-8"
-        >
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-10">
           {/* Header */}
-          <View className="flex-row items-center justify-center mb-8">
-            <Text className="text-2xl font-pbold text-gray-800">
+          <View className="flex-row items-center justify-between mb-10">
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              className="p-2"
+            >
+              <Text className="text-blue-600 text-lg font-pmedium">Back</Text>
+            </TouchableOpacity>
+            <Text className="text-2xl font-bold text-black">
               Account Settings
             </Text>
+            <View className="w-10" />
           </View>
 
           {/* User Profile Section */}
-          <View className="bg-transparent border border-[#D03957] rounded-xl p-6 mb-4 flex-row items-center">
+          <View className="bg-transparent  border-t border-[#9F54B6]  rounded-xl p-6 mb-2 flex-row items-center">
             <Image
               source={user?.avatar ? { uri: user.avatar } : icons.user} // Use user's avatar or a placeholder
               className="w-20 h-20 rounded-full mr-4 border-2 border-primary-500"
@@ -144,13 +149,13 @@ const Account = () => {
           </View>
 
           {/* Menu Options */}
-          <View className="bg-transparent border border-[#D03957] rounded-xl mb-8 overflow-hidden">
+          <View className="bg-transparent border-t border-[#9F54B6]  rounded-xl mb-8 overflow-hidden ">
             {menuOptions.map((option, index) => (
               <TouchableOpacity
                 key={option.id}
-                className={`flex-row items-center p-4 ${
+                className={`flex-row items-center mt-2  p-4 ${
                   index < menuOptions.length - 1
-                    ? "border-b border-slate-300"
+                    ? "border-b border-[#9F54B6] "
                     : ""
                 }`}
                 onPress={option.onPress} // Use the onPress function defined in the option
@@ -168,30 +173,19 @@ const Account = () => {
                     <Image
                       source={option.icon}
                       className={`w-6 h-6 mr-4 ${
-                        option.isLogoutOption
-                          ? "tint-red-500"
-                          : "tint-primary-500"
+                        option.isLogoutOption ? "tint-red-500" : "#4E17B3"
                       }`} // Tint logout icon red, others primary
                       resizeMode="contain"
                     />
                   )
                 )}
                 <Text
-                  className={`flex-1 text-lg font-pmedium ${
-                    option.isLogoutOption ? "text-[#264653]" : "text-gray-700"
+                  className={`flex-1 text-lg font-pbold ${
+                    option.isLogoutOption ? "text-black" : "text-gray-700"
                   }`} // Make logout text red, others gray
                 >
                   {option.title}
                 </Text>
-                {/* Don't show chevron for the logout option unless specifically desired */}
-                {!option.isLogoutOption && (
-                  <Image
-                    source={icons.rightArrow} // Make sure you have a rightArrow icon
-                    className="w-3 h-3 ml-4"
-                    resizeMode="contain"
-                    tintColor="gray"
-                  />
-                )}
               </TouchableOpacity>
             ))}
           </View>
@@ -213,16 +207,3 @@ const Account = () => {
 };
 
 export default Account;
-
-// Ensure your constants/icons.js has the necessary icons:
-// export default {
-//   user: require('../assets/icons/user.png'), // Default profile placeholder
-//   settings: require('../assets/icons/settings.png'),
-//   privacy: require('../assets/icons/privacy.png'),
-//   terms: require('../assets/icons/terms.png'),
-//   about: require('../assets/icons/about.png'), // Renamed from 'info' as per your code
-//   help: require('../assets/icons/help.png'),
-//   logout: require('../assets/icons/logout.png'),
-//   rightArrow: require('../assets/icons/right-arrow.png'), // Assuming this is your chevron icon
-//   // ... other icons
-// };
