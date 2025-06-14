@@ -241,27 +241,75 @@ const Home = () => {
       setIsLoading(true);
       try {
         const [
-          count,
-          stats,
-          allReceipts,
+          unreadCount,
+          stats, // This is from your existing getReceiptStats
+          allReceipts, // This is from fetchUserReceipts, which provides ALL receipts
           fetchedMonthlySummary,
-          isBudgetInitialized,
+          isBudgetInitializedStatus, // Renamed to avoid conflict with isBudgetInitialized state
         ] = await Promise.all([
           countUnreadNotifications(user.$id),
-          getReceiptStats(user.$id),
-          fetchUserReceipts(user.$id),
+          getReceiptStats(user.$id), // Assumed to return monthly stats, totalCount, and latestDate (possibly for monthly)
+          fetchUserReceipts(user.$id), // This should fetch ALL user receipts, potentially for export/overall summary
           getMonthlyReceiptSummary(user.$id), // Fetch monthly summary
           checkBudgetInitialization(user.$id), // Fetch budget status
         ]);
-        setUnreadCount(count);
-        setReceiptStats(stats);
+
+        setUnreadCount(unreadCount);
+
+        // --- Calculate Overall Spending from allReceipts ---
+        let calculatedOverallSpending = 0;
+        // Iterate through all fetched receipts to sum up total spending
+        allReceipts.forEach((receipt) => {
+          let items = receipt.items;
+          // Safely parse items if they are stored as JSON strings
+          if (typeof items === "string") {
+            try {
+              items = JSON.parse(items);
+            } catch (e) {
+              console.error(
+                "Error parsing receipt items for overall spending calculation:",
+                e,
+                receipt.items
+              );
+              items = []; // Fallback to empty array on parse error
+            }
+          }
+          // Sum up prices from items array
+          if (Array.isArray(items)) {
+            items.forEach((item) => {
+              const price = parseFloat(item.price);
+              if (!isNaN(price)) {
+                calculatedOverallSpending += price;
+              }
+            });
+          }
+        });
+
+        // Determine overall total receipts count and latest date from the `allReceipts` array
+        // This is more reliable for *overall* summaries if fetchUserReceipts truly returns all.
+        const overallTotalReceipts = allReceipts.length;
+        const overallLatestDate =
+          allReceipts.length > 0
+            ? new Date(allReceipts[0].datetime).toDateString() // Assuming allReceipts is ordered descending by datetime
+            : "N/A";
+
+        // Update receiptStats state, merging existing stats and adding overall data
+        setReceiptStats((prevStats) => ({
+          ...prevStats, // Keep any other existing stats from prev state
+          ...stats, // Overwrite with fresh monthly stats and totalCount/latestDate (if getReceiptStats provides overall)
+          // Explicitly set overall metrics if getReceiptStats doesn't provide them reliably
+          totalCount: overallTotalReceipts, // Use the count from fetchUserReceipts for overall
+          overallSpending: calculatedOverallSpending, // Set the calculated overall spending
+          latestDate: overallLatestDate, // Use the latest date from all receipts for overall
+        }));
+
         setAllReceipts(allReceipts); // Set all receipts to state
         setMonthlySummary(fetchedMonthlySummary); // Set monthly summary data
-        console.log("Fetched Monthly Summary for Home Page:", monthlySummary);
-        setLatestReceipts(allReceipts.slice(0, 5)); // Maybe show latest 5 receipts
-        // console.log("stats", stats);
-        // console.log("ReceiptStats...", stats);
-        // console.log("allReceipts...", allReceipts);
+        console.log(
+          "Fetched Monthly Summary for Home Page:",
+          fetchedMonthlySummary
+        ); // Fixed log variable name
+        setLatestReceipts(allReceipts.slice(0, 5)); // Show latest 5 receipts
 
         const spendingByCategory = stats.monthlyCategorySpendingBreakdown || {};
         const totalItemsPriceForMonth = Object.values(
@@ -270,11 +318,10 @@ const Home = () => {
 
         const chartData = Object.keys(spendingByCategory).map(
           (categoryName, index) => {
-            // 'categoryName' is already the name
             return {
               name: categoryName,
               population: spendingByCategory[categoryName],
-              color: gradientColors[index % gradientColors.length],
+              color: gradientColors[index % gradientColors.length], // Assuming gradientColors is defined
               legendFontColor: "#7F7F7F",
               legendFontSize: 12,
               percent:
@@ -283,37 +330,41 @@ const Home = () => {
                       totalItemsPriceForMonth) *
                     100
                   : 0,
-              id: categoryName, // Use name as ID for consistency
+              id: categoryName,
               value: spendingByCategory[categoryName],
             };
           }
         );
         setChartData(chartData);
-        setCategorySpendingData(chartData);
+        setCategorySpendingData(chartData); // Assuming categorySpendingData is a state variable
 
-        const latest = await fetchUserReceipts(user.$id, 5);
-        setLatestReceipts(latest);
-
-        // const isBudgetInitialized = await checkBudgetInitialization(user.$id);
+        // Using the renamed variable for budget initialization status
         const hasReceipts = allReceipts.length > 0; // Check if there are any receipts
-        setShowBudgetPrompt(!isBudgetInitialized && hasReceipts); // set budget prompt here
+        setShowBudgetPrompt(!isBudgetInitializedStatus && hasReceipts); // set budget prompt here (assuming setShowBudgetPrompt is a state setter)
 
-        fetchBudget();
-        fetchCategories();
-        // console.log(showBudgetPrompt);
+        fetchBudget(); // Assuming fetchBudget is a function defined elsewhere in your component
+        fetchCategories(); // Assuming fetchCategories is a function defined elsewhere in your component
 
         // NEW: Fetch user points and badges
-
         const userPointsDocs = await getUserPoints(user.$id);
         if (userPointsDocs.length > 0) {
+          // Assuming history is a stringified JSON array in your Appwrite document
           const historyString = userPointsDocs[0].history;
-          const history = JSON.parse(historyString);
+          let history = [];
+          try {
+            history = JSON.parse(historyString);
+          } catch (e) {
+            console.error(
+              "Error parsing user points history for Home Page:",
+              e
+            );
+          }
 
           const totalPoints = history.reduce(
             (sum, entry) => sum + (entry.points || 0),
             0
           );
-          setUserTotalPoints(totalPoints || 0);
+          setUserTotalPoints(totalPoints || 0); // Assuming setUserTotalPoints is a state setter
           console.log("Total Points from history:", totalPoints);
         } else {
           setUserTotalPoints(0);
@@ -321,16 +372,21 @@ const Home = () => {
         }
 
         const earnedBadges = await getUserEarnedBadges(user.$id);
-        setUserBadges(earnedBadges);
-        setIsSearchFilterExpanded(false);
+        setUserBadges(earnedBadges); // Assuming setUserBadges is a state setter
+        setIsSearchFilterExpanded(false); // Assuming setIsSearchFilterExpanded is a state setter
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching data in Home.jsx:", error);
+        Alert.alert(
+          "Data Load Error",
+          "Failed to load some data. Please try again."
+        );
       } finally {
-        setIsLoading(false);
-        setRefreshing(false);
+        setIsLoading(false); // Assuming setIsLoading is a state setter
+        setRefreshing(false); // Assuming setRefreshing is a state setter
       }
     }
-  }, [user]);
+  }, [user]); // Dependencies for useCallback
+
   const performSearch = useCallback(async () => {
     setIsSearching(true); // <--- Set loading to true when search starts
 
@@ -1141,6 +1197,23 @@ const Home = () => {
                     </Text>
 
                     <Text
+                      className=" text-base font-pregular text-gray-600 mb-2"
+                      style={{
+                        fontSize: Platform.select({
+                          // <--- Use Platform.select for fontSize
+                          ios: 14, // Smaller font size for iOS (e.g., original text-xs)
+                          android: 12, // Slightly larger for Android if needed, or keep 10
+                        }),
+                      }}
+                    >
+                      🔥 Overall Spending Recorded: {""}
+                      <Text className="text-center text-base font-pbold text-[#4E17B3] mt-4 ">
+                        💵 {receiptStats.overallSpending.toFixed(2)}{" "}
+                        {/* Display overall spending */}
+                      </Text>
+                    </Text>
+
+                    <Text
                       className=" text-base font-pregular text-gray-600"
                       style={{
                         fontSize: Platform.select({
@@ -1150,19 +1223,19 @@ const Home = () => {
                         }),
                       }}
                     >
-                      <Text className="text-base font-pregular text-[#4E17B3] mt-4 ">
+                      <Text className="text-base font-pbold text-[#4E17B3] mt-4 ">
                         🔥{"("}
                         {receiptStats.thisMonthCount}
                         {")"}
-                      </Text>
+                      </Text>{" "}
                       R on {monthName} | {monthName} Spending : {""}
-                      <Text className="text-center text-base font-pregular text-[#4E17B3] mt-4 ">
+                      <Text className="text-center text-base font-pbold text-[#4E17B3] mt-4 ">
                         💵 {receiptStats.monthlySpending.toFixed(2)}
                       </Text>
                     </Text>
                     <Text className=" text-base font-pregular text-gray-600 mt-1">
                       🔥 Last Receipt Date:
-                      <Text className="text-center text-base font-pregular text-[#4E17B3] mt-4 ">
+                      <Text className="text-center text-base font-pbold text-[#4E17B3] mt-4 ">
                         {" "}
                         {receiptStats.latestDate}
                       </Text>

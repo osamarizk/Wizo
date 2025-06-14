@@ -42,6 +42,9 @@ export default {
     ],
     extra: {
       GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+      eas: {
+        projectId: "b527ae5b-6237-47ff-929d-49f83cbd9fbd",
+      },
     },
   },
 };

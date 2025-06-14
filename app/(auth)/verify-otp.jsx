@@ -26,7 +26,7 @@ const VerifyOtp = () => {
       const session = await verifyOTP(userId, otp);
       console.log("Returned Session", session);
       const newUserId = session.userId;
-      const oldpwd=session.pwd
+      const oldpwd = session.pwd;
 
       if (session) {
         // Proceed to reset password screen
@@ -35,7 +35,7 @@ const VerifyOtp = () => {
         // OTP verified successfully, navigate to reset password screen
         router.push({
           pathname: "/reset-pwd",
-          params: { userId: newUserId, secret: otp, email,oldpwd },
+          params: { userId: newUserId, secret: otp, email, oldpwd },
         });
         // Redirect to reset password screen (assuming you have the password reset screen set up)
         // You can redirect to another page for password reset or show the password reset input fields here.

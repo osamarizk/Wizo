@@ -20,10 +20,9 @@ const EmailResetModal = ({ visible, onClose, onSend }) => {
       return;
     }
 
-   
     try {
       await onSend(email);
-      console.log("Model email",email) // wait for the email to be sent
+      console.log("Model email", email); // wait for the email to be sent
       setEmail("");
       onClose(); // only close after success
     } catch (err) {
@@ -62,7 +61,7 @@ const EmailResetModal = ({ visible, onClose, onSend }) => {
                 className="bg-secondary py-3 rounded-xl"
               >
                 <Text className="text-white text-center font-psemibold text-base">
-                  Send Code
+                  Send Email
                 </Text>
               </Pressable>
 

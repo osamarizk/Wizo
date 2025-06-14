@@ -301,7 +301,7 @@ const Budget = () => {
         .sort((a, b) => b.spent - a.spent); // Sort by amount spent
 
       setMonthlySpendingSummary(summary);
-      console.log("fetchBudgetData: Monthly spending summary updated.");
+      console.log("monthlySpendingSummary:.", monthlySpendingSummary);
     } catch (error) {
       console.error("fetchBudgetData: !!! ERROR during data fetch !!!", error);
       Alert.alert("Error", "Failed to load budget data.");
@@ -449,14 +449,16 @@ const Budget = () => {
           {/* Header with "My Budgets" and "Add New Budget" button */}
           <View className="flex-row justify-between items-center mb-2 mt-4">
             <Text className="text-lg font-pbold text-black">My Budgets</Text>
-            <TouchableOpacity
-              onPress={handleSetupBudget}
-              className="bg-red-600 rounded-md p-3 items-center justify-center mt-3 w-60"
-            >
-              <Text className="text-white font-psemibold text-base">
-                Add New Budget
-              </Text>
-            </TouchableOpacity>
+            {hasBudget && (
+              <TouchableOpacity
+                onPress={handleSetupBudget}
+                className="bg-red-600 rounded-md p-3 items-center justify-center mt-3 w-60"
+              >
+                <Text className="text-white font-psemibold text-base">
+                  Add New Budget
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           <Text className="text-sm font-pregular text-gray-600 text-left mb-4 mt-2">
@@ -503,31 +505,20 @@ const Budget = () => {
                   </TouchableOpacity>
                 </View>
               )}
-
-              {showBudgetPrompt && (
-                <View className="px-0">
-                  <TouchableOpacity
-                    onPress={handleSetupBudget}
-                    className="mb-4 w-full bg-red-600 rounded-md py-3 items-center justify-center"
-                  >
-                    <Text className="text-white font-pmedium text-base">
-                      Setup Budget
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
             </View>
           )}
 
           {/* NEW: Button to navigate to Budget Insights */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate("budget-insights")} // Assuming "BudgetInsights" is the route name
-            className="bg-purple-600 rounded-md p-3 items-center justify-center mt-3 mb-6"
-          >
-            <Text className="text-white font-psemibold text-base">
-              View Budget Insights 📊
-            </Text>
-          </TouchableOpacity>
+          {hasBudget && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("budget-insights")} // Assuming "BudgetInsights" is the route name
+              className="bg-purple-600 rounded-md p-3 items-center justify-center mt-3 mb-6"
+            >
+              <Text className="text-white font-psemibold text-base">
+                View Budget Insights 📊
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {monthlySpendingSummary.length > 0 && (
             <View className="bg-transparent p-4  border-t border-[#9F54B6]">
@@ -630,15 +621,16 @@ const Budget = () => {
             userBudgets.length === 0 &&
             monthlySpendingSummary.length === 0 &&
             !hasBudget && (
-              <View className="bg-gray-100 p-6 rounded-lg mb-6 border border-gray-200 items-center">
+              <View className="bg-slate-100 p-6 rounded-lg mb-12 border border-gray-200 items-center">
                 <Text className="text-base font-pmedium text-gray-600 text-center mb-3">
                   No budgets or spending data yet.
                 </Text>
+
                 <TouchableOpacity
                   onPress={handleSetupBudget}
-                  className="bg-green-500 rounded-md py-3 px-4 items-center justify-center"
+                  className="mb-4 w-full bg-green-600 rounded-md py-3 items-center justify-center"
                 >
-                  <Text className="text-white font-psemibold text-lg">
+                  <Text className="text-white font-pmedium text-base">
                     Start Your First Budget
                   </Text>
                 </TouchableOpacity>

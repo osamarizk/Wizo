@@ -77,7 +77,7 @@ const Account = () => {
       id: "appSettings",
       title: "Application Settings",
       icon: icons.settings, // Make sure you have a settings icon
-      onPress: () => router.push("/app-settings"), // Use onPress directly
+      onPress: () => router.push("settings/app-settings"), // Use onPress directly
     },
     {
       id: "privacyPolicy",
