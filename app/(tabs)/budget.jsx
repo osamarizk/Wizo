@@ -617,25 +617,22 @@ const Budget = () => {
             </View>
           )}
 
-          {!(userTotalPoints > 0 || userBadges.length > 0) &&
-            userBudgets.length === 0 &&
-            monthlySpendingSummary.length === 0 &&
-            !hasBudget && (
-              <View className="bg-slate-100 p-6 rounded-lg mb-12 border border-gray-200 items-center">
-                <Text className="text-base font-pmedium text-gray-600 text-center mb-3">
-                  No budgets or spending data yet.
-                </Text>
+          {!hasBudget && (
+            <View className="bg-transparent py-4 px-2.5 mb-2 border-2 border-[#9F54B6] rounded-xl">
+              <Text className="text-base font-pmedium text-gray-600 text-center mb-3">
+                No budgets or spending data yet.
+              </Text>
 
-                <TouchableOpacity
-                  onPress={handleSetupBudget}
-                  className="mb-4 w-full bg-green-600 rounded-md py-3 items-center justify-center"
-                >
-                  <Text className="text-white font-pmedium text-base">
-                    Start Your First Budget
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+              <TouchableOpacity
+                onPress={handleSetupBudget}
+                className="mb-4 w-full bg-red-600 rounded-md py-3 items-center justify-center"
+              >
+                <Text className="text-white font-pmedium text-base">
+                  Start Your First Budget
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <View className="h-20" />
         </ScrollView>

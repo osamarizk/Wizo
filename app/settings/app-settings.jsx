@@ -10,95 +10,102 @@ import {
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useNavigation, router } from "expo-router"; // Import router for navigation
-import GradientBackground from "../../components/GradientBackground"; // Adjust path as needed
-import icons from "../../constants/icons"; // Adjust path as needed
-
-// Assuming useGlobalContext provides user, and potentially information about budget/wallet setup.
+import { useNavigation, router } from "expo-router";
+import GradientBackground from "../../components/GradientBackground";
+import icons from "../../constants/icons";
 import { useGlobalContext } from "../../context/GlobalProvider";
-// You might need to import specific Appwrite functions to check budget/wallet status
-// For this example, we'll simulate these statuses or assume they are in global context.
-// import { getUserBudgets, getUserWalletBalance } from "../../lib/appwrite";
-
-const FREE_TIER_RECEIPT_LIMIT = 15; // Define your free tier limit
+import {
+  getApplicationSettings,
+  saveUserPreferences,
+} from "../../lib/appwrite"; // NEW IMPORTS
 
 const ApplicationSettings = () => {
   const navigation = useNavigation();
-  const { user, isLoading: globalLoading } = useGlobalContext(); // Get user from global context
+  const {
+    user,
+    isLoading: globalLoading,
+    checkSessionAndFetchUser,
+  } = useGlobalContext(); // Added checkSessionAndFetchUser
 
-  // State for local settings (these would typically come from user preferences stored in Appwrite/AsyncStorage)
-  const [enableNotifications, setEnableNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
-  const [currencyPreference, setCurrencyPreference] = useState("EGP");
+  // State for local user preferences (fetched from user document)
+  const [enableNotifications, setEnableNotifications] = useState(false); // Default to false
+  const [darkMode, setDarkMode] = useState(false); // Default to false
+  const [currencyPreference, setCurrencyPreference] = useState("EGP"); // Default currency
+
+  // State for global app limits (fetched from ApplicationSetting document)
+  const [appLimits, setAppLimits] = useState({
+    free_tier_receipt_limit: 15,
+    free_tier_budget_count: 3,
+    free_tier_data_exports_monthly: 1,
+    premium_feature_advanced_analytics: true,
+    premium_feature_priority_support: true,
+    default_currency_code: "EGP",
+    premium_receipt_limit_text: "Unlimited",
+    premium_budget_count_text: "Unlimited",
+    premium_data_exports_text: "Unlimited",
+  });
+
   const [isLoadingSave, setIsLoadingSave] = useState(false);
+  const [isLoadingSettings, setIsLoadingSettings] = useState(true); // Combined loading for both types of settings
 
-  // New states for limits and feature status
-  const [currentReceiptLimit, setCurrentReceiptLimit] = useState(
-    FREE_TIER_RECEIPT_LIMIT
-  );
-  const [isPremiumUser, setIsPremiumUser] = useState(false); // To determine if user is premium
-  const [hasWalletSetup, setHasWalletSetup] = useState(false); // Status of wallet setup
-  const [hasBudgetSetup, setHasBudgetSetup] = useState(false); // Status of budget setup
-  const [isLoadingFeatureStatus, setIsLoadingFeatureStatus] = useState(true);
+  // Determine if the current user is premium (from global context)
+  const isPremiumUser = user?.isPremium || false;
 
-  // Simulate fetching user premium status, wallet, and budget setup status
-  const fetchFeatureStatus = useCallback(async () => {
-    setIsLoadingFeatureStatus(true);
+  // --- Fetch initial settings (global app settings and user-specific preferences) ---
+  const fetchSettings = useCallback(async () => {
+    setIsLoadingSettings(true);
     try {
-      // Replace with actual logic to check user's premium status from Appwrite
-      // For example:
-      // const userData = await getUserProfile(user.$id);
-      // setIsPremiumUser(userData?.isPremium || false);
+      // 1. Fetch global application settings
+      const globalSettings = await getApplicationSettings();
+      setAppLimits(globalSettings);
 
-      // For now, simulate premium status (e.g., if user email is 'premium@example.com')
-      setIsPremiumUser(user?.email === "premium@example.com");
-
-      // Replace with actual Appwrite calls to check if wallet/budget are set up
-      // Example:
-      // const userBudgets = await getUserBudgets(user.$id);
-      // setHasBudgetSetup(userBudgets && userBudgets.length > 0);
-      // const userWallet = await getUserWalletBalance(user.$id); // Assuming this returns a non-null/non-zero balance if set up
-      // setHasWalletSetup(userWallet !== null && userWallet.balance !== undefined);
-
-      // Simulate wallet/budget status for demo
-      setHasWalletSetup(true); // Assuming wallet is generally available or set up by default
-      setHasBudgetSetup(true); // Assuming budget is generally available or set up by default
-
-      // Set receipt limit based on premium status
-      setCurrentReceiptLimit(
-        user?.email === "premium@example.com"
-          ? "Unlimited"
-          : FREE_TIER_RECEIPT_LIMIT
-      );
+      // 2. Fetch user-specific preferences (from user's profile document)
+      if (user?.$id) {
+        // Assuming user object from global context has these preferences
+        setEnableNotifications(user.enableNotifications ?? false);
+        setDarkMode(user.darkMode ?? false);
+        setCurrencyPreference(
+          user.currencyPreference ?? globalSettings.default_currency_code
+        );
+      }
     } catch (error) {
-      console.error("Failed to fetch feature status:", error);
-      // Handle error, maybe set default statuses
-      setIsPremiumUser(false);
-      setCurrentReceiptLimit(FREE_TIER_RECEIPT_LIMIT);
-      setHasWalletSetup(false);
-      setHasBudgetSetup(false);
+      console.error("Failed to fetch settings:", error);
+      Alert.alert("Error", "Failed to load settings. Please try again.");
+      // Keep default values or show error state
     } finally {
-      setIsLoadingFeatureStatus(false);
+      setIsLoadingSettings(false);
     }
-  }, [user]);
+  }, [user]); // Depend on user to re-fetch if user data changes (e.g., after login/logout)
 
   useEffect(() => {
     if (user?.$id) {
-      fetchFeatureStatus();
+      // Only fetch if user is logged in
+      fetchSettings();
+    } else if (!globalLoading) {
+      // If user is not logged in and global context finished loading
+      setIsLoadingSettings(false); // Stop loading if no user to fetch for
     }
-  }, [user, fetchFeatureStatus]);
+  }, [user, globalLoading, fetchSettings]);
 
+  // --- Save user-specific preferences ---
   const handleSaveSettings = async () => {
     setIsLoadingSave(true);
     try {
-      // Simulate API call to save settings
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      // In a real app, you would update user preferences in Appwrite or local storage here
-      console.log("Saving settings:", {
+      if (!user?.$id) {
+        Alert.alert("Error", "You must be logged in to save settings.");
+        return;
+      }
+
+      const preferencesToSave = {
         enableNotifications,
         darkMode,
         currencyPreference,
-      });
+      };
+
+      await saveUserPreferences(user.$id, preferencesToSave);
+      // After saving, re-fetch global user context to update UI if preferences are part of user object
+      await checkSessionAndFetchUser();
+
       Alert.alert("Success", "Settings saved successfully!");
     } catch (error) {
       console.error("Failed to save settings:", error);
@@ -108,7 +115,7 @@ const ApplicationSettings = () => {
     }
   };
 
-  if (globalLoading || isLoadingFeatureStatus) {
+  if (globalLoading || isLoadingSettings) {
     return (
       <GradientBackground>
         <SafeAreaView className="flex-1 justify-center items-center">
@@ -129,7 +136,7 @@ const ApplicationSettings = () => {
               onPress={() => navigation.goBack()}
               className="p-2"
             >
-              <Text className="text-blue-600 text-lg font-pmedium">Back</Text>
+              <Text className="text-blue-600 text-lg font-pmedium"> Back </Text>
             </TouchableOpacity>
             <Text className="text-2xl font-pbold text-black">
               Application Settings
@@ -137,16 +144,16 @@ const ApplicationSettings = () => {
             <View className="w-10" />
           </View>
 
-          {/* General Settings Section */}
+          {/* General Preferences Section */}
           <View className="bg-white rounded-xl p-6 mb-6 shadow-md border border-gray-200">
             <Text className="text-xl font-pbold text-gray-800 mb-4">
-              General
+              General Preferences
             </Text>
 
-            {/* Notifications Toggle */}
+            {/* Notifications Toggle (Keep disabled for now as requested) */}
             <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
               <Text className="text-lg font-pregular text-gray-700">
-                Enable Notifications
+                Enable Notifications (Coming Soon)
               </Text>
               <Switch
                 trackColor={{ false: "#767577", true: "#9F54B6" }}
@@ -154,13 +161,14 @@ const ApplicationSettings = () => {
                 ios_backgroundColor="#3e3e3e"
                 onValueChange={setEnableNotifications}
                 value={enableNotifications}
+                disabled={true} // Explicitly disabled for now
               />
             </View>
 
-            {/* Dark Mode Toggle */}
+            {/* Dark Mode Toggle (Keep disabled for now as requested) */}
             <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
               <Text className="text-lg font-pregular text-gray-700">
-                Dark Mode
+                Dark Mode (Coming Soon)
               </Text>
               <Switch
                 trackColor={{ false: "#767577", true: "#9F54B6" }}
@@ -168,11 +176,20 @@ const ApplicationSettings = () => {
                 ios_backgroundColor="#3e3e3e"
                 onValueChange={setDarkMode}
                 value={darkMode}
+                disabled={true} // Explicitly disabled for now
               />
             </View>
 
-            {/* Currency Preference */}
-            <TouchableOpacity className="flex-row items-center justify-between py-3">
+            {/* Currency Preference (Enable for user to set) */}
+            <TouchableOpacity
+              className="flex-row items-center justify-between py-3"
+              onPress={() =>
+                Alert.alert(
+                  "Currency",
+                  "Currency preference selection coming soon!"
+                )
+              } // Placeholder for selection logic
+            >
               <Text className="text-lg font-pregular text-gray-700">
                 Currency Preference
               </Text>
@@ -189,11 +206,27 @@ const ApplicationSettings = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Account Limits / Subscription Section */}
+          {/* Account Limits & Premium Features Section */}
           <View className="bg-white rounded-xl p-6 mb-6 shadow-md border border-gray-200">
             <Text className="text-xl font-pbold text-gray-800 mb-4">
-              Account Limits
+              Your Plan & Benefits
             </Text>
+
+            {/* Current Plan Display */}
+            <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
+              <Text className="text-lg font-pregular text-gray-700">
+                Current Plan:
+              </Text>
+              <Text
+                className={`text-lg font-psemibold ${
+                  isPremiumUser ? "text-purple-600" : "text-blue-600"
+                }`}
+              >
+                {isPremiumUser ? "Premium" : "Free Tier"}
+              </Text>
+            </View>
+
+            {/* Monthly Receipt Upload Limit */}
             <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
               <Text className="text-lg font-pregular text-gray-700">
                 Monthly Receipt Upload Limit:
@@ -203,61 +236,162 @@ const ApplicationSettings = () => {
                   isPremiumUser ? "text-green-600" : "text-orange-500"
                 }`}
               >
-                {currentReceiptLimit}
+                {isPremiumUser
+                  ? appLimits.premium_receipt_limit_text
+                  : appLimits.free_tier_receipt_limit}
               </Text>
+            </View>
+
+            {/* Budget Creation Limit */}
+            <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
+              <Text className="text-lg font-pregular text-gray-700">
+                Active Budget Limit:
+              </Text>
+              <Text
+                className={`text-lg font-psemibold ${
+                  isPremiumUser ? "text-green-600" : "text-orange-500"
+                }`}
+              >
+                {isPremiumUser
+                  ? appLimits.premium_budget_count_text
+                  : appLimits.free_tier_budget_count}
+              </Text>
+            </View>
+
+            {/* Data Export Limit */}
+            <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
+              <Text className="text-lg font-pregular text-gray-700">
+                Monthly Data Exports:
+              </Text>
+              <Text
+                className={`text-lg font-psemibold ${
+                  isPremiumUser ? "text-green-600" : "text-orange-500"
+                }`}
+              >
+                {isPremiumUser
+                  ? appLimits.premium_data_exports_text
+                  : appLimits.free_tier_data_exports_monthly}
+              </Text>
+            </View>
+
+            {/* Advanced Analytics */}
+            <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
+              <Text className="text-lg font-pregular text-gray-700">
+                Advanced Spending Analytics:
+              </Text>
+              <View className="flex-row items-center">
+                {isPremiumUser &&
+                appLimits.premium_feature_advanced_analytics ? (
+                  <Image
+                    source={icons.check}
+                    className="w-5 h-5 tint-green-600 mr-2"
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Image
+                    source={icons.lock}
+                    className="w-5 h-5 tint-gray-400 mr-2"
+                    resizeMode="contain"
+                  />
+                )}
+                <Text
+                  className={`text-lg font-psemibold ${
+                    isPremiumUser &&
+                    appLimits.premium_feature_advanced_analytics
+                      ? "text-green-600"
+                      : "text-gray-400"
+                  }`}
+                >
+                  {isPremiumUser && appLimits.premium_feature_advanced_analytics
+                    ? "Included"
+                    : "Premium"}
+                </Text>
+              </View>
+            </View>
+
+            {/* Priority Customer Support */}
+            <View className="flex-row items-center justify-between py-3">
+              <Text className="text-lg font-pregular text-gray-700">
+                Priority Customer Support:
+              </Text>
+              <View className="flex-row items-center">
+                {isPremiumUser && appLimits.premium_feature_priority_support ? (
+                  <Image
+                    source={icons.check}
+                    className="w-5 h-5 tint-green-600 mr-2"
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <Image
+                    source={icons.lock}
+                    className="w-5 h-5 tint-gray-400 mr-2"
+                    resizeMode="contain"
+                  />
+                )}
+                <Text
+                  className={`text-lg font-psemibold ${
+                    isPremiumUser && appLimits.premium_feature_priority_support
+                      ? "text-green-600"
+                      : "text-gray-400"
+                  }`}
+                >
+                  {isPremiumUser && appLimits.premium_feature_priority_support
+                    ? "Included"
+                    : "Premium"}
+                </Text>
+              </View>
             </View>
 
             {!isPremiumUser && (
               <TouchableOpacity
                 onPress={() => router.push("/upgrade-premium")}
-                className="flex-row items-center justify-center p-4 rounded-md mt-4 bg-purple-500"
+                className="flex-row items-center justify-center p-4 rounded-md mt-6 bg-purple-600 shadow-lg"
               >
                 <Image
                   source={icons.star}
                   className="w-6 h-6 tint-white mr-2"
                   resizeMode="contain"
-                />{" "}
-                {/* Assuming you have a star/crown icon */}
+                />
                 <Text className="text-white font-psemibold text-lg">
-                  Upgrade to Premium for Unlimited
+                  Upgrade to Premium
                 </Text>
               </TouchableOpacity>
             )}
             {isPremiumUser && (
-              <View className="mt-4 p-3 bg-green-50 rounded-md border border-green-200 flex-row items-center justify-center">
+              <View className="mt-6 p-3 bg-green-50 rounded-md border border-green-200 flex-row items-center justify-center">
                 <Image
-                  source={icons.check}
-                  className="w-5 h-5 tint-green-600 mr-2"
+                  source={icons.trophy} // Assuming a trophy or badge icon for premium
+                  className="w-5 h-5 tint-green-700 mr-2"
                   resizeMode="contain"
-                />{" "}
-                {/* Assuming you have a check icon */}
-                <Text className="text-green-700 font-psemibold">
-                  You have Unlimited Receipt Uploads!
+                />
+                <Text className="text-green-800 font-psemibold text-center">
+                  You have all Premium Features!
                 </Text>
               </View>
             )}
           </View>
 
-          {/* Feature Status Section */}
+          {/* Navigation to Feature Setup Sections */}
           <View className="bg-white rounded-xl p-6 mb-6 shadow-md border border-gray-200">
             <Text className="text-xl font-pbold text-gray-800 mb-4">
-              Feature Status
+              Feature Management
             </Text>
 
+            {/* Wallet Setup */}
             <TouchableOpacity
               onPress={() => router.push("/wallet")}
               className="flex-row items-center justify-between py-3 border-b border-gray-100"
             >
               <Text className="text-lg font-pregular text-gray-700">
-                Wallet:
+                Wallet Setup:
               </Text>
               <View className="flex-row items-center">
                 <Text
                   className={`text-lg font-psemibold ${
-                    hasWalletSetup ? "text-green-600" : "text-red-500"
+                    user?.hasWalletSetup ? "text-green-600" : "text-red-500"
                   } mr-2`}
                 >
-                  {hasWalletSetup ? "Setup Complete" : "Not Set Up"}
+                  {user?.hasWalletSetup ? "Complete" : "Not Set Up"}
                 </Text>
                 <Image
                   source={icons.arrowRight}
@@ -267,20 +401,21 @@ const ApplicationSettings = () => {
               </View>
             </TouchableOpacity>
 
+            {/* Budgeting Setup */}
             <TouchableOpacity
               onPress={() => router.push("/budget")}
               className="flex-row items-center justify-between py-3"
             >
               <Text className="text-lg font-pregular text-gray-700">
-                Budgeting:
+                Budgeting Setup:
               </Text>
               <View className="flex-row items-center">
                 <Text
                   className={`text-lg font-psemibold ${
-                    hasBudgetSetup ? "text-green-600" : "text-red-500"
+                    user?.hasBudgetSetup ? "text-green-600" : "text-red-500"
                   } mr-2`}
                 >
-                  {hasBudgetSetup ? "Setup Complete" : "Not Set Up"}
+                  {user?.hasBudgetSetup ? "Complete" : "Not Set Up"}
                 </Text>
                 <Image
                   source={icons.arrowRight}
@@ -291,13 +426,11 @@ const ApplicationSettings = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Data & Privacy Section */}
+          {/* Data & Privacy Section (keep as is) */}
           <View className="bg-white rounded-xl p-6 mb-6 shadow-md border border-gray-200">
             <Text className="text-xl font-pbold text-gray-800 mb-4">
               Data & Privacy
             </Text>
-
-            {/* Manage Data Option */}
             <TouchableOpacity
               onPress={() => router.push("/settings/manage-data")}
               className="flex-row items-center justify-between py-3 border-b border-gray-100"
@@ -311,8 +444,6 @@ const ApplicationSettings = () => {
                 resizeMode="contain"
               />
             </TouchableOpacity>
-
-            {/* Privacy Controls Option */}
             <TouchableOpacity
               onPress={() => router.push("/settings/privacy-controls")}
               className="flex-row items-center justify-between py-3"

@@ -196,7 +196,7 @@ const NotificationPage = () => {
         (item.receipt_id || item.budget_id) && item.title !== "Budget Deleted";
 
       return (
-        <View className="bg-onboarding mx-4 mb-2 rounded-lg shadow-sm overflow-hidden border border-gray-200">
+        <View className="bg-transparent mx-4 mb-2 rounded-lg  overflow-hidden border-t border-[#9F54B6] ">
           <TouchableOpacity
             onPress={() =>
               handleNotificationPress(item.$id, item.receipt_id, item.budget_id)
@@ -217,7 +217,7 @@ const NotificationPage = () => {
                 >
                   {item.title}
                 </Text>
-                <Text className="text-xs text-gray-400 ml-2">
+                <Text className="text-xs text-green-700 ml-2">
                   {dayjs(item.$createdAt).fromNow()}
                 </Text>
               </View>

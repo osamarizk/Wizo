@@ -35,10 +35,7 @@ const RootLayout = () => {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="settings" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="notification"
-          options={{ presentation: "modal", headerShown: false }}
-        />
+        <Stack.Screen name="notification" options={{ headerShown: false }} />
         <Stack.Screen name="budget-insights" options={{ headerShown: false }} />
         <Stack.Screen name="account" options={{ headerShown: false }} />
       </Stack>

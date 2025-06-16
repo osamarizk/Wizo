@@ -963,8 +963,8 @@ const Home = () => {
           }
           contentContainerStyle={{
             paddingHorizontal: 5,
-            paddingTop: 40,
-            paddingBottom: 20,
+            paddingTop: 15,
+            paddingBottom: 10,
           }}
           ListHeaderComponent={
             <>
@@ -1194,23 +1194,6 @@ const Home = () => {
                     <Text className="text-center text-2xl font-bold text-gray-800 mb-2 ">
                       <Text className=" text-2xl font-pextralight ">®️</Text>{" "}
                       Receipts : {receiptStats.totalCount}
-                    </Text>
-
-                    <Text
-                      className=" text-base font-pregular text-gray-600 mb-2"
-                      style={{
-                        fontSize: Platform.select({
-                          // <--- Use Platform.select for fontSize
-                          ios: 14, // Smaller font size for iOS (e.g., original text-xs)
-                          android: 12, // Slightly larger for Android if needed, or keep 10
-                        }),
-                      }}
-                    >
-                      🔥 Overall Spending Recorded: {""}
-                      <Text className="text-center text-base font-pbold text-[#4E17B3] mt-4 ">
-                        💵 {receiptStats.overallSpending.toFixed(2)}{" "}
-                        {/* Display overall spending */}
-                      </Text>
                     </Text>
 
                     <Text

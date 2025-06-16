@@ -1,9 +1,4 @@
-// Function Name: cleanupExpiredNotifications
-// Runtime: Node.js (e.g., Node.js 18.0)
-// Variables (add these to your Appwrite Function's settings):
-// APPWRITE_API_KEY (type: secret) - Your Appwrite API Key with 'documents.write' permission for your database
-// APPWRITE_DATABASE_ID (type: text) - Your database ID
-// APPWRITE_NOTIFICATIONS_COLLECTION_ID (type: text) - Your notifications collection ID
+
 
 import { Client, Databases, Query } from "node-appwrite";
 
