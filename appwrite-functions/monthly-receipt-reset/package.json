@@ -1,0 +1,10 @@
+    {
+        "name": "monthly-receipt-reset",
+        "version": "1.0.0",
+        "description": "Resets monthly receipt count for all users.",
+        "main": "src/index.js",
+        "type": "module",
+        "dependencies": {
+            "node-appwrite": "^12.0.0"
+        }
+    }

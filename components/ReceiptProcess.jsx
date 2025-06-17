@@ -45,7 +45,13 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   const [extractedData, setExtractedData] = useState(null);
   const [consentGiven, setConsentGiven] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
-  const { user, updateUnreadCount } = useGlobalContext();
+  const {
+    user,
+    updateUnreadCount,
+    applicationSettings,
+    setUser,
+    checkSessionAndFetchUser,
+  } = useGlobalContext();
 
   // NEW STATE: To control visibility after save click
   const [hasSaved, setHasSaved] = useState(false);
@@ -62,6 +68,54 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   // Assuming this code snippet is within your ReceiptProcess.jsx component
 
   const handleProcessReceipt = async () => {
+    // --- START: NEW MONTHLY RECEIPT UPLOAD LIMIT CHECK (BEFORE EXTRACTION) ---
+    if (!user || !applicationSettings) {
+      Alert.alert(
+        "Error",
+        "User or application settings not loaded. Please try again."
+      );
+      return;
+    }
+
+    const userCurrentReceiptCount = user.currentMonthReceiptCount || 0;
+    const freeLimit = applicationSettings.free_tier_receipt_limit;
+
+    if (!user.isPremium && userCurrentReceiptCount >= freeLimit) {
+      Alert.alert(
+        "Limit Reached!",
+        `You've reached your monthly limit of ${freeLimit} receipt uploads. Upgrade to Premium for unlimited uploads and more features!`,
+        [
+          { text: "Later", style: "cancel", onPress: () => onCancel() }, // Go back/dismiss
+          {
+            text: "Upgrade Now",
+            onPress: () => {
+              router.push("/upgrade-premium"); // Navigate to your upgrade page
+              onCancel(); // Close the modal if it's open
+            },
+          },
+        ]
+      );
+      // Notification for Limit Reached
+      try {
+        await createNotification({
+          user_id: user.$id,
+          title: "Receipt Upload Limit Reached",
+          message: `You've used all ${freeLimit} free monthly receipt uploads. Upgrade to Premium!`,
+          type: "limit_reached",
+          expiresAt: getFutureDate(30),
+          receipt_id: null,
+        });
+        const updatedUnreadCount = await countUnreadNotifications(user.$id);
+        updateUnreadCount(updatedUnreadCount);
+      } catch (notificationError) {
+        console.warn(
+          "Failed to create limit reached notification:",
+          notificationError
+        );
+      }
+      return; // CRUCIAL: Stop execution here
+    }
+    // --- END: NEW MONTHLY RECEIPT UPLOAD LIMIT CHECK ---
     try {
       setIsProcessing(true);
       const data = await extractReceiptData(imageUri);
@@ -193,7 +247,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
     }
 
     if (!extractedData || !imageUri || !user) {
-      Alert.alert("Error", "Missing receipt data or image.");
+      Alert.alert("Error", "Missing receipt data or image or user info.");
       return;
     }
 
@@ -209,10 +263,16 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
     if (isDuplicate) {
       Alert.alert(
         "Duplicate Receipt",
-        "This receipt already exists and won't be saved again."
+        "This receipt already exists and won't be saved again.",
+        [
+          // NEW: Add buttons array
+          {
+            text: "OK",
+            onPress: () => onProcessComplete?.(), // Call dismiss callback ONLY AFTER user presses OK
+          },
+        ]
       );
       console.log("Duplicate receipt detected:");
-      // NEW: Notification for Duplicate Receipt
       try {
         await createNotification({
           user_id: user.$id,
@@ -221,11 +281,11 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             extractedData.merchant || "Unknown Merchant"
           } on ${format(
             new Date(extractedData.datetime),
-            "MMM dd, yyyy"
+            "MMM dd,PPPP"
           )} was a duplicate and not saved.`,
-          type: "system", // or 'warning'
-          expiresAt: getFutureDate(14), // <--- Expiry: 14 days for warnings
-          receipt_id: null, // No new receipt created
+          type: "system",
+          expiresAt: getFutureDate(14),
+          receipt_id: null,
         });
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
         updateUnreadCount(updatedUnreadCount);
@@ -235,22 +295,15 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           notificationError
         );
       }
-      // onCancel();
       onProcessComplete?.();
       return;
     }
 
     try {
       setIsProcessing(true);
-      setHasSaved(true); // <-- Set hasSaved to true HERE
+      setHasSaved(true);
 
       const fileInfo = await FileSystem.getInfoAsync(imageUri);
-      // const fileUri = fileInfo.uri;
-      // const fileName = fileUri.split("/").pop();
-      // const mimeType = mime.getType(fileName); // e.g., "image/jpeg"
-
-      // Resize and compress the image before upload
-      // @ts-expect-error: manipulateAsync is deprecated but still supported
       const manipulatedImage = await ImageManipulator.manipulateAsync(
         imageUri,
         [{ resize: { width: 800 } }],
@@ -259,7 +312,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
       const fileUri = manipulatedImage.uri;
       const fileName = fileUri.split("/").pop();
-      const mimeType = mime.getType(fileName); // still valid
+      const mimeType = mime.getType(fileName);
 
       const uploadedFile = await uploadReceiptImage(
         fileUri,
@@ -271,50 +324,41 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
       console.log(`Original size: ${fileInfo.size} bytes`);
       console.log(`Manipulated image Size: ${manipulatedInfo.size}`);
-      // 1. Create a Date object from the ISO string
       const receiptDate = new Date(extractedData.datetime);
 
-      // 2. Define options for date formatting (customize as needed)
       const dateOptions = {
         year: "numeric",
-        month: "long", // 'numeric', '2-digit', 'short', 'long'
-        day: "numeric", // 'numeric', '2-digit'
+        month: "long",
+        day: "numeric",
       };
 
-      // 3. Define options for time formatting (customize as needed)
       const timeOptions = {
-        hour: "2-digit", // 'numeric', '2-digit'
-        minute: "2-digit", // 'numeric', '2-digit'
-        hour12: true, // true for AM/PM, false for 24-hour
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
       };
 
-      // 4. Format the date and time
       const formattedDate = receiptDate.toLocaleDateString(
         undefined,
         dateOptions
-      ); // `undefined` uses default locale
+      );
       const formattedTime = receiptDate.toLocaleTimeString(
         undefined,
         timeOptions
       );
 
-      // 2. Process items to include IDs
       const itemsWithIds = await Promise.all(
         extractedData.items.map(async (item) => {
           let categoryId = null;
-          // Check if item.category exists and is not an empty string before calling the function
           if (item.category) {
             const categoryDoc = await getCategoryByName(item.category);
             console.log("categoryDoc before Saving...", categoryDoc);
-            // Assuming getCategoryByName also returns the document or null
             categoryId = categoryDoc ? categoryDoc : null;
           }
 
           let subcategoryId = null;
-          // Check if item.subcategory exists and is not an empty string before calling the function
           if (item.subcategory) {
             const subcategoryDoc = await getSubcategoryByName(item.subcategory);
-            // getSubcategoryByName now returns the document or null as per previous changes
             subcategoryId = subcategoryDoc ? subcategoryDoc : null;
           }
 
@@ -327,77 +371,54 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       );
 
       console.log("extracted Receipt Data ....", extractedData);
-      // cconst userSession = await checkSession();
 
-      // --- START: MODIFIED LOGIC FOR COUNTRY AND NULL HANDLING ---
+      const locationAddress = extractedData.location?.address;
+      const locationCity = extractedData.location?.city;
+      const locationCountry = extractedData.location?.country;
 
-      // Build the location string parts using the pre-processed extractedData
-      const locationAddress = extractedData.location?.address; // Will be "" if null
-      const locationCity = extractedData.location?.city; // Will be "" if null
-      const locationCountry = extractedData.location?.country; // Will be "" if null
-
-      // Filter out empty strings (which represent the original nulls)
       const locationParts = [
         locationAddress,
         locationCity,
         locationCountry,
       ].filter(Boolean);
 
-      // If all parts are empty, then the entire location string defaults to "Unknown" for database storage.
-      // Otherwise, join the existing parts.
       const finalLocationString =
         locationParts.length > 0 ? locationParts.join(", ") : "Unknown";
       console.log("finalLocationString...", finalLocationString);
-      // For the separate 'country' field saved to Appwrite:
-      // Convert empty string "" to "null" string, otherwise use the value or default to "null".
       const countryForAppwrite =
         extractedData.location?.country === ""
-          ? "null" // If it's an empty string (from being originally null), save as "null" string
-          : String(extractedData.location?.country || "null"); // Otherwise, use its value or default to "null" string
-
+          ? "null"
+          : String(extractedData.location?.country || "null");
       console.log(
         "extractedData.loyaltyPoints...",
         extractedData.loyaltyPoints
       );
       const receiptData = {
         user_id: user.$id,
-        merchant: String(extractedData.merchant || "Unknown"), // Existing handling for merchant
-        location: finalLocationString, // This will be like "City, Country" or "Address, City" or "Country" or "Unknown"
+        merchant: String(extractedData.merchant || "Unknown"),
+        location: finalLocationString,
         datetime: extractedData.datetime || new Date().toISOString(),
         currency: String(extractedData.currency || "EGP"),
-        // Use parseFloat with || 0 to ensure numbers and handle null/undefined/empty string to 0
         subtotal: parseFloat(extractedData.subtotal || 0),
         vat: parseFloat(extractedData.vat || 0),
         total: parseFloat(extractedData.total || 0),
-        items: JSON.stringify(itemsWithIds || []), // Already handles array/null to empty array string
+        items: JSON.stringify(itemsWithIds || []),
         cardLastFourDigits: String(extractedData.cardLastFourDigits || "null"),
         cashierId: String(extractedData.cashierId || "null"),
         payment_method: String(extractedData.paymentMethod || "cash"),
         storeBranchId: String(extractedData.storeBranchId || "null"),
         transactionId: String(extractedData.transactionId || "null"),
         loyalty_points: (() => {
-          // Self-executing anonymous function to determine the value
           let value = extractedData.loyaltyPoints;
-
-          // If null, undefined, or an empty string, default to 0
           if (value === null || value === undefined || value === "") {
             return 0;
           }
-
-          // Attempt to parse as an integer
           const parsed = parseInt(value);
-
-          // If parsing results in a valid number, return it.
-          // isNaN(parsed) checks if parsing failed (e.g., if value was "abc").
-          // Fallback to 0 if parsing fails.
           if (!isNaN(parsed)) {
             return parsed;
           }
-
-          // If the value was not null/undefined/empty string and not a parseable integer (e.g., "not a number"),
-          // still default to 0 to satisfy Appwrite's integer requirement.
           return 0;
-        })(), // Call the function immediately
+        })(),
         notes: String(extractedData.notes || "null"),
         image_file_id: uploadedFile.$id,
         image_type: uploadedFile.mimeType,
@@ -405,14 +426,53 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         image_url: `https://cloud.appwrite.io/v1/storage/buckets/${uploadedFile.bucketId}/files/${uploadedFile.$id}/view?project=${projectId}`,
       };
 
-      // --- END: MODIFIED LOGIC FOR COUNTRY AND NULL HANDLING ---
+      const userCurrentReceiptCount = user.currentMonthReceiptCount || 0; // Get current count from global user object
+      console.log(
+        "LOG currentMonthReceiptCount.......>>>",
+        userCurrentReceiptCount
+      ); // Log the value being passed // Call createReceipt with receiptData, user ID, and current receipt count
 
-      // Save receipt metadata in the database
-      const response = await createReceipt(receiptData);
+      const { receipt: newReceipt, updatedUser: freshUser } =
+        await createReceipt(
+          // NEW: Destructure response
+          receiptData,
+          user.$id,
+          userCurrentReceiptCount
+        );
 
-      if (response && response.$id) {
-        Alert.alert("Success", "Receipt saved successfully!");
-        // Create Receipt Upload notification (Existing, added type)
+      if (newReceipt && newReceipt.$id) {
+        if (freshUser) {
+          setTimeout(() => {
+            setUser(freshUser);
+          }, 200);
+          // Update global user state with the latest count
+          console.log(
+            "Global user state updated with new receipt count:",
+            freshUser.currentMonthReceiptCount
+          );
+          // Check the receipt part of the response
+          Alert.alert("Success", "Receipt saved successfully!", [
+            // NEW: Add buttons array
+            {
+              text: "OK",
+              onPress: () => {
+                onProcessComplete?.(); // Call onProcessComplete after OK is pressed
+              },
+            },
+          ]); // NEW: Directly update the user in global context with the fresh data
+        } else {
+          // Fallback if updatedUser is unexpectedly null (though it shouldn't be with current createReceipt)
+          // Still call checkSessionAndFetchUser to attempt a full refresh.
+
+          setTimeout(async () => {
+            await checkSessionAndFetchUser();
+          }, 200);
+
+          console.warn(
+            "freshUser was null after createReceipt. Triggering full user refresh."
+          );
+        }
+
         await createNotification({
           user_id: user.$id,
           title: "Receipt Processed",
@@ -421,19 +481,17 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           } (${parseFloat(extractedData.total || 0).toFixed(
             2
           )}) has been successfully processed!`,
-          receipt_id: response.$id,
-          type: "receipt", // <--- Added type
-          expiresAt: getFutureDate(7), // <--- Expiry: 14 days for warnings
+          receipt_id: newReceipt.$id, // Use newReceipt here
+          type: "receipt",
+          expiresAt: getFutureDate(7),
         });
-        // --- POINTS & BADGES INTEGRATION START ---
-        // 1. Award points for receipt upload
-        const pointsEarned = 0; // Example: 10 points per receipt
+
+        const pointsEarned = 0;
         await updateUserPoints(user.$id, pointsEarned, "receipt_upload");
         console.log(
           `User ${user.$id} earned ${pointsEarned} points for receipt upload.`
         );
 
-        // 2. Check for badges
         const earnedBadges = await checkAndAwardBadges(user.$id);
         if (earnedBadges.length > 0) {
           const badgeNames = earnedBadges.map((badge) => badge.name).join(", ");
@@ -445,29 +503,24 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             `You earned new badges: ${badgeNames}! You earned Extra Points: ${pointsExtra}!`
           );
 
-          // Create Points notification (Existing, added type)
           await createNotification({
             user_id: user.$id,
             title: "Achievement Unlocked!",
             message: `You earned ${pointsExtra} Extra Points for ${badgeNames}! Keep up the great work!`,
-            type: "points_award", // <--- Added type
-            expiresAt: getFutureDate(7), // <--- Expiry: 14 days for warnings
-            // You might link to receipt_id or budget_id if relevant, but for a general achievement, it might be null
+            type: "points_award",
+            expiresAt: getFutureDate(7),
           });
           console.log(`User ${user.$id} earned badges: ${badgeNames}`);
         }
 
-        // Update the unread notification count in the context
-        const updatedUnreadCount = await countUnreadNotifications(user.$id); // Fetch updated unread count
-        updateUnreadCount(updatedUnreadCount); // Update context with new unread count
-        onCancel(); // Close the modal
+        const updatedUnreadCount = await countUnreadNotifications(user.$id);
+        updateUnreadCount(updatedUnreadCount);
+        onCancel();
 
-        onProcessComplete?.(); // <--- Call the single success callback
-        // router.replace("/home");
+        onProcessComplete?.();
       } else {
-        console.error("Invalid response from createReceipt:", response);
+        console.error("Invalid response from createReceipt:", newReceipt);
         Alert.alert("Error", "Receipt was not saved. Please try again.");
-        // NEW: Notification for Generic Save Failure
         try {
           await createNotification({
             user_id: user.$id,
@@ -475,8 +528,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             message: `Failed to save your receipt for ${
               extractedData.merchant || "Unknown"
             }. Please try again.`,
-            type: "error", // or 'system'
-            expiresAt: getFutureDate(14), // <--- Expiry: 14 days for warnings
+            type: "error",
+            expiresAt: getFutureDate(14),
           });
           const updatedUnreadCount = await countUnreadNotifications(user.$id);
           updateUnreadCount(updatedUnreadCount);
@@ -490,8 +543,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
     } catch (error) {
       console.error("Save error:", error);
       Alert.alert("Error", "Could not save receipt.");
-      setHasSaved(false); // Reset if save fails
-      // NEW: Notification for Catch-all Save Error
+      setHasSaved(false);
       try {
         await createNotification({
           user_id: user.$id,
@@ -499,8 +551,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           message: `An unexpected error occurred while saving your receipt. Error: ${
             error.message || "Unknown error"
           }.`,
-          type: "error", // or 'system'
-          expiresAt: getFutureDate(14), // <--- Expiry: 14 days for warnings
+          type: "error",
+          expiresAt: getFutureDate(14),
         });
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
         updateUnreadCount(updatedUnreadCount);
@@ -514,7 +566,6 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       setIsProcessing(false);
     }
   };
-
   const getCategoryByName = async (categoryName) => {
     try {
       const category = await getCategoriesByName(categoryName); // Changed to getCategoriesByName

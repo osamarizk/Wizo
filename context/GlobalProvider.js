@@ -10,6 +10,7 @@ import {
   getCurrentUser,
   countUnreadNotifications,
   chkBudgetInitialization,
+  getApplicationSettings,
 } from "../lib/appwrite";
 
 const GlobalContext = createContext();
@@ -23,6 +24,7 @@ const GlobalProvider = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [hasBudget, setHasBudget] = useState(false);
+  const [applicationSettings, setApplicationSettings] = useState(null);
   // Removed `isBudgetInitialized` as `hasBudget` now serves this purpose.
 
   // Function to fetch unread notifications count
@@ -61,12 +63,25 @@ const GlobalProvider = ({ children }) => {
     }
   }, []); // No dependencies as it manages its own loading and internal calls
 
+  // NEW: Function to fetch global application settings
+  const fetchApplicationGlobalSettings = useCallback(async () => {
+    try {
+      const settings = await getApplicationSettings();
+      setApplicationSettings(settings);
+      console.log("Global Application Settings fetched:", settings);
+    } catch (error) {
+      console.error("Error fetching global application settings:", error);
+      // Even if fetch fails, the getApplicationSettings function returns defaults,
+      // so applicationSettings won't be null.
+    }
+  }, []);
   useEffect(() => {
     // Initial check on component mount
+    fetchApplicationGlobalSettings();
     checkSessionAndFetchUser().finally(() => {
       setLoading(false); // Mark initial loading as complete
     });
-  }, [checkSessionAndFetchUser]); // Dependency array to re-run only if checkSessionAndFetchUser changes (which it won't due to useCallback)
+  }, [fetchApplicationGlobalSettings, checkSessionAndFetchUser]); // Dependency array to re-run only if checkSessionAndFetchUser changes (which it won't due to useCallback)
 
   // Function to check budget initialization status
   const checkBudgetInitialization = useCallback(async (userId) => {
@@ -104,6 +119,7 @@ const GlobalProvider = ({ children }) => {
         setHasBudget,
         checkBudgetInitialization, // Expose this function for external use
         checkSessionAndFetchUser, // Expose the new function for re-fetching user data
+        applicationSettings,
       }}
     >
       {children}

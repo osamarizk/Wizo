@@ -63,10 +63,11 @@ const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
   };
 
   const handleProcessComplete = () => {
-    // This function will be called by ReceiptProcess
-    setSelectedImageUri(null); // Clear image
     onUploadSuccess?.(); // Call the parent's (home.jsx's) success handler
     onClose(); // Close the modal
+    setTimeout(() => {
+      setSelectedImageUri(null);
+    }, 200);
   };
 
   return (

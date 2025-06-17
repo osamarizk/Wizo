@@ -11,8 +11,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, router } from "expo-router";
-import GradientBackground from "../components/GradientBackground"
-import icons from "../constants/icons"
+import GradientBackground from "../components/GradientBackground";
+import icons from "../constants/icons";
 import { useGlobalContext } from "../context/GlobalProvider";
 import { updateUserPremiumStatus } from "../lib/appwrite";
 
@@ -43,7 +43,8 @@ const PremiumBenefits = [
 
 const UpgradePremium = () => {
   const navigation = useNavigation();
-  const { user, setUser, checkSessionAndFetchUser } = useGlobalContext();
+  const { user, setUser, checkSessionAndFetchUser, globalLoading } =
+    useGlobalContext();
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [localizedPrice, setLocalizedPrice] = useState("Loading Price...");
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
