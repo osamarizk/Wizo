@@ -32,7 +32,7 @@ client
 
 const databases = new Databases(client);
 
-module.exports = async ({ req, res, log, error }) => {
+export default async ({ req, res, log, error }) => {
   log("Monthly Receipt Count Reset Function triggered.");
 
   if (!databaseId || !userCollectionId) {
