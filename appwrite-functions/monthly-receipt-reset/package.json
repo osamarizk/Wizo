@@ -3,6 +3,7 @@
         "version": "1.0.0",
         "description": "Resets monthly receipt count for all users.",
         "main": "src/index.js",
+        "type": "module",
         "dependencies": {
             "node-appwrite": "^11.0.0"
         }
