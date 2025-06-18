@@ -56,8 +56,8 @@ export default async ({ req, res, log, error }) => {
     // Loop to fetch all users in batches
     while (true) {
       const usersResponse = await databases.listDocuments(
-        APPWRITE_DATABASE_ID,
-        APPWRITE_USERS_COLLECTION_ID,
+        databaseId,
+        userCollectionId,
         [
           Query.offset(offset),
           Query.limit(limit),
@@ -67,7 +67,7 @@ export default async ({ req, res, log, error }) => {
 
       if (usersResponse.documents.length === 0) {
         log("No more users to process. Exiting loop.");
-        break; 
+        break;
       }
 
       log(
@@ -94,8 +94,8 @@ export default async ({ req, res, log, error }) => {
         if (hasUpdate) {
           return databases
             .updateDocument(
-              APPWRITE_DATABASE_ID,
-              APPWRITE_USERS_COLLECTION_ID,
+              databaseId,
+              userCollectionId,
               userDoc.$id,
               updateFields
             )
