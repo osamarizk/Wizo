@@ -1268,19 +1268,19 @@ const Home = () => {
                 </Pressable>
               </Modal>
               {/* === START NEW: Combined Monthly Usage Tracker Card === */}
-
               {receiptStats.totalCount > 0 &&
                 user &&
                 !user.isPremium &&
                 applicationSettings && (
                   <View className=" bg-transparent rounded-xl  mx-4">
                     {/* <Text className="text-lg font-pbold text-gray-800 mb-2">
-                    Your Monthly Usage
-                  </Text> */}
-                    {/* <Text className="text-sm font-pregular text-gray-600 mb-4">
-                    Track your free tier limits and upgrade for unlimited access!
-                  </Text>
-                */}
+                      Your Monthly Usage
+                    </Text>
+                    <Text className="text-sm font-pregular text-gray-600 mb-2">
+                      Track your free tier limits and upgrade for unlimited
+                      access!
+                    </Text> */}
+
                     {(() => {
                       const renderTrackerRow = (title, currentCount, limit) => {
                         const percentageUsed =
@@ -1312,7 +1312,7 @@ const Home = () => {
                               <View className="h-3 bg-gray-300 rounded-full w-full overflow-hidden">
                                 <View
                                   className={`h-full ${
-                                    isOverLimit ? "bg-red-500" : "bg-purple-600"
+                                    isOverLimit ? "bg-red-500" : "bg-[#9F54B6]"
                                   } rounded-full`}
                                   style={{
                                     width: `${Math.min(percentageUsed, 100)}%`,
@@ -1322,13 +1322,13 @@ const Home = () => {
                             )}
 
                             <Text
-                              className={`text-xs font-pregular mt-1 ${
+                              className={`text-xs font-psemibold mt-1 ${
                                 isOverLimit ? "text-red-600" : "text-green-600"
                               }`}
                             >
                               {isOverLimit
                                 ? `Limit Reached!`
-                                : `Remaining: ${remaining} uploads`}
+                                : `Remaining: ${remaining} Receipts`}
                             </Text>
                           </View>
                         );

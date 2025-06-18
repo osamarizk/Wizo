@@ -51,6 +51,7 @@ const Budget = () => {
     hasBudget,
     checkBudgetInitialization,
     updateUnreadCount,
+    applicationSettings,
   } = useGlobalContext();
   const navigation = useNavigation();
 
@@ -61,6 +62,7 @@ const Budget = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [categoriesMap, setCategoriesMap] = useState({});
   const [monthlySpendingSummary, setMonthlySpendingSummary] = useState([]);
+  const [activeBudgetsCount, setActiveBudgetsCount] = useState(0);
 
   const [showPointsBadgeModal, setShowPointsBadgeModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
@@ -182,12 +184,16 @@ const Budget = () => {
 
       const budgets = initialized ? await getUserBudgets(user.$id) : [];
       setUserBudgets(budgets);
-      console.log(
-        "fetchBudgetData: Fetched user budgets, count:",
-        budgets.length
-      );
 
-      console.log("fetchBudgetData: Fetching user points...");
+      // --- START NEW: Count active budgets ---
+      const activeBudgets = budgets.filter((b) => b.is_active);
+      setActiveBudgetsCount(activeBudgets.length);
+      console.log(
+        "fetchBudgetData: Active budgets count:",
+        activeBudgets.length
+      );
+      // --- END NEW ---
+
       const userPointsDocs = await getUserPoints(user.$id);
       if (userPointsDocs && userPointsDocs.length > 0) {
         setUserTotalPoints(userPointsDocs[0].points || 0);
@@ -344,6 +350,48 @@ const Budget = () => {
   }, [fetchBudgetData]);
 
   const handleSetupBudget = () => {
+    // --- START NEW: Active Budget Limit Check ---
+    if (!user || !applicationSettings) {
+      Alert.alert(
+        "Error",
+        "User or application settings not loaded. Please try again."
+      );
+      return;
+    }
+
+    const freeBudgetLimit = applicationSettings.free_tier_budget_count || 0;
+
+    if (!user.isPremium && activeBudgetsCount >= freeBudgetLimit) {
+      Alert.alert(
+        "Budget Limit Reached!",
+        `You've reached your limit of ${freeBudgetLimit} active budgets. Upgrade to Premium for unlimited budgets and more features!`,
+        [
+          { text: "Later", style: "cancel" }, // Just dismiss
+          {
+            text: "Upgrade Now",
+            onPress: () => router.push("/upgrade-premium"),
+          },
+        ]
+      );
+      // Optional: Create a notification for the user about the limit
+      // try {
+      //     await createNotification({
+      //         user_id: user.$id,
+      //         title: "Budget Limit Reached",
+      //         message: `You've used all ${freeBudgetLimit} free active budgets. Upgrade to Premium!`,
+      //         type: "limit_reached",
+      //         expiresAt: getFutureDate(30), // You need getFutureDate from lib/appwrite
+      //         budget_id: null,
+      //     });
+      //     const updatedUnreadCount = await countUnreadNotifications(user.$id);
+      //     updateUnreadCount(updatedUnreadCount);
+      // } catch (notificationError) {
+      //     console.warn("Failed to create budget limit notification:", notificationError);
+      // }
+      return; // Stop budget setup
+    }
+    // --- END NEW: Active Budget Limit Check ---
+
     setInitialBudgetDataForSetup(null);
     setShowBudgetSetupModal(true);
   };
@@ -460,11 +508,90 @@ const Budget = () => {
               </TouchableOpacity>
             )}
           </View>
-
           <Text className="text-sm font-pregular text-gray-600 text-left mb-4 mt-2">
             Set up and manage your budgets to keep track of your spending habits
             and financial goals.
           </Text>
+          {/* --- START NEW: Active Budget Tracker Card --- */}
+          {user && !user.isPremium && applicationSettings && (
+            <View className="bg-white rounded-xl p-4 mx-0 mb-6 shadow-md border border-gray-200">
+              <Text className="text-lg font-pbold text-gray-800 mb-2">
+                Active Budget Tracker
+              </Text>
+
+              <Text className="text-sm font-pregular text-gray-600 mb-4">
+                Monitor your current active budgets and manage your financial
+                goals.
+              </Text>
+
+              {(() => {
+                const currentActive = activeBudgetsCount || 0;
+                const limit = applicationSettings.free_tier_budget_count || 0;
+                const percentageUsed =
+                  limit > 0 ? (currentActive / limit) * 100 : 0;
+                const isOverLimit = currentActive >= limit;
+                const remainingBudgets = limit - currentActive;
+
+                return (
+                  <View className="mb-2 items-start w-full">
+                    <Text className="text-base font-pbold text-gray-800 mb-1">
+                      Active Budgets:
+                      <Text className="text-sm font-pbold text-gray-700">
+                        {currentActive}{" "}
+                        {limit > 0 && (
+                          <Text
+                            className={
+                              isOverLimit ? "text-red-500" : "text-gray-600"
+                            }
+                          >
+                            / {limit}{" "}
+                          </Text>
+                        )}
+                      </Text>
+                    </Text>
+
+                    {limit > 0 && (
+                      <View className="h-3 bg-gray-200 rounded-full w-full overflow-hidden">
+                        <View
+                          className={`h-full ${
+                            isOverLimit ? "bg-red-500" : "bg-purple-600"
+                          } rounded-full`}
+                          style={{ width: `${Math.min(percentageUsed, 100)}%` }}
+                        />
+                      </View>
+                    )}
+
+                    <View className="flex-row justify-between items-center w-full mt-2">
+                      <Text
+                        className={`text-sm font-pregular ${
+                          isOverLimit ? "text-red-600" : "text-green-600"
+                        }`}
+                      >
+                        {isOverLimit
+                          ? `Limit Reached!`
+                          : `Remaining: ${remainingBudgets} budgets`}
+                      </Text>
+
+                      <TouchableOpacity
+                        onPress={() => router.push("/upgrade-premium")}
+                        className="flex-row items-center justify-center p-2 px-3 rounded-md bg-purple-600 shadow-sm"
+                      >
+                        <Image
+                          source={icons.star}
+                          className="w-4 h-4 tint-white mr-1"
+                          resizeMode="contain"
+                        />
+
+                        <Text className="text-white font-psemibold text-xs">
+                          Upgrade to Premium
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })()}
+            </View>
+          )}
 
           {(userTotalPoints > 0 ||
             userBadges.length > 0 ||
@@ -507,7 +634,6 @@ const Budget = () => {
               )}
             </View>
           )}
-
           {/* NEW: Button to navigate to Budget Insights */}
           {hasBudget && (
             <TouchableOpacity
@@ -519,7 +645,6 @@ const Budget = () => {
               </Text>
             </TouchableOpacity>
           )}
-
           {monthlySpendingSummary.length > 0 && (
             <View className="bg-transparent p-4  border-t border-[#9F54B6]">
               <Text className="text-base font-pbold text-black mb-2">
@@ -575,7 +700,6 @@ const Budget = () => {
               ))}
             </View>
           )}
-
           {userBudgets.length > 0 && (
             <View className="p-2 mb-4 rounded-xl border-t border-purple-400">
               <Text className="text-base font-pbold text-black mb-4 ">
@@ -616,7 +740,6 @@ const Budget = () => {
               </View>
             </View>
           )}
-
           {!hasBudget && (
             <View className="bg-transparent py-4 px-2.5 mb-2 border-2 border-[#9F54B6] rounded-xl">
               <Text className="text-base font-pmedium text-gray-600 text-center mb-3">
@@ -633,7 +756,6 @@ const Budget = () => {
               </TouchableOpacity>
             </View>
           )}
-
           <View className="h-20" />
         </ScrollView>
       </SafeAreaView>
