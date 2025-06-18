@@ -85,6 +85,7 @@ const Home = () => {
     setShowUploadModal,
     loading: globalLoading,
     checkBudgetInitialization,
+    applicationSettings,
   } = useGlobalContext();
 
   // State variables for various data and UI controls
@@ -488,7 +489,7 @@ const Home = () => {
     try {
       // Only upload if the user is an admin
       if (user?.email === "osama@gmail.com") {
-        //  <- Replace with your actual admin check
+        // <- Replace with your actual admin check
         console.log("Home: User is admin, proceeding with data upload.");
         await createCategories(categoriesData);
         await createSubcategories(subcategoriesData, categoriesData);
@@ -1020,7 +1021,6 @@ const Home = () => {
                   </TouchableOpacity>
                 </View>
               </View>
-
               {receiptStats.totalCount === 0 && (
                 <View className="flex-1 justify-center items-center px-4 mt-5">
                   <Image
@@ -1058,7 +1058,6 @@ const Home = () => {
                   </View>
                 </View>
               )}
-
               {/* Receipt View Modal */}
               <Modal
                 animationType="slide"
@@ -1180,6 +1179,85 @@ const Home = () => {
                 </Pressable>
               </Modal>
 
+              {/* === START NEW: Monthly Receipt Upload Tracker Card (Visual Progress Bar) === */}
+              {receiptStats.totalCount > 0 &&
+                user &&
+                !user.isPremium &&
+                applicationSettings && (
+                  <View className="bg-transparent rounded-xl p-2 mx-4 mb-1  border-t border-[#9F54B6]">
+                    {(() => {
+                      const currentCount = user.currentMonthReceiptCount || 0;
+                      const limit =
+                        applicationSettings.free_tier_receipt_limit || 0;
+                      const percentageUsed =
+                        limit > 0 ? (currentCount / limit) * 100 : 0;
+                      const isOverLimit = currentCount >= limit;
+
+                      return (
+                        <View className="mb-2 items-start">
+                          {/* <Text className="text-base font-pbold text-gray-800 mb-1">
+                            Receipts Uploaded
+                          </Text> */}
+
+                          <Text className="text-sm font-pbold text-gray-700 mb-1">
+                            {currentCount}
+
+                            {limit > 0 && (
+                              <Text
+                                className={
+                                  isOverLimit ? "text-red-500" : "text-gray-600"
+                                }
+                              >
+                                / {limit}
+                              </Text>
+                            )}
+                          </Text>
+
+                          {limit > 0 && (
+                            <View className="h-4 bg-gray-300 rounded-md w-full overflow-hidden">
+                              <View
+                                className={`h-full ${
+                                  isOverLimit ? "bg-red-500" : "bg-purple-600"
+                                } rounded-md`}
+                                style={{
+                                  width: `${Math.min(percentageUsed, 100)}%`,
+                                }} // Cap at 100%
+                              />
+                            </View>
+                          )}
+                          <View className="flex-row justify-between items-center w-full mt-1">
+                            <Text
+                              className={`text-sm font-psemibold mt-1 ${
+                                isOverLimit ? "text-red-600" : "text-green-600"
+                              }`}
+                            >
+                              {isOverLimit
+                                ? `Limit Reached!`
+                                : `Remaining: ${limit - currentCount} uploads`}
+                            </Text>
+
+                            <TouchableOpacity
+                              onPress={() => router.push("/upgrade-premium")}
+                              className="flex-row items-center justify-center rounded-md mt-1 bg-transparent "
+                            >
+                              <Image
+                                source={icons.star}
+                                className="w-5 h-5 mr-1"
+                                tintColor="green"
+                                resizeMode="contain"
+                              />
+
+                              <Text className="text-purple-800 font-psemibold text-sm underline">
+                                Upgrade to Premium
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      );
+                    })()}
+                  </View>
+                )}
+
               {/* Receipt Summary */}
               {receiptStats.totalCount > 0 && (
                 <View className="p-2  mb-2 rounded-md border-t border-[#9F54B6] border-opacity-50 ">
@@ -1187,9 +1265,9 @@ const Home = () => {
                     onPress={() => router.push("/notification")}
                     className="relative p-2 rounded-full mt-1"
                   >
-                    <Text className="text-center text-gray-600 mb-2  font-pregular">
+                    {/* <Text className="text-center text-gray-600 mb-2  font-pregular">
                       Total Receipts
-                    </Text>
+                    </Text> */}
 
                     <Text className="text-center text-2xl font-bold text-gray-800 mb-2 ">
                       <Text className=" text-2xl font-pextralight ">®️</Text>{" "}
@@ -1349,7 +1427,6 @@ const Home = () => {
                   </Pressable>
                 </Modal>
               )}
-
               {/* Top Spending Insights */}
               {receiptStats.highestSpendingCategory && (
                 <View className=" p-4 mt-2 border-opacity-50 mb-4 border-t border-[#9F54B6]">
@@ -1408,7 +1485,6 @@ const Home = () => {
               )}
               {/* Consolidated Receipts Latest Upload and Search Display Section */}
               {/* Collapsible Search Filter Section */}
-
               {receiptStats.totalCount > 0 && (
                 <View className="p-2  mb-1 border-t border-[#9F54B6]">
                   <View className="flex-row justify-between items-center">
@@ -1467,7 +1543,6 @@ const Home = () => {
                   )}
                 </View>
               )}
-
               {/* Consolidated Receipts Display Section */}
               {receiptStats.totalCount > 0 && (
                 <View className="p-4 border rounded-md border-[#9F54B6] mb-4 border-x-0 ">
@@ -1606,7 +1681,6 @@ const Home = () => {
                   )}
                 </View>
               )}
-
               {/* SearchFilter Modal */}
               <Modal
                 animationType="slide"
