@@ -214,6 +214,24 @@ const ApplicationSettings = () => {
               </Text>
             </View>
 
+            {/* Monthly Receipt Upload Limit */}
+            <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
+              <Text className="text-lg font-pregular text-gray-700">
+                Monthly Receipts Download Limit:
+              </Text>
+              <Text
+                className={`text-lg font-psemibold ${
+                  isPremiumUser ? "text-green-600" : "text-orange-500"
+                }`}
+              >
+                {/* Use applicationSettings for free and premium limit text */}
+                {isPremiumUser
+                  ? applicationSettings.premium_data_downloads_text ||
+                    "Unlimited"
+                  : applicationSettings.free_tier_data_downloads_monthly || 0}
+              </Text>
+            </View>
+
             {/* Active Budget Limit */}
             <View className="flex-row items-center justify-between py-3 border-b border-gray-100">
               <Text className="text-lg font-pregular text-gray-700">

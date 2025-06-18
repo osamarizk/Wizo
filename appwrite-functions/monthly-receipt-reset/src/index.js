@@ -47,21 +47,21 @@ export default async ({ req, res, log, error }) => {
 
   let offset = 0;
   const limit = 100; // Process 100 users at a time
+  let totalUsersUpdatedReceipt = 0;
+  let totalUsersUpdatedDownload = 0;
   let totalUsersUpdated = 0;
-
   try {
-    log("Starting to fetch and reset user receipt counts...");
+    log("Starting to fetch and reset user counts...");
 
     // Loop to fetch all users in batches
     while (true) {
       const usersResponse = await databases.listDocuments(
-        databaseId,
-        userCollectionId,
+        APPWRITE_DATABASE_ID,
+        APPWRITE_USERS_COLLECTION_ID,
         [
           Query.offset(offset),
           Query.limit(limit),
           // Add any other queries if you only want to reset specific users (e.g., free tier users)
-          // Query.equal('isPremium', false) // If you only track free tier usage
         ]
       );
 
@@ -75,23 +75,44 @@ export default async ({ req, res, log, error }) => {
       );
 
       const updatePromises = usersResponse.documents.map((userDoc) => {
-        // Only update if currentMonthReceiptCount is not already 0
+        let updateFields = {};
+        let hasUpdate = false;
+
+        // Reset receipt count if not already 0
         if (userDoc.currentMonthReceiptCount > 0) {
+          updateFields.currentMonthReceiptCount = 0;
+          hasUpdate = true;
+        }
+
+        // Reset download count if not already 0
+        if (userDoc.currentMonthDownloadCount > 0) {
+          // NEW: Check download count
+          updateFields.currentMonthDownloadCount = 0; // NEW: Reset download count
+          hasUpdate = true;
+        }
+
+        if (hasUpdate) {
           return databases
-            .updateDocument(databaseId, userCollectionId, userDoc.$id, {
-              currentMonthReceiptCount: 0,
-            })
+            .updateDocument(
+              APPWRITE_DATABASE_ID,
+              APPWRITE_USERS_COLLECTION_ID,
+              userDoc.$id,
+              updateFields
+            )
             .then(() => {
-              totalUsersUpdated++;
-              log(`User ${userDoc.$id} receipt count reset.`);
+              if (userDoc.currentMonthReceiptCount > 0)
+                totalUsersUpdatedReceipt++;
+              if (userDoc.currentMonthDownloadCount > 0)
+                totalUsersUpdatedDownload++; // NEW: Increment download counter
+              log(`User ${userDoc.$id} counts reset.`);
             })
             .catch((updateError) => {
               error(
-                `Failed to reset count for user ${userDoc.$id}: ${updateError.message}`
+                `Failed to reset counts for user ${userDoc.$id}: ${updateError.message}`
               );
             });
         }
-        return Promise.resolve(); // If already 0, no update needed
+        return Promise.resolve(); // No update needed for this user
       });
 
       await Promise.all(updatePromises); // Wait for all updates in the current batch
@@ -100,17 +121,20 @@ export default async ({ req, res, log, error }) => {
     }
 
     log(
-      `Finished. Total users whose receipt count was reset: ${totalUsersUpdated}`
+      `Finished. Total users whose receipt count was reset: ${totalUsersUpdatedReceipt}`
     );
+    log(
+      `Finished. Total users whose download count was reset: ${totalUsersUpdatedDownload}`
+    ); // NEW: Log download total
     return res.json(
       {
         success: true,
-        message: `Monthly receipt counts reset for ${totalUsersUpdated} users.`,
+        message: `Monthly counts reset for ${totalUsersUpdatedReceipt} receipts and ${totalUsersUpdatedDownload} downloads.`,
       },
       200
     );
   } catch (e) {
-    error(`Error in Monthly Receipt Reset Function: ${e.message}`);
+    error(`Error in Monthly Reset Function: ${e.message}`);
     return res.json(
       {
         success: false,

@@ -40,6 +40,7 @@ import {
   getMonthlyReceiptSummary,
   createNotification,
   getFutureDate,
+  updateUserDownloadCount,
 } from "../../lib/appwrite";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -86,6 +87,8 @@ const Home = () => {
     loading: globalLoading,
     checkBudgetInitialization,
     applicationSettings,
+    setUser,
+    updateUnreadCount,
   } = useGlobalContext();
 
   // State variables for various data and UI controls
@@ -792,6 +795,58 @@ const Home = () => {
       return;
     }
 
+    // Access user and applicationSettings from global context
+
+    // --- START NEW: Monthly Download Limit Check ---
+    if (!user || !applicationSettings) {
+      Alert.alert(
+        "Error",
+        "User or application settings not loaded. Please try again."
+      );
+      return;
+    }
+
+    const userCurrentDownloadCount = user.currentMonthDownloadCount || 0;
+    const freeDownloadLimit =
+      applicationSettings.free_tier_data_downloads_monthly || 0;
+
+    if (!user.isPremium && userCurrentDownloadCount >= freeDownloadLimit) {
+      Alert.alert(
+        "Download Limit Reached!",
+        `You've reached your monthly limit of ${freeDownloadLimit} receipt downloads. Upgrade to Premium for unlimited downloads and more features!`,
+        [
+          { text: "Later", style: "cancel" }, // Just dismiss
+          {
+            text: "Upgrade Now",
+            onPress: () => {
+              setShowReceiptOptionsModal(false);
+              router.push("/upgrade-premium");
+            },
+          },
+        ]
+      );
+      // Notification for Limit Reached
+      try {
+        await createNotification({
+          user_id: user.$id,
+          title: "Download Limit Reached",
+          message: `You've used all ${freeDownloadLimit} free monthly receipt downloads. Upgrade to Premium!`,
+          type: "limit_reached",
+          expiresAt: getFutureDate(30),
+          receipt_id: null,
+        });
+        const updatedUnreadCount = await countUnreadNotifications(user.$id);
+        updateUnreadCount(updatedUnreadCount);
+      } catch (notificationError) {
+        console.warn(
+          "Failed to create download limit notification:",
+          notificationError
+        );
+      }
+      setIsDownloading(false); // Ensure loading state is reset
+      return; // Stop the download process
+    }
+
     setIsDownloading(true); // <--- Set loading to true when download starts
 
     try {
@@ -826,7 +881,24 @@ const Home = () => {
         UTI: "public.jpeg",
       });
 
-      // NEW: Notification for successful download and share
+      try {
+        const freshUser = await updateUserDownloadCount(
+          user.$id,
+          userCurrentDownloadCount
+        );
+        setUser(freshUser); // Update global user state with the latest count
+        console.log(
+          "Global user state updated with new download count:",
+          freshUser.currentMonthDownloadCount
+        );
+      } catch (incrementError) {
+        console.warn(
+          "Failed to increment user download count:",
+          incrementError
+        );
+        // Log the error but don't stop the main flow, as the download succeeded.
+      }
+
       try {
         await createNotification({
           user_id: user.$id,
