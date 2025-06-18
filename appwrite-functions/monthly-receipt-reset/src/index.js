@@ -67,7 +67,7 @@ export default async ({ req, res, log, error }) => {
 
       if (usersResponse.documents.length === 0) {
         log("No more users to process. Exiting loop.");
-        break; // No more users
+        break; 
       }
 
       log(
