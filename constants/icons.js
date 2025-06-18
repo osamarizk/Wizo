@@ -40,7 +40,7 @@ import badgePlaceholder from "../assets/icons/badgePlaceholder.png";
 import star from "../assets/icons/star.png";
 import medal from "../assets/icons/medal.png";
 import gear from "../assets/icons/gear.png";
-
+import upgrade from "../assets/icons/upgrade.png";
 // budget.png
 // import receipt from "../assets/icons/receipt";
 export default {
@@ -86,4 +86,5 @@ export default {
   star,
   medal,
   gear,
+  upgrade,
 };

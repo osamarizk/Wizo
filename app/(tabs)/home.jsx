@@ -1059,8 +1059,8 @@ const Home = () => {
                       : "User"}
                   </Text>
                 </View>
-
-                <View className="flex-row items-center space-x-6">
+                {/* Notification icon */}
+                <View className="flex-row items-center space-x-3">
                   <TouchableOpacity
                     onPress={() => router.push("/notification")}
                     className="relative p-2 rounded-full mt-1"
@@ -1079,10 +1079,10 @@ const Home = () => {
                     )}
                   </TouchableOpacity>
 
-                  {/* NEW: Profile Icon */}
+                  {/* Settings */}
                   <TouchableOpacity
                     onPress={() => router.push("/account")} // Replace "/account-page" with your actual route for the Account/Profile screen
-                    className="p-2"
+                    className="p-1"
                   >
                     <Image
                       source={icons.gear} // Assuming you have a 'profile' icon in your icons.js
@@ -1091,8 +1091,25 @@ const Home = () => {
                       resizeMode="contain"
                     />
                   </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => router.push("/upgrade-premium")}
+                    className="p-1 items-center"
+                  >
+                    <Image
+                      source={icons.star}
+                      className="w-7 h-7"
+                      tintColor="#06d6a0" // Adjust tint color as needed
+                      resizeMode="contain"
+                    />
+
+                    <Text className="text-[#4E17B3] font-psemibold text-xs mt-1">
+                      Premium
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
+              {/* Logo */}
               {receiptStats.totalCount === 0 && (
                 <View className="flex-1 justify-center items-center px-4 mt-5">
                   <Image
@@ -1250,86 +1267,95 @@ const Home = () => {
                   </View>
                 </Pressable>
               </Modal>
+              {/* === START NEW: Combined Monthly Usage Tracker Card === */}
 
-              {/* === START NEW: Monthly Receipt Upload Tracker Card (Visual Progress Bar) === */}
               {receiptStats.totalCount > 0 &&
                 user &&
                 !user.isPremium &&
                 applicationSettings && (
-                  <View className="bg-transparent rounded-xl p-2 mx-4 mb-1  border-t border-[#9F54B6]">
+                  <View className=" bg-transparent rounded-xl  mx-4">
+                    {/* <Text className="text-lg font-pbold text-gray-800 mb-2">
+                    Your Monthly Usage
+                  </Text> */}
+                    {/* <Text className="text-sm font-pregular text-gray-600 mb-4">
+                    Track your free tier limits and upgrade for unlimited access!
+                  </Text>
+                */}
                     {(() => {
-                      const currentCount = user.currentMonthReceiptCount || 0;
-                      const limit =
-                        applicationSettings.free_tier_receipt_limit || 0;
-                      const percentageUsed =
-                        limit > 0 ? (currentCount / limit) * 100 : 0;
-                      const isOverLimit = currentCount >= limit;
+                      const renderTrackerRow = (title, currentCount, limit) => {
+                        const percentageUsed =
+                          limit > 0 ? (currentCount / limit) * 100 : 0;
+                        const isOverLimit = currentCount >= limit;
+                        const remaining = limit - currentCount;
 
-                      return (
-                        <View className="mb-2 items-start">
-                          {/* <Text className="text-base font-pbold text-gray-800 mb-1">
-                            Receipts Uploaded
-                          </Text> */}
-
-                          <Text className="text-sm font-pbold text-gray-700 mb-1">
-                            {currentCount}
+                        return (
+                          <View className="mb-4 items-start w-full">
+                            <Text className="text-base font-pbold text-gray-800 mb-1">
+                              {title}:{" "}
+                              <Text className="text-sm font-pbold text-gray-700">
+                                {currentCount}
+                                {limit > 0 && (
+                                  <Text
+                                    className={
+                                      isOverLimit
+                                        ? "text-red-500"
+                                        : "text-gray-600"
+                                    }
+                                  >
+                                    / {limit}
+                                  </Text>
+                                )}
+                              </Text>
+                            </Text>
 
                             {limit > 0 && (
-                              <Text
-                                className={
-                                  isOverLimit ? "text-red-500" : "text-gray-600"
-                                }
-                              >
-                                / {limit}
-                              </Text>
+                              <View className="h-3 bg-gray-300 rounded-full w-full overflow-hidden">
+                                <View
+                                  className={`h-full ${
+                                    isOverLimit ? "bg-red-500" : "bg-purple-600"
+                                  } rounded-full`}
+                                  style={{
+                                    width: `${Math.min(percentageUsed, 100)}%`,
+                                  }}
+                                />
+                              </View>
                             )}
-                          </Text>
 
-                          {limit > 0 && (
-                            <View className="h-4 bg-gray-300 rounded-md w-full overflow-hidden">
-                              <View
-                                className={`h-full ${
-                                  isOverLimit ? "bg-red-500" : "bg-purple-600"
-                                } rounded-md`}
-                                style={{
-                                  width: `${Math.min(percentageUsed, 100)}%`,
-                                }} // Cap at 100%
-                              />
-                            </View>
-                          )}
-                          <View className="flex-row justify-between items-center w-full mt-1">
                             <Text
-                              className={`text-sm font-psemibold mt-1 ${
+                              className={`text-xs font-pregular mt-1 ${
                                 isOverLimit ? "text-red-600" : "text-green-600"
                               }`}
                             >
                               {isOverLimit
                                 ? `Limit Reached!`
-                                : `Remaining: ${limit - currentCount} uploads`}
+                                : `Remaining: ${remaining} uploads`}
                             </Text>
-
-                            <TouchableOpacity
-                              onPress={() => router.push("/upgrade-premium")}
-                              className="flex-row items-center justify-center rounded-md mt-1 bg-transparent "
-                            >
-                              <Image
-                                source={icons.star}
-                                className="w-5 h-5 mr-1"
-                                tintColor="green"
-                                resizeMode="contain"
-                              />
-
-                              <Text className="text-purple-800 font-psemibold text-sm underline">
-                                Upgrade to Premium
-                              </Text>
-                            </TouchableOpacity>
                           </View>
-                        </View>
+                        );
+                      };
+
+                      return (
+                        <>
+                          {/* Monthly Receipts Upload */}
+                          {renderTrackerRow(
+                            "Monthly Receipts Uploads",
+                            user.currentMonthReceiptCount || 0,
+                            applicationSettings.free_tier_receipt_limit || 0
+                          )}
+                          {/* Monthly Data Downloads */}
+                          {renderTrackerRow(
+                            "Monthly Receipts Downloads",
+                            user.currentMonthDownloadCount || 0,
+                            applicationSettings.free_tier_data_downloads_monthly ||
+                              0
+                          )}
+                        </>
                       );
                     })()}
                   </View>
                 )}
 
+              {/* === END NEW: Combined Monthly Usage Tracker Card === */}
               {/* Receipt Summary */}
               {receiptStats.totalCount > 0 && (
                 <View className="p-2  mb-2 rounded-md border-t border-[#9F54B6] border-opacity-50 ">
@@ -1376,7 +1402,6 @@ const Home = () => {
                   </TouchableOpacity>
                 </View>
               )}
-
               {/* Spending Categories Charts */}
               {receiptStats.monthlySpending > 0 && (
                 <View
