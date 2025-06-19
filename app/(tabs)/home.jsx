@@ -22,7 +22,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import GradientBackground from "../../components/GradientBackground";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import icons from "../../constants/icons";
-import CustomButton from "../../components/CustomButton";
+
 import {
   countUnreadNotifications,
   getReceiptStats,
@@ -53,6 +53,7 @@ import { format } from "date-fns";
 import eventEmitter from "../../utils/eventEmitter";
 import images from "../../constants/images";
 import SpendingTrendsChart from "../../components/SpendingTrendsChart";
+import EditReceiptModal from "../../components/EditReceiptModal";
 
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
@@ -131,9 +132,9 @@ const Home = () => {
 
   const [showReceiptOptionsModal, setShowReceiptOptionsModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState(null); // Stores the receipt object when dots are clicked
-  const [isDeleting, setIsDeleting] = useState(false); // Add this new state
-  const [showReceiptDetailsModal, setShowReceiptDetailsModal] = useState(false); // New state for details modal
-
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showReceiptDetailsModal, setShowReceiptDetailsModal] = useState(false);
+  const [showEditReceiptModal, setShowEditReceiptModal] = useState(false);
   const [showFullImage, setShowFullImage] = useState(false);
 
   // Search and Filter States:
@@ -786,6 +787,13 @@ const Home = () => {
     }
   };
 
+  const handleEditReceipt = () => {
+    if (!selectedReceipt) {
+      return;
+    }
+    setShowReceiptOptionsModal(false); // Close the options modal first
+    setShowEditReceiptModal(true); // Open the edit modal
+  };
   const handleDowanLoadReceipt = async () => {
     if (!selectedReceipt || !selectedReceipt.image_file_id) {
       Alert.alert(
@@ -1002,6 +1010,31 @@ const Home = () => {
       ],
       { cancelable: false }
     );
+  };
+
+  const handleEditSuccess = async () => {
+    setShowEditReceiptModal(false); // Close the edit modal
+    onRefresh(); // Refresh data on Home screen
+    // Add notification for edited receipt
+    try {
+      await createNotification({
+        user_id: user.$id,
+        title: "Receipt Edited",
+        message: `The receipt for ${
+          selectedReceipt.merchant || "Unknown Merchant"
+        } has been updated.`,
+        type: "receipt_action",
+        expiresAt: getFutureDate(7),
+        receipt_id: selectedReceipt.$id,
+      });
+      const updatedUnreadCount = await countUnreadNotifications(user.$id);
+      updateUnreadCount(updatedUnreadCount);
+    } catch (notificationError) {
+      console.warn(
+        "Failed to create edit receipt notification:",
+        notificationError
+      );
+    }
   };
 
   const isSearchActive =
@@ -1860,6 +1893,7 @@ const Home = () => {
                   {parseFloat(selectedReceipt.total).toFixed(2)}
                 </Text>
               )}
+              {/* View Receipt */}
               <TouchableOpacity
                 onPress={handleViewDetails}
                 className="mt-3 w-full bg-[#4E17B3] rounded-md p-3 items-center justify-center" // Adjust className for your desired style
@@ -1868,6 +1902,18 @@ const Home = () => {
                   View Receipt
                 </Text>
               </TouchableOpacity>
+
+              {/* Edit Receipt  */}
+              <TouchableOpacity
+                onPress={handleEditReceipt}
+                className="mt-3 w-full bg-[#2A9D8F] rounded-md p-3 items-center justify-center"
+              >
+                <Text className="text-white font-pmedium text-base">
+                  Edit Receipt
+                </Text>
+              </TouchableOpacity>
+
+              {/* Download Receipt */}
               <TouchableOpacity
                 onPress={() => handleDowanLoadReceipt(selectedReceipt)}
                 disabled={isDownloading} // Disable button while downloading
@@ -1878,6 +1924,7 @@ const Home = () => {
                 </Text>
               </TouchableOpacity>
 
+              {/* Delete Receipt */}
               <TouchableOpacity
                 onPress={() => handleDeleteReceipt(selectedReceipt.$id)} // Ensure you pass the correct ID for deletion
                 disabled={isDeleting} // Disable button while deleting
@@ -1930,6 +1977,7 @@ const Home = () => {
                 </View>
               )}
 
+              {/* Close Button */}
               <TouchableOpacity
                 className="absolute top-2 right-2 p-2 rounded-full"
                 // style={[styles.button, styles.buttonClose, { marginTop: 20 }]} // Reuse existing button style
@@ -1945,10 +1993,14 @@ const Home = () => {
             </View>
           </Pressable>
         </Modal>
+        {/* Edit Receipt Model */}
 
-        {/* Optionally, for a full-screen overlay */}
-
-        {/* <--- END NEW: Receipt Options Modal ---/> */}
+        <EditReceiptModal
+          isVisible={showEditReceiptModal}
+          onClose={() => setShowEditReceiptModal(false)}
+          initialReceiptData={selectedReceipt}
+          onSaveSuccess={handleEditSuccess}
+        />
       </SafeAreaView>
     </GradientBackground>
   );
