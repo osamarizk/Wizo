@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   Platform,
+  I18nManager,
 } from "react-native";
 import React, { useState } from "react";
 import { Tabs, router } from "expo-router"; // Import router
@@ -16,12 +17,15 @@ import { useGlobalContext } from "../../context/GlobalProvider";
 import eventEmitter from "../../utils/eventEmitter"; // <--- IMPORT EVENT EMITTER
 import { Image } from "react-native";
 
+import { useTranslation } from "react-i18next";
+import { getFontClassName } from "../../utils/fontUtils";
+import i18n from "../../utils/i18n";
 const TabsLayout = () => {
   const { showUploadModal, setShowUploadModal } = useGlobalContext();
   const [activeTab, setActiveTab] = useState("home"); // Keep track of active tab
   const [refreshing, setRefreshing] = useState(false);
+  const { t } = useTranslation();
 
-  console.log("TabsLayout Rendered...", showUploadModal, activeTab);
   // Function to handle successful upload and redirect
   const handleUploadSuccess = () => {
     // console.log(
@@ -30,18 +34,13 @@ const TabsLayout = () => {
 
     // Step 1: Close the modal immediately
     setShowUploadModal(false);
-    console.log("TabsLayout: setShowUploadModal(false) called.");
 
     // Step 2: Add a small delay before emitting the event and navigating
     // This gives React Native a moment to fully unmount the modal and update the UI
     setTimeout(() => {
-      console.log("TabsLayout: Emitting refreshHome event after delay.");
       eventEmitter.emit("refreshHome"); // Emit the global refresh event
-
-      console.log("TabsLayout: Navigating to /home after delay.");
       router.replace("/home"); // Redirect to the Home tab
       setActiveTab("home"); // Update active tab state to reflect the redirection
-      console.log("TabsLayout: Navigation and activeTab update complete.");
     }, 100); // A sma
   };
 
@@ -55,7 +54,7 @@ const TabsLayout = () => {
         <View className="relative items-center justify-center">
           {/* Your Budget icon */}
           <Image
-            source={icons.pie}
+            source={icons.budget}
             resizeMode="contain"
             // Apply tint color similar to other non-upload icons
             tintColor={focused ? color : "#888"}
@@ -67,32 +66,41 @@ const TabsLayout = () => {
             <View
               // Tailwind classes for the badge's appearance and positioning
               className="absolute -top-1.5 -right-1.5 bg-red-500 rounded-full w-5 h-5 items-center justify-center z-10"
+              style={{
+                right: I18nManager.isRTL ? undefined : -6, // If RTL, right: auto, left: -6
+                left: I18nManager.isRTL ? -6 : undefined, // If LTR, left: auto, right: -6
+              }}
             >
               {/* The badge content, a simple exclamation mark */}
-              <Text className="text-white text-xs font-pbold">!</Text>
+              <Text
+                className={`text-white text-xs ${getFontClassName(
+                  "bold"
+                )} text-center`}
+                 style={{ fontFamily: getFontClassName("bold") }}
+              >
+                {t("common.exclamationMark")} 
+              </Text>
             </View>
           )}
         </View>
 
         {/* The text label for the tab */}
         <Text
-          // Apply font styling based on 'focused' state
           className={`${
             focused ? "font-psemibold" : "font-pregular"
-          } text-center`}
+          } text-center ${getFontClassName(focused ? "semibold" : "regular")}`} // Apply dynamic font classes
           style={{
-            // Apply dynamic color based on 'focused' state
             color: color,
-            // Apply platform-specific font size, mirroring your TabIcons logic
             fontSize: Platform.select({
               ios: 14,
               android: 11,
             }),
+            fontFamily:getFontClassName(focused?"semibold":"regular")
           }}
-          numberOfLines={1} // Ensure text stays on one line
-          ellipsizeMode="tail" // Add ellipsis if text overflows
+          numberOfLines={1}
+          ellipsizeMode="tail"
         >
-          Budget {/* Directly set the name for the Budget tab */}
+          {t("tabs.budget")} {/* Translated Budget tab name */}
         </Text>
       </View>
     );
@@ -124,13 +132,13 @@ const TabsLayout = () => {
         <Tabs.Screen
           name="home"
           options={{
-            title: "Home",
+            title: t("tabs.home"),
             headerShown: false,
             tabBarIcon: ({ color, focused }) => (
               <TabIcons
                 icon={icons.home}
                 color={color}
-                name="Home"
+                name={t("tabs.home")}
                 focused={activeTab === "home"}
               />
             ),
@@ -146,13 +154,13 @@ const TabsLayout = () => {
         <Tabs.Screen
           name="spending"
           options={{
-            title: "Spending",
+            title: t("tabs.spending"),
             headerShown: false,
             tabBarIcon: ({ color, focused }) => (
               <TabIcons
                 icon={icons.activity}
                 color={color}
-                name="Spending"
+                name={t("tabs.spending")}
                 focused={activeTab === "spending"}
               />
             ),
@@ -181,7 +189,7 @@ const TabsLayout = () => {
               <TabIcons
                 icon={icons.camera}
                 color={color}
-                name="Upload"
+                name={t("tabs.upload")}
                 focused={activeTab === "upload"}
               />
             ),
@@ -193,13 +201,13 @@ const TabsLayout = () => {
         <Tabs.Screen
           name="wallet"
           options={{
-            title: "Wallet",
+            title: t("tabs.wallet"), // Translated title
             headerShown: false,
             tabBarIcon: ({ color, focused }) => (
               <TabIcons
                 icon={icons.wallet}
                 color={color}
-                name="Wallet"
+                name={t("tabs.wallet")} // Translated name for TabIcons component
                 focused={activeTab === "wallet"}
               />
             ),
@@ -211,11 +219,11 @@ const TabsLayout = () => {
           }}
         />
 
-        {/* Budget Tab (Commented out) */}
+        {/* Budget Tab */}
         <Tabs.Screen
           name="budget"
           options={{
-            title: "Budget",
+            title: t("tabs.budget"), // Translated title
             headerShown: false,
             tabBarIcon: ({ focused, color }) => (
               <BudgetTabBarIcon focused={focused} color={color} />

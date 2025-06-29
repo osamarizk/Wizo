@@ -11,6 +11,7 @@ import {
   StyleSheet,
   Dimensions,
   Image,
+  I18nManager,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { PieChart, BarChart, LineChart } from "react-native-chart-kit";
@@ -21,15 +22,67 @@ import {
   getMonthlyReceiptSummary,
 } from "../../lib/appwrite";
 import { format, subMonths, isSameMonth, isSameYear } from "date-fns"; // Import isSameMonth, isSameYear
+import { ar as arLocale } from "date-fns/locale";
 import icons from "../../constants/icons";
 import GradientBackground from "../../components/GradientBackground";
 import { useFocusEffect } from "@react-navigation/native";
 import SpendingHeatmap from "../../components/SpendingHeatmap";
 import SpendingTrendsChart from "../../components/SpendingTrendsChart";
 
+import { useTranslation } from "react-i18next";
+import { getFontClassName } from "../../utils/fontUtils";
+import i18n from "../../utils/i18n";
+
 const screenWidth = Dimensions.get("window").width;
 
+const convertToArabicNumerals = (num) => {
+  const numString = String(num || 0); // Defensive check for null/undefined
+  if (typeof numString !== "string") return String(numString);
+  const arabicNumeralsMap = {
+    0: "٠",
+    1: "١",
+    2: "٢",
+    3: "٣",
+    4: "٤",
+    5: "٥",
+    6: "٦",
+    7: "٧",
+    8: "٨",
+    9: "٩",
+  };
+  return numString.replace(/\d/g, (digit) => arabicNumeralsMap[digit] || digit);
+};
+
+const formatMonthName = (date, currentDateFormatLocale) => {
+  return format(new Date(date), "MMM", {
+    locale: currentDateFormatLocale,
+  });
+};
+
+const gradientColors = [
+  "#D03957", // Red
+  "#264653", // Dark Blue
+  "#F4A261", // Orange
+  "#2A9D8F", // Teal
+  "#F9C74F", //Yellow
+  "#90BE6D", // Green
+  "#4E17B3", // Purple
+  "#8AC926", // Lime Green
+  "#9F54B6", // Darker Purple
+  "#E76F51", // Coral
+
+  "#CBF3F0", // Light Blue
+  "#FFBF69", // Gold
+  "#A3B18A", // Olive Green
+  "#588157", // Forest Green
+  "#F2CC8F", // Cream
+  "#E07A5F", // Salmon
+  "#3D405B", // Dark Slate Blue
+  "#6D83F2", // Light Slate Blue
+];
+
 const Spending = () => {
+  const { t } = useTranslation();
   const { user, isLoading: globalLoading } = useGlobalContext();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -291,13 +344,11 @@ const Spending = () => {
 
   const gradientColors = [
     "#264653",
+    "#6D83F2",
     "#4E17B3",
-    "#F4A261",
-    "#D03957",
-    "#2A9D8F",
     "#F9C74F",
-    "#90BE6D",
-    "#8AC926",
+    "#2A9D8F",
+    "#D03957",
     "#9F54B6",
     "#E76F51",
     "#CBF3F0",
@@ -307,7 +358,9 @@ const Spending = () => {
     "#F2CC8F",
     "#E07A5F",
     "#3D405B",
-    "#6D83F2",
+    "#F4A261",
+    "#90BE6D",
+    "#8AC926",
   ];
 
   const chartConfig = {
@@ -337,10 +390,14 @@ const Spending = () => {
     const monthNum = String(i + 1).padStart(2, "0");
     const monthKey = `${currentYear}-${monthNum}`;
     const existingData = monthlySummary.find((item) => item.month === monthKey);
+    const assignedColor = gradientColors[i % gradientColors.length];
     return {
-      name: format(new Date(currentYear, i, 1), "MMM"),
+      name: formatMonthName(
+        new Date(currentYear, i, 1),
+        i18n.language.startsWith("ar") ? arLocale : undefined
+      ),
       population: existingData ? existingData.numberOfReceipts : 0,
-      color: gradientColors[i % gradientColors.length],
+      color: assignedColor,
       legendFontColor: "#7F7F7F",
       legendFontSize: 12,
       id: monthKey,
@@ -354,8 +411,11 @@ const Spending = () => {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-primary">
         <ActivityIndicator size="large" color="#FFFFFF" />
-        <Text className="text-white mt-4 font-pextralight text-lg">
-          Loading spending insights...
+        <Text
+          className="text-white mt-4" // Removed font-pextralight from className
+          style={{ fontFamily: getFontClassName("extralight") }} // Apply font directly
+        >
+          {t("spending.loadingSpendingInsights")} {/* Translated */}
         </Text>
       </SafeAreaView>
     );
@@ -385,13 +445,20 @@ const Spending = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <View className="flex-row justify-between items-center mb-6 mt-4">
-            <Text className="text-lg font-pbold text-black">
-              Spending Insights
+          <View
+            className={`flex-row justify-between items-center mb-6 mt-4 mr-8 ${
+              I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse header for RTL
+            }`}
+          >
+            <Text
+              className="text-lg text-black" // Removed font-pbold from className
+              style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+            >
+              {t("spending.spendingInsightsTitle")} {/* Translated */}
             </Text>
             <Image
               source={icons.activity}
-              className="w-5 h-5 right-48"
+              className="w-5 h-5 "
               tintColor="#9F54B6"
               resizeMode="contain"
             />
@@ -399,164 +466,304 @@ const Spending = () => {
 
           {allReceipts.length === 0 ? (
             <View className="flex-1 justify-center items-center h-[500px]">
-              <Text className="text-gray-600 text-lg font-pmedium">
-                No receipts uploaded yet. Start tracking your spending!
+              <Text
+                className="text-gray-600 text-lg" // Removed font-pmedium from className
+                style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+              >
+                {t("spending.noReceiptsYet")} {/* Translated */}
               </Text>
             </View>
           ) : (
             <>
               {/* Receipts per Month Pie Chart */}
-              <View className="p-4 mb-4 rounded-md bg-transparent border-t border-[#9F54B6]">
-                <Text className="text-base font-pbold text-black -mb-1">
-                  Receipts per Month (Current Year)
+              <View className=" p-4 mb-4 rounded-md bg-transparent border-t border-[#9F54B6]">
+                <Text
+                  className={`text-base text-black -mb-1 ${
+                    I18nManager.isRTL ? "text-right" : "text-left" // Align text
+                  }`}
+                  style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                >
+                  {t("spending.receiptsPerMonthChartTitle")} {/* Translated */}
                 </Text>
-                <Text className="text-sm font-pregular text-gray-700 text-left mb-4 mt-2">
-                  This chart illustrates how many receipts you've uploaded each
-                  month throughout the current year. Tap on a month in the chart
-                  or the list to view its summary.
+                <Text
+                  className={`text-sm text-gray-700 mb-4 mt-2 ${
+                    I18nManager.isRTL ? "text-right" : "text-left" // Align description
+                  }`}
+                  style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                >
+                  {t("spending.receiptsPerMonthChartDescription")}{" "}
+                  {/* Translated */}
                 </Text>
+
                 {chartDisplayMonths.length > 0 ? (
-                  <View className="flex-row items-center justify-center gap-2 ">
-                    <View className="w-[150px] h-[150px] justify-center items-center ">
+                  <View
+                    className={`flex-row items-center justify-center gap-2 ${
+                      I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reorder chart and legend
+                    }`}
+                  >
+                    <View
+                      className={`w-[150px] h-[150px]    ${
+                        I18nManager.isRTL ? "items-end" : "items-start" // Reorder chart and legend
+                      }`}
+                    >
                       <PieChart
                         data={chartDisplayMonths}
                         width={180}
                         height={150}
                         chartConfig={{
-                          backgroundColor: "#e26a00",
-                          backgroundGradientFrom: "#9F54B6",
-                          backgroundGradientTo: "#ffa726",
+                          // backgroundColor: "#e26a00",
+                          // backgroundGradientFrom: "#9F54B6",
+                          // backgroundGradientTo: "#ffa726",
                           decimalPlaces: 0,
-                          color: (opacity = 1, index) =>
-                            chartDisplayMonths[index]?.color ||
-                            `rgba(26, 142, 255, ${opacity})`,
+                          color: (opacity = 1) =>
+                            `rgba(255, 255, 255, ${opacity})`,
                           style: {
                             borderRadius: 16,
                           },
                           propsForLabels: {
                             fontSize: 10,
+                            fontFamily: getFontClassName("semibold"), // Apply font
+                            fill: "white",
                           },
                         }}
                         accessor={"population"}
-                        backgroundColor={"transparent"}
-                        paddingLeft={0}
+                        backgroundColor={"transparent"} // Keep chart background transparent
+                        paddingLeft={0} // No padding needed here for direct slice coloring
                         center={[0, 0]}
-                        hasLegend={false}
-                        innerRadius={90}
-                        outerRadius={100}
-                        stroke={"#E0E0E0"}
-                        strokeWidth={2}
+                        hasLegend={false} // Legend is rendered manually below
+                        innerRadius={50} // Changed from 90 to 50 for a more typical donut hole size
+                        outerRadius={70} // Changed from 100 to 70 for typical donut size
+                        stroke={"#E0E0E0"} // Stroke color for slice borders
+                        strokeWidth={1} // Stroke width for slice borders
                         style={{ marginRight: 0 }}
                         onPress={handleMonthClick}
+                        // Add withLabel to see values on slices if desired
+                        //  withLabel={true}
                       />
                     </View>
-                    <View className="flex-1 flex-col">
-                      <Text className="font-psemibold mb-2 text-blue-800 text-base">
-                        👇Tap for details
+                    <View className="flex-1 flex-col mr-8">
+                      <Text
+                        className={`mb-2 text-blue-800 text-base ${
+                          I18nManager.isRTL ? "text-right" : "text-left" // Align text
+                        }`} // Removed font-psemibold from className
+                        style={{ fontFamily: getFontClassName("semibold") }} // Apply font directly
+                      >
+                        {t("spending.tapForDetails")} {/* Translated */}
                       </Text>
                       {chartDisplayMonths.map((item, index) => (
                         <TouchableOpacity
                           key={item.id}
                           onPress={() => handleMonthClick(item)}
-                          className="flex-row items-center mb-2 "
+                          className={`flex-row items-center mb-2 ${
+                            I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reorder icon and text
+                          }`}
                         >
                           <View
-                            className="w-3 h-3 rounded-full mr-2"
+                            className={`w-3 h-3 rounded-full ${
+                              I18nManager.isRTL ? "ml-2" : "mr-2"
+                            }`} // Adjust margin for RTL
                             style={{ backgroundColor: item.color || "gray" }}
                           />
-                          <Text className="text-md font-pregular text-gray-700 underline">
-                            {item.name} ({item.population} receipts)
+                          <Text
+                            className={`text-base text-black underline ${
+                              I18nManager.isRTL ? "text-right" : "text-left" // Align text
+                            }`} // Removed font-pregular from className
+                            style={{ fontFamily: getFontClassName("semibold") }} // Apply font directly
+                          >
+                            {" "}
+                            {/* Format month name for display */}
+                            {formatMonthName(
+                              item.id,
+                              i18n.language.startsWith("ar")
+                                ? arLocale
+                                : undefined
+                            )}{" "}
+                            (
+                            {i18n.language.startsWith("ar")
+                              ? convertToArabicNumerals(item.population)
+                              : item.population}{" "}
+                            {t("spending.receiptsCount", {
+                              count: item.population,
+                            })}
+                            )
                           </Text>
                         </TouchableOpacity>
                       ))}
                     </View>
                   </View>
                 ) : (
-                  <Text className="text-gray-500 italic text-center mb-4">
-                    No receipts for the current year yet.
+                  <Text
+                    className="text-gray-500 italic text-center mb-4" // Removed font-pregular
+                    style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                  >
+                    {t("spending.noReceiptsForCurrentYear")} {/* Translated */}
                   </Text>
                 )}
               </View>
               {/* Spending Comparison Card */}
               <View className="p-4 mb-4 rounded-md bg-transparent border-t border-[#9F54B6] ">
-                <Text className="text-lg font-pbold text-black mb-1">
-                  Spending Comparison
+                <Text
+                  className={`text-lg text-black mb-1 ${
+                    I18nManager.isRTL ? "text-right" : "text-left"
+                  }`} // Removed font-pbold
+                  style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                >
+                  {t("spending.spendingComparisonTitle")} {/* Translated */}
                 </Text>
-                <Text className="text-sm font-pregular text-gray-700 mb-4">
-                  Compare your spending this month against the previous month.
+                <Text
+                  className={`text-sm text-gray-700 mb-4 ${
+                    I18nManager.isRTL ? "text-right" : "text-left"
+                  }`} // Removed font-pregular
+                  style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                >
+                  {t("spending.spendingComparisonDescription")}{" "}
+                  {/* Translated */}
                 </Text>
 
                 <View className="flex-row justify-around items-center">
                   <View className="items-center">
-                    <Text className="text-base font-pmedium text-gray-600">
-                      {format(new Date(), "MMM")}
+                    <Text
+                      className="text-base text-gray-600" // Removed font-pmedium
+                      style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                    >
+                      {/* {formatMonthName(new Date(), arLocale)}{" "} */}
+                      {formatMonthName(
+                        new Date(),
+                        i18n.language.startsWith("ar") ? arLocale : undefined
+                      )}{" "}
+                      {/* Translated Month */}
                     </Text>
-                    <Text className="text-xl font-psemibold text-black">
-                      💵 {currentMonthSpending.toFixed(2)}
+                    <Text
+                      className="text-xl text-black" // Removed font-psemibold
+                      style={{ fontFamily: getFontClassName("semibold") }} // Apply font directly
+                    >
+                      {i18n.language.startsWith("ar")
+                        ? convertToArabicNumerals(
+                            currentMonthSpending.toFixed(2)
+                          )
+                        : currentMonthSpending.toFixed(2)}{" "}
+                      {t("common.currency_symbol_short")}
                     </Text>
                   </View>
                   <View className="items-center">
-                    <Text className="text-base font-pmedium text-gray-600">
-                      {format(subMonths(new Date(), 1), "MMM")}
+                    <Text
+                      className="text-base text-gray-600" // Removed font-pmedium
+                      style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                    >
+                      {/* {formatMonthName(subMonths(new Date(), 1), arLocale)}{" "} */}
+                      {formatMonthName(
+                        subMonths(new Date(), 1),
+                        i18n.language.startsWith("ar") ? arLocale : undefined
+                      )}{" "}
+                      {/* Translated Month */}
                     </Text>
-                    <Text className="text-xl font-psemibold text-black">
-                      💵 {previousMonthSpending.toFixed(2)}
+                    <Text
+                      className="text-xl text-black" // Removed font-psemibold
+                      style={{ fontFamily: getFontClassName("semibold") }} // Apply font directly
+                    >
+                      {i18n.language.startsWith("ar")
+                        ? convertToArabicNumerals(
+                            previousMonthSpending.toFixed(2)
+                          )
+                        : previousMonthSpending.toFixed(2)}{" "}
+                      {t("common.currency_symbol_short")}
                     </Text>
                   </View>
                 </View>
 
                 {/* Conditional rendering for change indicator */}
                 {previousMonthSpending > 0 || currentMonthSpending > 0 ? (
-                  <View className="flex-row items-center justify-center mt-4">
+                  <View
+                    className={`flex-row items-center justify-center mt-4 ${
+                      I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse for RTL
+                    }`}
+                  >
                     <Text
-                      className={`text-base font-pbold mr-2 ${changeTextClass}`}
+                      className={`text-base mr-2 ${changeTextClass}`} // Removed font-pbold
+                      style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
                     >
-                      {spendingChangePercentage.toFixed(1)}%
+                      {i18n.language.startsWith("ar")
+                        ? convertToArabicNumerals(
+                            spendingChangePercentage.toFixed(1)
+                          )
+                        : spendingChangePercentage.toFixed(1)}
+                      %
                     </Text>
                     {changeIcon && (
                       <Image
                         source={changeIcon}
-                        className="w-4 h-4"
+                        className={`w-4 h-4 ${
+                          I18nManager.isRTL ? "ml-2" : "mr-2"
+                        }`} // Adjust margin for RTL
                         tintColor={
                           spendingChangePercentage > 0 ? "#EF4444" : "#22C55E"
-                        } // Tailwind red-500 / green-500
+                        }
                         resizeMode="contain"
                       />
                     )}
                     <Text
-                      className={`text-sm font-pregular ml-1 ${changeTextClass}`}
+                      className={`text-sm ml-1 ${changeTextClass} ${
+                        I18nManager.isRTL ? "text-right" : "text-left" // Align text
+                      }`} // Removed font-pregular
+                      style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
                     >
                       {spendingChangePercentage > 0
-                        ? "Increase"
+                        ? t("spending.increase")
                         : spendingChangePercentage < 0
-                        ? "Decrease"
-                        : "No Change"}
+                        ? t("spending.decrease")
+                        : t("spending.noChange")}
                     </Text>
                   </View>
                 ) : (
-                  <Text className="text-gray-500 italic text-center mt-4">
-                    Not enough data for comparison yet.
+                  <Text
+                    className="text-gray-500 italic text-center mt-4" // Removed font-pregular
+                    style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                  >
+                    {t("spending.notEnoughDataForComparison")}{" "}
+                    {/* Translated */}
                   </Text>
                 )}
               </View>
 
               {/* NEW: Average Receipt Value Card */}
               <View className="p-4 mb-4 rounded-md bg-transparent border-t border-[#9F54B6] ">
-                <Text className="text-lg font-pbold text-black mb-1">
-                  Average Receipt Value (Current Month)
+                <Text
+                  className={`text-lg text-black mb-1 ${
+                    I18nManager.isRTL ? "text-right" : "text-left"
+                  }`} // Removed font-pbold
+                  style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                >
+                  {t("spending.averageReceiptValueTitle")} {/* Translated */}
                 </Text>
-                <Text className="text-sm font-pregular text-gray-700 mb-4">
-                  The average amount spent per receipt this month.
+                <Text
+                  className={`text-sm text-gray-700 mb-4 ${
+                    I18nManager.isRTL ? "text-right" : "text-left"
+                  }`} // Removed font-pregular
+                  style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                >
+                  {t("spending.averageReceiptValueDescription")}{" "}
+                  {/* Translated */}
                 </Text>
                 {averageReceiptValue > 0 ? (
                   <View className="items-center">
-                    <Text className="text-xl font-psemibold text-black">
-                      💵 {averageReceiptValue.toFixed(2)}
+                    <Text
+                      className="text-xl text-black" // Removed font-psemibold
+                      style={{ fontFamily: getFontClassName("semibold") }} // Apply font directly
+                    >
+                      {i18n.language.startsWith("ar")
+                        ? convertToArabicNumerals(
+                            averageReceiptValue.toFixed(2)
+                          )
+                        : averageReceiptValue.toFixed(2)}{" "}
+                      {t("common.currency_symbol_short")}
                     </Text>
                   </View>
                 ) : (
-                  <Text className="text-gray-500 italic text-center">
-                    No receipts for this month to calculate average.
+                  <Text
+                    className="text-gray-500 italic text-center" // Removed font-pregular
+                    style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                  >
+                    {t("spending.noReceiptsForAverage")} {/* Translated */}
                   </Text>
                 )}
               </View>
@@ -575,18 +782,32 @@ const Spending = () => {
 
               {/* Merchant Analysis Table */}
               <View className="p-4 border-t border-[#9F54B6] mb-4">
-                <Text className="text-lg font-bold text-black mb-4">
-                  Merchant Analysis
+                <Text
+                  className={`text-lg text-black mb-4 ${
+                    I18nManager.isRTL ? "text-right" : "text-left"
+                  }`} // Removed font-bold
+                  style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                >
+                  {t("spending.merchantAnalysisTitle")} {/* Translated */}
                 </Text>
                 {merchantAnalysis.length > 0 ? (
                   <View className="mb-2">
-                    <Text className="text-lg font-pbold text-black mb-1 text-center">
-                      Merchant Visits Overview
+                    <Text
+                      className={`text-lg text-black mb-1 text-center ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`} // Removed font-pbold
+                      style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                    >
+                      {t("spending.merchantVisitsOverview")} {/* Translated */}
                     </Text>
-                    <Text className="text-sm text-gray-600 p-1 text-center">
-                      Displaying top 5 merchants by visits (default). Chart
-                      settings for this limit can be adjusted from the app's
-                      settings section.
+                    <Text
+                      className={`text-sm text-gray-600 p-1 text-center ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`} // Removed font-pregular
+                      style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                    >
+                      {t("spending.merchantChartDescription")}{" "}
+                      {/* Translated */}
                     </Text>
                     <BarChart
                       data={merchantVisitsChartData}
@@ -596,14 +817,25 @@ const Spending = () => {
                       segments={3}
                       height={280}
                       yAxisLabel=""
-                      chartConfig={chartConfig}
+                      chartConfig={{
+                        ...chartConfig, // Use existing chartConfig and override
+                        propsForLabels: {
+                          fontSize: 10,
+                          fontFamily: getFontClassName("semibold"), // Apply font
+                        },
+                        formatYLabel: (yValue) =>
+                          i18n.language.startsWith("ar")
+                            ? convertToArabicNumerals(yValue)
+                            : yValue,
+                        formatXLabel: (xValue) => xValue, // Merchant names are already text
+                      }}
                       verticalLabelRotation={25}
                       fromZero={true}
                       showValuesOnTopOfBars={true}
                       flatColor={true}
                       style={{
                         flex: 1,
-                        paddingRight: 25,
+                        paddingRight: I18nManager.isRTL ? 25 : 25, // Keep as is for chart padding if it works
                         marginVertical: 2,
                         borderRadius: 50,
                         marginBottom: 20,
@@ -611,41 +843,93 @@ const Spending = () => {
                     />
                   </View>
                 ) : (
-                  <Text className="text-gray-500 italic text-center mb-4">
-                    No merchant data available for charting.
+                  <Text
+                    className="text-gray-500 italic text-center mb-4" // Removed font-pregular
+                    style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                  >
+                    {t("spending.noMerchantData")} {/* Translated */}
                   </Text>
                 )}
 
-                <View className="flex-row bg-gray-300 py-2 px-3 border-b border-gray-300 rounded-t-md">
-                  <Text className="flex-1 font-pbold text-black text-sm">
-                    Merchant
+                {/* Merchant Table Headers */}
+                <View
+                  className={`flex-row bg-gray-300 py-2 px-3 border-b border-gray-300 rounded-t-md ${
+                    I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reorder columns
+                  }`}
+                >
+                  <Text
+                    className={`flex-1 text-black text-sm ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`} // Removed font-pbold
+                    style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                  >
+                    {t("spending.merchant")} {/* Translated */}
                   </Text>
-                  <Text className="w-1/4 font-pbold text-black text-sm text-right">
-                    Total (💵 )
+                  <Text
+                    className={`w-1/4 text-black text-sm ${
+                      I18nManager.isRTL ? "text-left" : "text-right"
+                    }`} // Flipped for RTL currency
+                    style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                  >
+                    {t("spending.totalAmountShort")} {/* Translated */}
                   </Text>
-                  <Text className="w-1/6 font-pbold text-black text-sm text-right">
-                    Visits
+                  <Text
+                    className={`w-1/6 text-black text-sm ${
+                      I18nManager.isRTL ? "text-left" : "text-right"
+                    }`} // Flipped for RTL number
+                    style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                  >
+                    {t("spending.visits")} {/* Translated */}
                   </Text>
-                  <Text className="w-1/6 font-pbold text-black text-sm text-center">
-                    View
+                  <Text
+                    className={`w-1/6 text-black text-sm ${
+                      I18nManager.isRTL ? "text-right" : "text-center"
+                    }`} // Flipped for RTL view button
+                    style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                  >
+                    {t("spending.view")} {/* Translated */}
                   </Text>
                 </View>
+
+                {/* Merchant Table Rows */}
                 {merchantAnalysis.length > 0 ? (
                   merchantAnalysis.map((data, index) => (
                     <View
                       key={data.merchant}
                       className={`flex-row py-2 px-3 ${
                         index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                      } border-b border-gray-200 last:border-none`}
+                      } border-b border-gray-200 last:border-none ${
+                        I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reorder columns
+                      }`}
                     >
-                      <Text className="flex-1 text-gray-800 text-sm">
+                      <Text
+                        className={`flex-1 text-gray-800 text-sm ${
+                          I18nManager.isRTL ? "text-right" : "text-left"
+                        }`} // Align merchant name
+                        style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                      >
                         {data.merchant}
                       </Text>
-                      <Text className="w-1/4 text-gray-800 text-sm text-right">
-                        {data.totalAmount.toFixed(2)}
+                      <Text
+                        className={`w-1/4 text-gray-800 text-sm ${
+                          I18nManager.isRTL ? "text-left" : "text-right"
+                        }`} // Align total
+                        style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                      >
+                        {i18n.language.startsWith("ar")
+                          ? convertToArabicNumerals(data.totalAmount.toFixed(2))
+                          : data.totalAmount.toFixed(2)}{" "}
+                        {t("common.currency_symbol_short")}
                       </Text>
-                      <Text className="w-1/6 text-gray-800 text-sm text-right">
-                        {data.visits}
+                      <Text
+                        className={`w-1/6 text-gray-800 text-sm ${
+                          I18nManager.isRTL ? "text-left" : "text-right"
+                        }`} // Align visits
+                        style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                      >
+                        {i18n.language.startsWith("ar")
+                          ? convertToArabicNumerals(data.visits)
+                          : data.visits}
                       </Text>
                       <TouchableOpacity
                         onPress={() =>
@@ -655,7 +939,8 @@ const Spending = () => {
                       >
                         <Image
                           source={icons.eye}
-                          className="w-5 h-5 tint-blue-500"
+                          className="w-5 h-5" // Removed tint-blue-500
+                          tintColor="#4E17B3" // Set a specific tint color for clarity
                           resizeMode="contain"
                         />
                       </TouchableOpacity>
@@ -663,8 +948,11 @@ const Spending = () => {
                   ))
                 ) : (
                   <View className="py-4 items-center bg-white rounded-b-md">
-                    <Text className="text-gray-500 italic">
-                      No merchant data available.
+                    <Text
+                      className="text-gray-500 italic" // Removed font-pmedium
+                      style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                    >
+                      {t("spending.noMerchantData")} {/* Translated */}
                     </Text>
                   </View>
                 )}
@@ -672,21 +960,50 @@ const Spending = () => {
 
               {/* Items Break Down Table */}
               <View className="p-4 border-t border-[#9F54B6] mb-4">
-                <Text className="text-lg font-bold text-black mb-4">
-                  Items Break Down
+                <Text
+                  className={`text-lg text-black mb-4 ${
+                    I18nManager.isRTL ? "text-right" : "text-left"
+                  }`} // Removed font-bold
+                  style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                >
+                  {t("spending.itemsBreakdownTitle")} {/* Translated */}
                 </Text>
-                <View className="flex-row bg-gray-300 py-2 px-3 border-b border-gray-300 rounded-t-md">
-                  <Text className="flex-1 font-pbold text-gray-700 text-sm">
-                    Item
+                <View
+                  className={`flex-row bg-gray-300 py-2 px-3 border-b border-gray-300 rounded-t-md ${
+                    I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reorder columns
+                  }`}
+                >
+                  <Text
+                    className={`flex-1 text-gray-700 text-sm ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`} // Removed font-pbold
+                    style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                  >
+                    {t("spending.item")} {/* Translated */}
                   </Text>
-                  <Text className="w-1/4 font-pbold text-gray-700 text-sm text-right">
-                    Total Spend
+                  <Text
+                    className={`w-1/4 text-gray-700 text-sm ${
+                      I18nManager.isRTL ? "text-left" : "text-right"
+                    }`} // Flipped for RTL currency
+                    style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                  >
+                    {t("spending.totalSpend")} {/* Translated */}
                   </Text>
-                  <Text className="w-1/6 font-pbold text-gray-700 text-sm text-right">
-                    Times Bought
+                  <Text
+                    className={`w-1/6 text-gray-700 text-sm ${
+                      I18nManager.isRTL ? "text-left" : "text-right"
+                    }`} // Flipped for RTL number
+                    style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                  >
+                    {t("spending.timesBought")} {/* Translated */}
                   </Text>
-                  <Text className="w-1/6 font-pbold text-gray-700 text-sm text-center">
-                    View
+                  <Text
+                    className={`w-1/6 text-gray-700 text-sm ${
+                      I18nManager.isRTL ? "text-right" : "text-center"
+                    }`} // Flipped for RTL view button
+                    style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                  >
+                    {t("spending.view")} {/* Translated */}
                   </Text>
                 </View>
                 {itemBreakdown.length > 0 ? (
@@ -695,16 +1012,38 @@ const Spending = () => {
                       key={data.item}
                       className={`flex-row py-2 px-3 ${
                         index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                      } border-b border-gray-200 last:border-none`}
+                      } border-b border-gray-200 last:border-none ${
+                        I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reorder columns
+                      }`}
                     >
-                      <Text className="flex-1 text-gray-800 text-sm">
+                      <Text
+                        className={`flex-1 text-gray-800 text-sm ${
+                          I18nManager.isRTL ? "text-right" : "text-left"
+                        }`} // Align item name
+                        style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                      >
                         {data.item}
                       </Text>
-                      <Text className="w-1/4 text-gray-800 text-sm text-right">
-                        {data.totalSpend.toFixed(2)}
+                      <Text
+                        className={`w-1/4 text-gray-800 text-sm ${
+                          I18nManager.isRTL ? "text-left" : "text-right"
+                        }`} // Align total spend
+                        style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                      >
+                        {i18n.language.startsWith("ar")
+                          ? convertToArabicNumerals(data.totalSpend.toFixed(2))
+                          : data.totalSpend.toFixed(2)}{" "}
+                        {t("common.currency_symbol_short")}
                       </Text>
-                      <Text className="w-1/6 text-gray-800 text-sm text-right">
-                        {data.timesBought}
+                      <Text
+                        className={`w-1/6 text-gray-800 text-sm ${
+                          I18nManager.isRTL ? "text-left" : "text-right"
+                        }`} // Align times bought
+                        style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                      >
+                        {i18n.language.startsWith("ar")
+                          ? convertToArabicNumerals(data.timesBought)
+                          : data.timesBought}
                       </Text>
                       <TouchableOpacity
                         onPress={() =>
@@ -714,7 +1053,8 @@ const Spending = () => {
                       >
                         <Image
                           source={icons.eye}
-                          className="w-5 h-5 tint-blue-500"
+                          className="w-5 h-5" // Removed tint-blue-500
+                          tintColor="#4E17B3" // Set a specific tint color for clarity
                           resizeMode="contain"
                         />
                       </TouchableOpacity>
@@ -722,8 +1062,11 @@ const Spending = () => {
                   ))
                 ) : (
                   <View className="py-4 items-center bg-white rounded-b-md">
-                    <Text className="text-gray-500 italic">
-                      No item data available.
+                    <Text
+                      className="text-gray-500 italic" // Removed font-pmedium
+                      style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                    >
+                      {t("spending.noItemData")} {/* Translated */}
                     </Text>
                   </View>
                 )}
@@ -732,6 +1075,7 @@ const Spending = () => {
           )}
         </ScrollView>
         {/* Merchant Details Modal */}
+        {/* Merchant Details Modal */}
         <Modal
           animationType="slide"
           transparent={true}
@@ -739,23 +1083,47 @@ const Spending = () => {
           onRequestClose={() => setShowMerchantDetailsModal(false)}
         >
           <Pressable
-            style={styles.centeredView}
+            className="flex-1 justify-center items-center bg-black/50" // Replaced style={styles.centeredView}
             onPress={() => setShowMerchantDetailsModal(false)}
           >
-            <View style={styles.modalView}>
-              <Text className="text-xl font-pbold mb-4 text-center">
-                Visits for {selectedMerchantName}
+            <View
+              className="bg-white rounded-lg p-6 w-[90%] max-w-sm shadow-lg" // Replaced style={styles.modalView}
+              onStartShouldSetResponder={() => true} // Prevent closing on tap inside
+            >
+              <Text
+                className={`text-xl mb-4 text-center ${
+                  I18nManager.isRTL ? "text-right" : "text-left"
+                }`} // Removed font-pbold
+                style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+              >
+                {t("spending.visitsFor", {
+                  merchantName: selectedMerchantName,
+                })}{" "}
+                {/* Translated with variable */}
               </Text>
               <ScrollView className="w-full max-h-[300px] mb-4">
                 {selectedMerchantVisits.length > 0 ? (
                   selectedMerchantVisits.map((date, index) => (
-                    <Text key={index} className="text-base text-gray-700 py-1">
-                      {format(new Date(date), "MMM dd,yyyy - hh:mm a")}
+                    <Text
+                      key={index}
+                      className={`text-base text-gray-700 py-1 ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`} // Align text
+                      style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                    >
+                      {format(new Date(date), "MMM dd,yyyy - hh:mm a", {
+                        locale: i18n.language.startsWith("ar")
+                          ? arLocale
+                          : undefined,
+                      })}
                     </Text>
                   ))
                 ) : (
-                  <Text className="text-gray-500 italic text-center">
-                    No visit dates available.
+                  <Text
+                    className="text-gray-500 italic text-center" // Removed font-pmedium
+                    style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                  >
+                    {t("spending.noVisitDates")} {/* Translated */}
                   </Text>
                 )}
               </ScrollView>
@@ -763,11 +1131,17 @@ const Spending = () => {
                 onPress={() => setShowMerchantDetailsModal(false)}
                 className="bg-red-500 p-3 rounded-lg w-full items-center"
               >
-                <Text className="text-white font-pbold text-lg">Close</Text>
+                <Text
+                  className="text-white text-lg" // Removed font-pbold
+                  style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                >
+                  {t("common.close")} {/* Translated */}
+                </Text>
               </TouchableOpacity>
             </View>
           </Pressable>
         </Modal>
+
         {/* Item Details Modal */}
         <Modal
           animationType="slide"
@@ -776,23 +1150,45 @@ const Spending = () => {
           onRequestClose={() => setShowItemDetailsModal(false)}
         >
           <Pressable
-            style={styles.centeredView}
+            className="flex-1 justify-center items-center bg-black/50" // Replaced style={styles.centeredView}
             onPress={() => setShowItemDetailsModal(false)}
           >
-            <View style={styles.modalView}>
-              <Text className="text-xl font-pbold mb-4 text-center">
-                Purchases for {selectedItemName}
+            <View
+              className="bg-white rounded-lg p-6 w-[90%] max-w-sm shadow-lg" // Replaced style={styles.modalView}
+              onStartShouldSetResponder={() => true} // Prevent closing on tap inside
+            >
+              <Text
+                className={`text-xl mb-4 text-center ${
+                  I18nManager.isRTL ? "text-right" : "text-left"
+                }`} // Removed font-pbold
+                style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+              >
+                {t("spending.purchasesFor", { itemName: selectedItemName })}{" "}
+                {/* Translated with variable */}
               </Text>
               <ScrollView className="w-full max-h-[300px] mb-4">
                 {selectedItemPurchases.length > 0 ? (
                   selectedItemPurchases.map((date, index) => (
-                    <Text key={index} className="text-base text-gray-700 py-1">
-                      {format(new Date(date), "MMM dd,yyyy - hh:mm a")}
+                    <Text
+                      key={index}
+                      className={`text-base text-gray-700 py-1 ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`} // Align text
+                      style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+                    >
+                      {format(new Date(date), "MMM dd,yyyy - hh:mm a", {
+                        locale: i18n.language.startsWith("ar")
+                          ? arLocale
+                          : undefined,
+                      })}
                     </Text>
                   ))
                 ) : (
-                  <Text className="text-gray-500 italic text-center">
-                    No purchase dates available.
+                  <Text
+                    className="text-gray-500 italic text-center" // Removed font-pmedium
+                    style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                  >
+                    {t("spending.noPurchaseDates")} {/* Translated */}
                   </Text>
                 )}
               </ScrollView>
@@ -800,13 +1196,18 @@ const Spending = () => {
                 onPress={() => setShowItemDetailsModal(false)}
                 className="bg-red-500 p-3 rounded-lg w-full items-center"
               >
-                <Text className="text-white font-pbold text-lg">Close</Text>
+                <Text
+                  className="text-white text-lg" // Removed font-pbold
+                  style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                >
+                  {t("common.close")} {/* Translated */}
+                </Text>
               </TouchableOpacity>
             </View>
           </Pressable>
         </Modal>
 
-        {/* NEW: Monthly Details Modal */}
+        {/* NEW: Monthly Details Modal (completed) */}
         <Modal
           animationType="slide"
           transparent={true}
@@ -816,39 +1217,48 @@ const Spending = () => {
             setSelectedMonthDetails(null);
           }}
         >
-          <View style={styles.centeredView}>
+          <Pressable
+            className="flex-1 justify-center items-center bg-black/50" // Replaced style={styles.centeredView}
+            onPress={() => setShowMonthlyDetailsModal(false)}
+          >
             <View
-              style={styles.modalContent}
-              onStartShouldSetResponder={() => true}
+              className="bg-white rounded-lg p-6 w-[90%] max-w-sm shadow-lg" // Replaced style={styles.modalContent}
+              onStartShouldSetResponder={() => true} // Prevent closing on tap inside
             >
-              <Text className="text-xl font-pbold mb-4 text-center">
-                Monthly Summary for{" "}
-                {selectedMonthDetails
-                  ? format(new Date(selectedMonthDetails.month), "MMMM பிரதேச")
-                  : ""}
+              <Text
+                className={`text-xl mb-4 text-center ${
+                  I18nManager.isRTL ? "text-right" : "text-left"
+                }`} // Removed font-pbold
+                style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+              >
+                {t("spending.monthlySummaryFor")}{" "}
+                {/* Translated "Monthly Summary for " */}
+                {/* Format and translate month name, then add total spending */}
+                {selectedMonthDetails && (
+                  <>
+                    {format(new Date(selectedMonthDetails.month), "MMMM", {
+                      locale: i18n.language.startsWith("ar")
+                        ? arLocale
+                        : undefined,
+                    })}
+                    {"\n"} {/* New line for total spending */}
+                    <Text
+                      className="text-lg text-black mt-2" // Adjust text size/color as needed
+                      style={{ fontFamily: getFontClassName("semibold") }}
+                    >
+                      {t("home.total")}:{" "}
+                      {/* Assuming a 'total' key in common */}
+                      {i18n.language.startsWith("ar")
+                        ? convertToArabicNumerals(
+                            selectedMonthDetails.totalSpending.toFixed(2)
+                          )
+                        : selectedMonthDetails.totalSpending.toFixed(2)}{" "}
+                      {t("common.currency_symbol_short")}
+                    </Text>
+                  </>
+                )}
               </Text>
-              <View style={styles.tableHeader}>
-                <Text style={styles.headerText}>Month</Text>
-                <Text style={styles.headerText}>Receipts</Text>
-                <Text style={styles.headerText}>Total Amount</Text>
-              </View>
-              {selectedMonthDetails ? (
-                <View style={styles.tableRow}>
-                  <Text style={styles.rowText}>
-                    {format(new Date(selectedMonthDetails.month), "MMM பிரதேச")}{" "}
-                  </Text>
-                  <Text style={styles.rowText}>
-                    {selectedMonthDetails.numberOfReceipts}
-                  </Text>
-                  <Text style={styles.rowText}>
-                    💵 {selectedMonthDetails.totalSpending.toFixed(2)}
-                  </Text>
-                </View>
-              ) : (
-                <Text className="text-gray-500 italic text-center py-4">
-                  No data for this month.
-                </Text>
-              )}
+              {/* Add more details here if needed, e.g., list of receipts for the month */}
               <TouchableOpacity
                 onPress={() => {
                   setShowMonthlyDetailsModal(false);
@@ -856,10 +1266,15 @@ const Spending = () => {
                 }}
                 className="bg-red-500 p-3 rounded-lg w-full items-center mt-4"
               >
-                <Text className="text-white font-pbold text-lg">Close</Text>
+                <Text
+                  className="text-white text-lg" // Removed font-pbold
+                  style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                >
+                  {t("common.close")} {/* Translated */}
+                </Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </Pressable>
         </Modal>
       </SafeAreaView>
     </GradientBackground>

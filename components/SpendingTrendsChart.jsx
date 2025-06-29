@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,39 +6,76 @@ import {
   ActivityIndicator,
   StyleSheet,
   ScrollView,
+  I18nManager,
 } from "react-native";
 import { LineChart } from "react-native-chart-kit";
 import { format } from "date-fns";
+import { ar as arLocale } from "date-fns/locale";
+
+import { useTranslation } from "react-i18next";
+import { getFontClassName } from "../utils/fontUtils"; // Assumed to return direct font family name
+import i18n from "../utils/i18n";
+
+const convertToArabicNumerals = (num) => {
+  const numString = String(num || 0);
+  if (typeof numString !== "string") return String(numString);
+  const arabicNumeralsMap = {
+    0: "٠",
+    1: "١",
+    2: "٢",
+    3: "٣",
+    4: "٤",
+    5: "٥",
+    6: "٦",
+    7: "٧",
+    8: "٨",
+    9: "٩",
+  };
+  return numString.replace(/\d/g, (digit) => arabicNumeralsMap[digit] || digit);
+};
 
 const screenWidth = Dimensions.get("window").width;
 
 const SpendingTrendsChart = ({ monthlySummary, isLoading }) => {
-  // Debug log: See what monthlySummary is received
+  const { t } = useTranslation();
+
   console.log(
     "SpendingTrendsChart: monthlySummary prop received:",
     monthlySummary
   );
 
-  // If data is still loading, show a loading indicator
+  const currentDateFormatLocale = i18n.language.startsWith("ar")
+    ? arLocale
+    : undefined;
+
+  const formatMonthName = useCallback(
+    (dateString) => {
+      return format(new Date(dateString), "MMM", {
+        locale: currentDateFormatLocale,
+      });
+    },
+    [currentDateFormatLocale]
+  );
+
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center py-8">
         <ActivityIndicator size="small" color="#9F54B6" />
-        <Text className="text-gray-600 mt-2">Loading spending trends...</Text>
+        <Text
+          className="text-gray-600 mt-2"
+          style={{ fontFamily: getFontClassName("regular") }}
+        >
+          {t("home.loadingSpendingTrends")}
+        </Text>
       </View>
     );
   }
 
-  // Defensive check: Ensure monthlySummary is an array before filtering
   const safeMonthlySummary = monthlySummary || [];
 
-  // Filter out months that have no spending (totalSpending > 0)
-  // This makes the chart more relevant by focusing on active spending periods.
-  // Sort by month ascending to ensure the trend is displayed chronologically.
   const relevantMonthlyData = safeMonthlySummary
     .filter((item) => {
-      const isRelevant = item.totalSpending > 0;
-      // Debug log: Check each item's totalSpending before filter
+      const isRelevant = (item.totalSpending || 0) > 0;
       console.log(
         `Item for ${item.month}: totalSpending = ${item.totalSpending}, Is relevant: ${isRelevant}`
       );
@@ -46,84 +83,125 @@ const SpendingTrendsChart = ({ monthlySummary, isLoading }) => {
     })
     .sort((a, b) => new Date(a.month) - new Date(b.month));
 
-  // Debug log: See what data is left after filtering
   console.log(
     "SpendingTrendsChart: relevantMonthlyData after filter:",
     relevantMonthlyData
   );
 
-  // Prepare data for the Line Chart
   const chartData = {
-    labels: relevantMonthlyData.map((item) =>
-      format(new Date(item.month), "MMM")
-    ), // e.g., "Jan", "Feb"
+    labels: relevantMonthlyData.map((item) => formatMonthName(item.month)),
     datasets: [
       {
-        data: relevantMonthlyData.map((item) => item.totalSpending),
-        color: (opacity = 1) => `rgba(159, 84, 182, ${opacity})`, // Line color (e.g., purple)
-        strokeWidth: 2, // Line thickness
+        data: relevantMonthlyData.map((item) => item.totalSpending || 0),
+        color: (opacity = 1) => `rgba(159, 84, 182, ${opacity})`,
+        strokeWidth: 2,
       },
     ],
   };
 
-  // Define the chart configuration
   const chartConfig = {
     backgroundColor: "#fff",
-    backgroundGradientFrom: "#9F54B6", // Start of gradient background
-    backgroundGradientTo: "#2A9D8F", // End of gradient background
-    decimalPlaces: 2, // Optional, defaults to 2dp
-    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, // Label/axis color
-    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    backgroundGradientFrom: "#9F54B6",
+    backgroundGradientTo: "#2A9D8F",
+    decimalPlaces: 0, // Set to 0 if you primarily want whole numbers on Y-axis
+    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, // Labels (dots) and grid lines color
+    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, // X and Y axis label color
+
+    // --- CRITICAL FIX FOR FONT AND NUMERALS IN CHART LABELS ---
+    // React-native-chart-kit uses 'fontFamily' directly for label styles
+    // Ensure getFontClassName returns the actual font family name (e.g., 'Cairo-Regular')
+    propsForLabels: {
+      fontFamily: getFontClassName("extrabold"), // Apply Cairo/Poppins Regular here
+      fontSize: 12, // Adjust font size as needed
+    },
+
+    // Format Y-axis labels with currency symbol and Arabic numerals
+    formatYLabel: (yValue) => {
+      const formattedValue = (yValue || 0).toFixed(0); // Ensure yValue is number, default to 0. toFixed(0) for whole numbers.
+      return i18n.language.startsWith("ar")
+        ? `${convertToArabicNumerals(formattedValue)} ${t(
+            "common.currency_symbol_short"
+          )}`
+        : `${formattedValue} ${t("common.currency_symbol_short")}`;
+    },
+    // Format X-axis labels (month names) -- handled by formatMonthName in labels array
+    formatXLabel: (xValue) => {
+      return xValue; // xValue is already formatted by `formatMonthName` (e.g., "Jan", "يناير")
+    },
+
     style: {
-      borderRadius: 16,
+      borderRadius: 18,
+
+      // Adjust padding for RTL. react-native-chart-kit handles some mirroring,
+      // but explicit padding can ensure labels don't get cut off.
+      // Increased right padding for RTL to make space for Arabic numbers on Y-axis.
+      paddingRight: I18nManager.isRTL ? 50 : 16, // More space on right for Arabic labels if they get squished
+      paddingLeft: I18nManager.isRTL ? 16 : 50, // More space on left for LTR labels (Y-axis)
+      paddingBottom: 0, // No extra padding at the bottom from the chart-kit itself
     },
     propsForDots: {
-      r: "6", // Radius of dots
+      r: "6",
       strokeWidth: "3",
-      stroke: "#ffa726", // Dot border color
+      stroke: "#ffa726",
     },
     propsForBackgroundLines: {
-      strokeDasharray: "", // Solid background lines
-      stroke: "#ffffff40", // Lighter white for grid lines
+      strokeDasharray: "",
+      stroke: "#ffffff40",
     },
-    fillShadowGradient: "#9F54B6", // Gradient for fill under the line
-    fillShadowGradientOpacity: 0.5, // Opacity of fill gradient
+    fillShadowGradient: "#9F54B6",
+    fillShadowGradientOpacity: 0.5,
+
+    yAxisLabel: "", // Removed currency symbol from yAxisLabel as it's handled in formatYLabel
+    xAxisLabel: "", // X-axis labels are handled by `labels` directly
   };
 
   if (relevantMonthlyData.length === 0) {
     return (
-      <View className="p-4 mb-4 rounded-md bg-gray-50 border-t border-[#9F54B6]">
-        <Text className="text-lg font-pbold text-black mb-4 text-center">
-          Spending Trends
+      <View className="p-4 mb-4 rounded-md bg-gray-50 border-t border-[#9F54B6] ">
+        <Text
+          className="text-lg text-black mb-4 text-center"
+          style={{ fontFamily: getFontClassName("regular") }}
+        >
+          {t("home.spendingTrendsTitle")}
         </Text>
-        <Text className="text-gray-500 italic text-center">
-          No spending data available to show trends for the current year.
+        <Text
+          className="text-gray-500 italic text-center"
+          style={{ fontFamily: getFontClassName("regular") }}
+        >
+          {t("home.noSpendingTrendsData")}
         </Text>
       </View>
     );
   }
 
-  // Calculate dynamic width for the chart
-  // We'll set a base width per data point (month) to ensure enough space for labels and dots
-  const chartWidthPerMonth = 60; // Adjust this value to control spacing between months
+  const chartWidthPerMonth = 60;
   const dynamicChartWidth = Math.max(
-    screenWidth - 30, // Minimum width, same as current
-    relevantMonthlyData.length * chartWidthPerMonth // Dynamic width based on data points
+    screenWidth - 30,
+    relevantMonthlyData.length * chartWidthPerMonth
   );
 
   return (
-    <View className=" mb-1 bg-transparent mr-2 border-t border-[#9F54B6]">
-      <Text className="text-lg font-pbold text-black mb-2 mt-2">
-        Spending Trends (Current Year)
+    <View className="mb-1 bg-transparent mr-2 border-t border-[#9F54B6]">
+      <Text
+        className={`text-lg text-black mb-2 mt-2 ${
+          I18nManager.isRTL ? "text-right" : "text-left"
+        }`}
+        style={{ fontFamily: getFontClassName("bold") }}
+      >
+        {t("home.spendingTrendsCurrentYear")}
       </Text>
-      <Text className="text-sm font-pregular text-gray-700 mb-2">
-        See your overall spending patterns over time, showing total expenditure
-        per month for the current year.
+      <Text
+        className={`text-sm text-gray-700 mb-2 ${
+          I18nManager.isRTL ? "text-right" : "text-left"
+        }`}
+        style={{ fontFamily: getFontClassName("semibold") }}
+      >
+        {t("home.spendingTrendsDescription")}
       </Text>
       <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
         <LineChart
           data={chartData}
-          width={dynamicChartWidth} // Apply the dynamic width
+          width={dynamicChartWidth}
           height={200}
           chartConfig={chartConfig}
           bezier
@@ -136,8 +214,15 @@ const SpendingTrendsChart = ({ monthlySummary, isLoading }) => {
 
 const styles = StyleSheet.create({
   chartStyle: {
+    // Note: alignSelf might interact with ScrollView.
+    // Ensure the chart's content isn't overflowing or misaligned.
+    // If issues persist, consider removing alignSelf here and managing alignment via parent View.
+    // alignSelf: I18nManager.isRTL ? "items-end" : "items-start", // Changed to flex-start for LTR, which chart-kit often aligns with
+
     marginVertical: 10,
     borderRadius: 4,
+    fontFamily: getFontClassName("semibold"),
+    fontSize: 12,
   },
 });
 

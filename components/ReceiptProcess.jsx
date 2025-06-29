@@ -7,11 +7,15 @@ import {
   Alert,
   ActivityIndicator,
   LayoutAnimation,
+  I18nManager,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import ReceiptFull from "./ReceiptFull";
 import { extractReceiptData } from "../lib/extractReceiptData";
 import images from "../constants/images";
+import { useTranslation } from "react-i18next";
+import { getFontClassName } from "../utils/fontUtils";
+import i18n from "../utils/i18n";
 import {
   projectId,
   createReceipt,
@@ -27,7 +31,7 @@ import {
   checkSession,
   getFutureDate,
 } from "../lib/appwrite";
-import Checkbox from "expo-checkbox"; // Make sure expo-checkbox is installed
+import Checkbox from "expo-checkbox";
 import { useGlobalContext } from "../context/GlobalProvider";
 import { router } from "expo-router";
 import * as FileSystem from "expo-file-system"; // for reading the image as blob
@@ -35,10 +39,42 @@ import mime from "mime"; // helps get MIME type from file extension
 import * as ImageManipulator from "expo-image-manipulator";
 
 import GradientBackground from "./GradientBackground";
-import { ro } from "date-fns/locale";
+import { ar } from "date-fns/locale";
 import { format } from "date-fns";
 
+const convertToArabicNumerals = (num) => {
+  const numString = String(num);
+
+  if (typeof numString !== "string") return String(numString);
+
+  const arabicNumeralsMap = {
+    0: "٠",
+    1: "١",
+    2: "٢",
+    3: "٣",
+    4: "٤",
+    5: "٥",
+    6: "٦",
+    7: "٧",
+    8: "٨",
+    9: "٩",
+  };
+  return numString.replace(/\d/g, (digit) => arabicNumeralsMap[digit] || digit);
+};
+
+const generateTranslationKey = (originalName) => {
+  if (!originalName) return "";
+  // Convert "Food & Dining" -> "foodDining", "Health & Wellness" -> "healthWellness"
+  return originalName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "") // Remove non-alphanumeric except spaces
+    .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => {
+      return index === 0 ? word.toLowerCase() : word.toUpperCase();
+    })
+    .replace(/\s+/g, ""); // Remove all spaces after capitalization
+};
 const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
+  const { t } = useTranslation();
   const [showFullImage, setShowFullImage] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -67,30 +103,120 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   };
   // Assuming this code snippet is within your ReceiptProcess.jsx component
 
+  const getTranslatedAiMessage = useCallback(
+    (englishMessage) => {
+      // Trim whitespace and ensure consistency for comparison
+      const cleanedEnglishMessage = englishMessage ? englishMessage.trim() : "";
+
+      const keyMap = {
+        // CRITICAL FIX: Match the EXACT string from your API response
+        "This image does not appear to be a receipt.":
+          "aiMessages.notAReceiptDefault",
+        "Image quality too low.": "aiMessages.imageQualityTooLow",
+        "No text detected in image.": "aiMessages.noTextDetected",
+        "Could not process image.": "aiMessages.couldNotProcessImage",
+        "No items found.": "aiMessages.noItemsFound",
+        "Missing merchant name.": "aiMessages.missingMerchantName",
+        // Add more mappings here as you discover exact English messages from your AI API
+      };
+
+      // Debugging log: show what message is being looked up and what keyMap contains
+      console.log(
+        "DEBUG: getTranslatedAiMessage - Looking up message:",
+        `"${cleanedEnglishMessage}"`
+      );
+      // console.log('DEBUG: getTranslatedAiMessage - Available keyMap keys:', Object.keys(keyMap)); // Uncomment for deeper debugging
+
+      const translationKey = keyMap[cleanedEnglishMessage];
+
+      // Debugging log: show if a translation key was found
+      console.log(
+        "DEBUG: getTranslatedAiMessage - Found translation key:",
+        translationKey
+      );
+
+      // If a mapping exists, translate it. Otherwise, return the original English message as a fallback.
+      return translationKey ? t(translationKey) : englishMessage;
+    },
+    [t]
+  );
+
+  const now = new Date();
+  const monthOptions = { month: "long" };
+  const monthName = now.toLocaleString("default", monthOptions); // 'default' uses the user's default locale
+
+  const currentMonthDate = new Date();
+  const currentMonthIndex = currentMonthDate.getMonth();
+
+  const monthNamesEn = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const monthNamesAr = [
+    "يناير",
+    "فبراير",
+    "مارس",
+    "أبريل",
+    "مايو",
+    "يونيو",
+    "يوليو",
+    "أغسطس",
+    "سبتمبر",
+    "أكتوبر",
+    "نوفمبر",
+    "ديسمبر",
+  ];
+
+  const displayMonthName = t(
+    `common.monthNames.${currentMonthIndex}`, // Using a common translation key for month names
+    {
+      defaultValue: i18n.language.startsWith("ar")
+        ? monthNamesAr[currentMonthIndex]
+        : monthNamesEn[currentMonthIndex],
+    }
+  );
+
   const handleProcessReceipt = async () => {
-    // --- START: NEW MONTHLY RECEIPT UPLOAD LIMIT CHECK (BEFORE EXTRACTION) ---
     if (!user || !applicationSettings) {
       Alert.alert(
-        "Error",
-        "User or application settings not loaded. Please try again."
+        t("common.errorTitle"),
+        t("receiptProcess.userSettingsError")
       );
       return;
     }
-
     const userCurrentReceiptCount = user.currentMonthReceiptCount || 0;
     const freeLimit = applicationSettings.free_tier_receipt_limit;
 
     if (!user.isPremium && userCurrentReceiptCount >= freeLimit) {
+      console.log("Limit reached for free tier:", freeLimit);
       Alert.alert(
-        "Limit Reached!",
-        `You've reached your monthly limit of ${freeLimit} receipt uploads. Upgrade to Premium for unlimited uploads and more features!`,
+        t("receiptProcess.limitReachedTitle"),
+        t("receiptProcess.limitReachedMessage", {
+          freeLimit: i18n.language.startsWith("ar")
+            ? convertToArabicNumerals(freeLimit)
+            : freeLimit,
+        }),
         [
-          { text: "Later", style: "cancel", onPress: () => onCancel() }, // Go back/dismiss
           {
-            text: "Upgrade Now",
+            text: t("common.later"),
+            style: "cancel",
+            onPress: () => onCancel(),
+          },
+          {
+            text: t("common.upgradeNow"),
             onPress: () => {
-              router.push("/upgrade-premium"); // Navigate to your upgrade page
-              onCancel(); // Close the modal if it's open
+              router.push("/upgrade-premium");
+              onCancel();
             },
           },
         ]
@@ -99,8 +225,12 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       try {
         await createNotification({
           user_id: user.$id,
-          title: "Receipt Upload Limit Reached",
-          message: `You've used all ${freeLimit} free monthly receipt uploads. Upgrade to Premium!`,
+          title: t("notifications.receiptUploadLimitReachedTitle"),
+          message: t("notifications.receiptUploadLimitReachedMessage", {
+            freeLimit: i18n.language.startsWith("ar")
+              ? convertToArabicNumerals(freeLimit)
+              : freeLimit,
+          }),
           type: "limit_reached",
           expiresAt: getFutureDate(30),
           receipt_id: null,
@@ -113,22 +243,23 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           notificationError
         );
       }
-      return; // CRUCIAL: Stop execution here
+      return;
     }
     // --- END: NEW MONTHLY RECEIPT UPLOAD LIMIT CHECK ---
+
     try {
       setIsProcessing(true);
       const data = await extractReceiptData(imageUri);
 
       // Check if it's not a receipt
       if (!data.isReceipt) {
-        Alert.alert(
-          "Not a Receipt",
-          data.message || "This image is not a receipt."
-        );
+        const displayMessage = data.message
+          ? getTranslatedAiMessage(data.message)
+          : t("receiptProcess.notAReceiptMessage");
+
+        Alert.alert(t("receiptProcess.notAReceiptTitle"), displayMessage);
         return;
       }
-
       // --- Item Consolidation Logic (remains unchanged) ---
       if (data.data && data.data.items && data.data.items.length > 0) {
         const originalItems = data.data.items;
@@ -159,11 +290,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         }
         data.data.items = consolidatedItems;
       }
-      // --- End of Item Consolidation Logic ---
 
-      // --- START: MODIFIED LOGIC FOR COUNTRY AND NULL HANDLING (for display/editing) ---
-
-      // Ensure data.data and data.data.location exist to prevent errors
       if (!data.data) {
         data.data = {};
       }
@@ -227,7 +354,10 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       // Set the extracted data (now processed and cleaned)
       setExtractedData(data.data);
       console.log("Receipt Data (Processed for display/editing)", data.data);
-      Alert.alert("Success", "Receipt processed successfully!");
+      Alert.alert(
+        t("common.successTitle"),
+        t("receiptProcess.processedSuccess")
+      );
     } catch (error) {
       Alert.alert("Error", "Failed to extract receipt data.");
       console.error("Receipt extraction failed:", error);
@@ -237,21 +367,18 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   };
   const handleSave = async () => {
     console.log("extractedData", extractedData);
-
     if (!consentGiven) {
       Alert.alert(
-        "Consent Required",
-        "Please agree to save your data before proceeding."
+        t("receiptProcess.consentRequiredTitle"),
+        t("receiptProcess.consentRequiredMessage")
       );
       return;
     }
 
     if (!extractedData || !imageUri || !user) {
-      Alert.alert("Error", "Missing receipt data or image or user info.");
+      Alert.alert(t("common.errorTitle"), t("receiptProcess.missingData"));
       return;
     }
-
-    console.log("User Data...", user);
 
     const isDuplicate = await isDuplicateReceipt(
       user.$id,
@@ -262,27 +389,36 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
     if (isDuplicate) {
       Alert.alert(
-        "Duplicate Receipt",
-        "This receipt already exists and won't be saved again.",
+        t("receiptProcess.duplicateTitle"),
+        t("receiptProcess.duplicateMessage", {
+          merchant: extractedData.merchant || t("common.unknownMerchant"),
+          // Ensure date format uses the correct locale and translated format string
+          date: format(
+            new Date(extractedData.datetime),
+            t("common.dateFormatShort"),
+            { locale: i18n.language.startsWith("ar") ? ar : undefined }
+          ),
+        }),
         [
-          // NEW: Add buttons array
           {
-            text: "OK",
-            onPress: () => onProcessComplete?.(), // Call dismiss callback ONLY AFTER user presses OK
+            text: t("common.ok"),
+            onPress: () => onProcessComplete?.(),
           },
         ]
       );
-      console.log("Duplicate receipt detected:");
+
       try {
         await createNotification({
           user_id: user.$id,
-          title: "Duplicate Receipt Detected",
-          message: `Your receipt for ${
-            extractedData.merchant || "Unknown Merchant"
-          } on ${format(
-            new Date(extractedData.datetime),
-            "MMM dd,PPPP"
-          )} was a duplicate and not saved.`,
+          title: t("notifications.duplicateReceiptDetectedTitle"),
+          message: t("notifications.duplicateReceiptDetectedMessage", {
+            merchant: extractedData.merchant || t("common.unknownMerchant"),
+            date: format(
+              new Date(extractedData.datetime),
+              t("common.dateFormatShort"),
+              { locale: i18n.language.startsWith("ar") ? ar : undefined }
+            ),
+          }),
           type: "system",
           expiresAt: getFutureDate(14),
           receipt_id: null,
@@ -295,6 +431,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           notificationError
         );
       }
+
       onProcessComplete?.();
       return;
     }
@@ -322,8 +459,6 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
       const manipulatedInfo = await FileSystem.getInfoAsync(fileUri);
 
-      console.log(`Original size: ${fileInfo.size} bytes`);
-      console.log(`Manipulated image Size: ${manipulatedInfo.size}`);
       const receiptDate = new Date(extractedData.datetime);
 
       const dateOptions = {
@@ -370,8 +505,6 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         })
       );
 
-      console.log("extracted Receipt Data ....", extractedData);
-
       const locationAddress = extractedData.location?.address;
       const locationCity = extractedData.location?.city;
       const locationCountry = extractedData.location?.country;
@@ -389,10 +522,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         extractedData.location?.country === ""
           ? "null"
           : String(extractedData.location?.country || "null");
-      console.log(
-        "extractedData.loyaltyPoints...",
-        extractedData.loyaltyPoints
-      );
+
       const receiptData = {
         user_id: user.$id,
         merchant: String(extractedData.merchant || "Unknown"),
@@ -427,10 +557,6 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       };
 
       const userCurrentReceiptCount = user.currentMonthReceiptCount || 0; // Get current count from global user object
-      console.log(
-        "LOG currentMonthReceiptCount.......>>>",
-        userCurrentReceiptCount
-      ); // Log the value being passed // Call createReceipt with receiptData, user ID, and current receipt count
 
       const { receipt: newReceipt, updatedUser: freshUser } =
         await createReceipt(
@@ -445,28 +571,24 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           setTimeout(() => {
             setUser(freshUser);
           }, 200);
-          // Update global user state with the latest count
-          console.log(
-            "Global user state updated with new receipt count:",
-            freshUser.currentMonthReceiptCount
-          );
-          // Check the receipt part of the response
-          Alert.alert("Success", "Receipt saved successfully!", [
-            // NEW: Add buttons array
-            {
-              text: "OK",
-              onPress: () => {
-                onProcessComplete?.(); // Call onProcessComplete after OK is pressed
-              },
-            },
-          ]); // NEW: Directly update the user in global context with the fresh data
-        } else {
-          // Fallback if updatedUser is unexpectedly null (though it shouldn't be with current createReceipt)
-          // Still call checkSessionAndFetchUser to attempt a full refresh.
 
+          // Check the receipt part of the response
+          Alert.alert(
+            t("common.successTitle"),
+            t("receiptProcess.savedSuccess"),
+            [
+              {
+                text: t("common.ok"),
+                onPress: () => {
+                  onProcessComplete?.(); // Call onProcessComplete after OK is pressed
+                },
+              },
+            ]
+          );
+        } else {
           setTimeout(async () => {
             await checkSessionAndFetchUser();
-          }, 200);
+          }, 300);
 
           console.warn(
             "freshUser was null after createReceipt. Triggering full user refresh."
@@ -475,22 +597,18 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
         await createNotification({
           user_id: user.$id,
-          title: "Receipt Processed",
-          message: `Your receipt for ${
-            extractedData.merchant || "Unknown"
-          } (${parseFloat(extractedData.total || 0).toFixed(
-            2
-          )}) has been successfully processed!`,
-          receipt_id: newReceipt.$id, // Use newReceipt here
+          title: t("notifications.receiptProcessedTitle"),
+          message: t("notifications.receiptProcessedMessage", {
+            merchant: extractedData.merchant || t("common.unknown"),
+            total: (extractedData.total || 0).toFixed(2), // Total is a number, keep as is for message template
+          }),
+          receipt_id: newReceipt.$id,
           type: "receipt",
           expiresAt: getFutureDate(7),
         });
 
         const pointsEarned = 0;
         await updateUserPoints(user.$id, pointsEarned, "receipt_upload");
-        console.log(
-          `User ${user.$id} earned ${pointsEarned} points for receipt upload.`
-        );
 
         const earnedBadges = await checkAndAwardBadges(user.$id);
         if (earnedBadges.length > 0) {
@@ -499,18 +617,23 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             .map((badge) => badge.points_reward)
             .join(", ");
           Alert.alert(
-            "Achievement Unlocked!",
-            `You earned new badges: ${badgeNames}! You earned Extra Points: ${pointsExtra}!`
+            t("notifications.achievementUnlockedTitle"), // Translated "Achievement Unlocked!"
+            t("notifications.achievementUnlockedMessage", {
+              badgeNames,
+              pointsExtra,
+            }) // Translated with interpolation
           );
 
           await createNotification({
             user_id: user.$id,
-            title: "Achievement Unlocked!",
-            message: `You earned ${pointsExtra} Extra Points for ${badgeNames}! Keep up the great work!`,
+            title: t("notifications.achievementUnlockedTitle"), // Translated
+            message: t("notifications.achievementUnlockedMessage", {
+              badgeNames,
+              pointsExtra,
+            }), // Translated with interpolation
             type: "points_award",
             expiresAt: getFutureDate(7),
           });
-          console.log(`User ${user.$id} earned badges: ${badgeNames}`);
         }
 
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
@@ -519,18 +642,18 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
         onProcessComplete?.();
       } else {
-        console.error("Invalid response from createReceipt:", newReceipt);
-        Alert.alert("Error", "Receipt was not saved. Please try again.");
+        Alert.alert(t("common.errorTitle"), t("receiptProcess.saveFailed"));
         try {
           await createNotification({
             user_id: user.$id,
-            title: "Receipt Save Failed",
-            message: `Failed to save your receipt for ${
-              extractedData.merchant || "Unknown"
-            }. Please try again.`,
+            title: t("notifications.receiptSaveFailedTitle"),
+            message: t("notifications.receiptSaveFailedMessage", {
+              merchant: extractedData.merchant || t("common.unknown"),
+            }),
             type: "error",
             expiresAt: getFutureDate(14),
           });
+
           const updatedUnreadCount = await countUnreadNotifications(user.$id);
           updateUnreadCount(updatedUnreadCount);
         } catch (notificationError) {
@@ -542,15 +665,15 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       }
     } catch (error) {
       console.error("Save error:", error);
-      Alert.alert("Error", "Could not save receipt.");
+      Alert.alert(t("common.errorTitle"), t("receiptProcess.generalSaveError"));
       setHasSaved(false);
       try {
         await createNotification({
           user_id: user.$id,
-          title: "Receipt Processing Error",
-          message: `An unexpected error occurred while saving your receipt. Error: ${
-            error.message || "Unknown error"
-          }.`,
+          title: t("notifications.receiptProcessingErrorTitle"),
+          message: t("notifications.receiptProcessingErrorMessage", {
+            errorMessage: error.message || t("common.unknownError"),
+          }),
           type: "error",
           expiresAt: getFutureDate(14),
         });
@@ -587,7 +710,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   };
 
   return (
-    <View className=" px-2 pt-10 pb-2  max-h-[90vh] bg-[#cccccd] ">
+    <View className=" px-2 pt-10 pb-2  max-h-[90vh] bg-[#cccccd]">
       <ScrollView
         contentContainerStyle={{
           alignItems: "center",
@@ -595,17 +718,20 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           flexGrow: 1,
         }}
         showsVerticalScrollIndicator={true}
-        // style={{ borderColor: 'red', borderWidth: 1 }}
       >
         {extractedData && (
           <>
-            <Text className="text-xl text-black font-pbold text-center mb-2 mt-4 ">
-              {
-                hasSaved && isProcessing // If hasSaved is true and still processing
-                  ? "♥️ Saving your receipt"
-                  : "Reciept Extracted Successfuly" // After extraction, before saving or if save failed
-              }
+            <Text
+              className={`text-xl text-black text-center mb-2 mt-4 ${getFontClassName(
+                "bold"
+              )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+               style={{ fontFamily: getFontClassName("bold") }}
+            >
+              {hasSaved && isProcessing
+                ? t("receiptProcess.savingReceipt")
+                : t("receiptProcess.extractedSuccess")}
             </Text>
+
             {/* <Image
               source={images.success}
               className=" w-16 h-16 right-1 "
@@ -614,7 +740,6 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           </>
         )}
 
-        {/* The full image view and processing/action buttons before data extraction */}
         {!extractedData && (
           <>
             <TouchableOpacity
@@ -626,9 +751,19 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                 resizeMode="contain"
                 className="w-full aspect-[5/6] mb-1 mt-4 rounded-3xl"
               />
-              <View className="absolute bottom-36 right-2 bg-black/70 px-2 py-1 rounded">
-                <Text className="font-psemibold text-base text-white">
-                  Tap to view full
+
+              <View
+                className={`absolute bottom-36 ${
+                  I18nManager.isRTL ? "left-2 right-auto" : "right-2"
+                } bg-black/70 px-2 py-1 rounded`}
+              >
+                <Text
+                  className={`text-base text-white ${getFontClassName(
+                    "semibold"
+                  )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                   style={{ fontFamily: getFontClassName("semibold") }}
+                >
+                  {t("receiptProcess.tapToViewFull")}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -636,13 +771,17 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             {isProcessing ? (
               <View className="items-center mt-6 mb-6">
                 <ActivityIndicator size="large" color="#ef6969" />
-                <Text className="mt-2 font-psemibold text-black/70">
-                  {`Processing...\n Our platform uses advanced AI to automatically extract key details from your uploaded receipt.`}
+                <Text
+                  className={`mt-2 text-black/70 text-center ${getFontClassName(
+                    "semibold"
+                  )}`}
+                   style={{ fontFamily: getFontClassName("semibold") }}
+                >
+                  {t("receiptProcess.processingMessage")}
                 </Text>
               </View>
             ) : (
               <View className="flex-row justify-center items-center gap-6 mt-4 mb-6">
-                {/* Cancel Button - Hidden when hasSaved is true */}
                 {!hasSaved && (
                   <TouchableOpacity onPress={onCancel}>
                     <View className="items-center">
@@ -651,13 +790,17 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                         resizeMode="contain"
                         className="w-[50px] h-[50px] rounded-full p-1 border-2 border-red-400 opacity-90"
                       />
-                      <Text className="mt-1 font-pregular text-sm text-black/80">
-                        Cancel
+                      <Text
+                        className={`mt-1 text-sm text-black/80 ${getFontClassName(
+                          "regular"
+                        )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                         style={{ fontFamily: getFontClassName("regular") }}
+                      >
+                        {t("common.cancel")}
                       </Text>
                     </View>
                   </TouchableOpacity>
                 )}
-
                 <TouchableOpacity onPress={handleProcessReceipt}>
                   <View className="items-center">
                     <Image
@@ -665,8 +808,13 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                       resizeMode="contain"
                       className="w-[50px] h-[50px] rounded-full p-1 border-2 border-green-500 opacity-90"
                     />
-                    <Text className="mt-1 font-pregular text-sm text-black/80">
-                      Process
+                    <Text
+                      className={`mt-1 text-sm text-black/80 ${getFontClassName(
+                        "regular"
+                      )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                      style={{ fontFamily: getFontClassName("regular") }}
+                    >
+                      {t("receiptProcess.process")}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -679,11 +827,23 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         {extractedData && !hasSaved && (
           <>
             <View className="w-full mt-2 px-8 py-1 rounded-xl mb-2">
+              {/* Merchant Display */}
               {extractedData.merchant && !showAllItems && (
-                <Text className="text-blue-900 font-psemibold mb-3 text-base">
-                  <Text className="text-black font-semibold text-base ">
-                    🏪 Merchant →
-                  </Text>{" "}
+                <Text
+                  className={`text-blue-900 mb-3 text-base ${getFontClassName(
+                    "semibold"
+                  )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                  style={{ fontFamily: getFontClassName("semibold") }}
+                >
+                  <Text
+                    className={`text-black text-base ${getFontClassName(
+                      "bold"
+                    )}`}
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
+                    🏪 {t("receiptProcess.merchant")}
+                    {" : "}
+                  </Text>
                   {extractedData.merchant}
                 </Text>
               )}
@@ -693,9 +853,20 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                 (extractedData.location.address ||
                   extractedData.location.city ||
                   extractedData.location.country) && (
-                  <Text className="text-blue-900 font-psemibold mb-3 text-base">
-                    <Text className="text-black font-pbold text-base">
-                      📍 Location →
+                  <Text
+                    className={`text-blue-900 mb-3 text-base ${getFontClassName(
+                      "semibold"
+                    )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    <Text
+                      className={`text-black text-base ${getFontClassName(
+                        "bold"
+                      )}`}
+                      style={{ fontFamily: getFontClassName("bold") }}
+                    >
+                      📍 {t("receiptProcess.location")}
+                      {" : "}
                     </Text>
                     <Text>
                       {[
@@ -709,31 +880,69 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                   </Text>
                 )}
 
+              {/* Date & Time Display */}
               {extractedData.datetime && !showAllItems && (
-                <Text className="text-blue-900 font-psemibold mb-3 text-base">
-                  <Text className="text-black font-pbold text-base">
-                    📅 Date →
-                  </Text>{" "}
+                <Text
+                  className={`text-blue-900 mb-3 text-base ${getFontClassName(
+                    "semibold"
+                  )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                  style={{ fontFamily: getFontClassName("semibold") }}
+                >
+                  <Text
+                    className={`text-black text-base ${getFontClassName(
+                      "bold"
+                    )}`}
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
+                    📅 {t("receiptProcess.date")}
+                    {" : "}
+                  </Text>
                   {(() => {
                     const dateTimeString = extractedData.datetime;
                     const localDateTimeString = dateTimeString.endsWith("Z")
-                      ? dateTimeString.slice(0, -1) // Remove 'Z'
+                      ? dateTimeString.slice(0, -1)
                       : dateTimeString;
 
                     const displayDate = new Date(localDateTimeString);
 
+                    // CRITICAL: Use `ar` as the locale object if language is Arabic
+                    const currentLocale = i18n.language.startsWith("ar")
+                      ? ar
+                      : undefined; // <--- CHANGED FROM 'ro' TO 'ar'
+
+                    // Debugging: Log the locale being used and the raw date string
+                    console.log(
+                      "DEBUG Date Formatting: Current i18n Language:",
+                      i18n.language
+                    );
+                    console.log(
+                      "DEBUG Date Formatting: Resolved Date-fns Locale:",
+                      currentLocale ? currentLocale.code : "Default/Undefined"
+                    );
+                    console.log(
+                      "DEBUG Date Formatting: Date String:",
+                      dateTimeString
+                    );
+
+                    const formattedDate = format(
+                      displayDate,
+                      t("common.dateFormatShort"),
+                      { locale: currentLocale }
+                    );
+                    const formattedTime = format(
+                      displayDate,
+                      t("common.timeFormatShort"),
+                      { locale: currentLocale }
+                    );
+
                     return (
                       <>
-                        {displayDate.toLocaleDateString(undefined, {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}{" "}
-                        {displayDate.toLocaleTimeString(undefined, {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: true,
-                        })}
+                        {i18n.language.startsWith("ar")
+                          ? convertToArabicNumerals(formattedDate)
+                          : formattedDate}{" "}
+                        {i18n.language.startsWith("ar")
+                          ? convertToArabicNumerals(formattedTime)
+                          : formattedTime}
                       </>
                     );
                   })()}
@@ -741,164 +950,302 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
               )}
 
               {extractedData.items.length > 0 && !showAllItems && (
-                <View>
-                  <Text className="font-pbold text-base text-black mb-1 ">
-                    🗂️ Category:
+                <View
+                  className={`${
+                    I18nManager.isRTL ? "items-end" : "items-start"
+                  }`}
+                >
+                  <Text
+                    className={`text-base text-black mb-1 ${getFontClassName(
+                      "bold"
+                    )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
+                    🗂️ {t("receiptProcess.category")}:
                   </Text>
-                  <Text className="text-base text-green-900 ml-4 mb-2 font-psemibold">
-                    {extractedData.items[0].category || "Unknown"} →{" "}
-                    {extractedData.items[0].subcategory || "Uncategorized"}
+                  <Text
+                    className={`text-base text-green-900 ml-4 mb-2 ${getFontClassName(
+                      "semibold"
+                    )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    {t(
+                      `categories.${generateTranslationKey(
+                        extractedData.items[0].category || t("common.unknown")
+                      )}`,
+                      {
+                        defaultValue:
+                          extractedData.items[0].category ||
+                          t("common.unknown"),
+                      }
+                    )}
+                    {" : "}
+
+                    {t(
+                      `subcategories.${generateTranslationKey(
+                        extractedData.items[0].subcategory ||
+                          t("common.uncategorized")
+                      )}`,
+                      {
+                        defaultValue:
+                          extractedData.items[0].subcategory ||
+                          t("common.uncategorized"),
+                      }
+                    )}
                   </Text>
                 </View>
               )}
 
               {/* Items extracted as collapsed */}
               {extractedData.items?.length > 0 && (
-                <View className="mb-3">
-                  <View className="flex-row items-center mb-1">
-                    <Text className="font-pbold text-base text-blue-700">
-                      🛒 Items:
+                <View className="mb-3 w-full">
+                  <View
+                    className={`flex-row items-center mb-1 ${
+                      I18nManager.isRTL
+                        ? "flex-row-reverse justify-end"
+                        : "justify-start"
+                    }`}
+                  >
+                    <Text
+                      className={`text-base text-blue-700 ${getFontClassName(
+                        "bold"
+                      )}`}
+                      style={{ fontFamily: getFontClassName("bold") }}
+                    >
+                      🛒 {t("receiptProcess.items")}:
                     </Text>
-                    {extractedData.items.length > 2 && ( // CHANGE THIS LINE: 3 is your desired default
+                    {extractedData.items.length > 2 && ( // Default showing 2 items initially
                       <ScrollView
                         className="flex-1"
-                        showsVerticalScrollIndicator={true}
+                        horizontal={I18nManager.isRTL} // Scroll horizontally in RTL if needed for "Show more" text
+                        showsHorizontalScrollIndicator={false}
+                        showsVerticalScrollIndicator={false}
                       >
                         <TouchableOpacity onPress={toggleItems}>
-                          <Text className="font-pbold text-base text-blue-700 ml-1">
-                            {showAllItems ? "(▲ Show less)" : "(Show more ▼)"}
+                          <Text
+                            className={`text-base text-blue-700 ${
+                              I18nManager.isRTL ? "mr-1" : "ml-1"
+                            } ${getFontClassName("bold")} ${
+                              I18nManager.isRTL ? "text-right" : "text-left"
+                            }`}
+                            style={{ fontFamily: getFontClassName("bold") }}
+                          >
+                            {showAllItems
+                              ? t("receiptProcess.showLess")
+                              : t("receiptProcess.showMore")}{" "}
                           </Text>
                         </TouchableOpacity>
                       </ScrollView>
                     )}
                   </View>
 
-                  {(showAllItems || extractedData.items.length <= 2 // CHANGE THIS LINE TOO, to match the desired default
+                  {(showAllItems || extractedData.items.length <= 2 // Default showing 2 items initially
                     ? extractedData.items
                     : extractedData.items.slice(0, 2)
                   ).map((item, index) => (
-                    <View key={index} className="ml-4 mb-1 p-1 ">
-                      <Text className="text-blue-900 font-psemibold text-base">
-                        • {item.name || "Unnamed item"} →{" "}
-                        <Text className="font-bold text-red-900 text-base">
-                          {item.price || "N/A"}
+                    <View
+                      key={index}
+                      className={`mb-1 p-1 ${
+                        I18nManager.isRTL ? "items-end" : "items-start"
+                      }`}
+                    >
+                      <Text
+                        className={`text-blue-900 text-base ${getFontClassName(
+                          "semibold"
+                        )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                        style={{ fontFamily: getFontClassName("semibold") }}
+                      >
+                        • {item.name || t("receiptProcess.unnamedItem")}
+                        {" : "}
+                        <Text
+                          className={`text-red-900 text-base ${getFontClassName(
+                            "bold"
+                          )}`}
+                          style={{ fontFamily: getFontClassName("bold") }}
+                        >
+                          {i18n.language.startsWith("ar")
+                            ? convertToArabicNumerals(item.price || 0)
+                            : (item.price || 0).toFixed(2)}{" "}
+                          {t("common.currency_symbol_short")}{" "}
                         </Text>
                       </Text>
                     </View>
                   ))}
 
-                  {extractedData.items.length > 2 && ( // CHANGE THIS LINE: 3 is your desired default
-                    <TouchableOpacity onPress={toggleItems}>
-                      <Text className="text-blue-700 font-pbold ml-4 mt-1 text-base">
+                  {extractedData.items.length > 2 && ( // Default showing 2 items initially
+                    <TouchableOpacity
+                      onPress={toggleItems}
+                      className={`${
+                        I18nManager.isRTL ? "items-end" : "items-start"
+                      }`}
+                    >
+                      <Text
+                        className={`text-blue-700 mt-1 text-base ${getFontClassName(
+                          "bold"
+                        )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                        style={{ fontFamily: getFontClassName("bold") }}
+                      >
                         {showAllItems
-                          ? "▲ Hide Items & Show Details"
-                          : "▼ Show All Items"}
+                          ? t("receiptProcess.hideItemsShowDetails")
+                          : t("receiptProcess.showAllItems")}{" "}
                       </Text>
                     </TouchableOpacity>
                   )}
                 </View>
               )}
+
               {/* Subtotal Display */}
               {typeof extractedData.subtotal === "number" &&
-                !isNaN(extractedData.vat) &&
+                !isNaN(extractedData.subtotal) &&
                 extractedData.subtotal !== 0 &&
-                !showAllItems && ( // <--- MODIFIED CONDITION
-                  <Text className="text-red-900 text-base font-psemibold mb-1">
-                    <Text className="text-black font-pbold text-base">
-                      💵 Subtotal →
+                !showAllItems && (
+                  <Text
+                    className={`text-red-900 text-base mb-1 ${getFontClassName(
+                      "semibold"
+                    )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    <Text
+                      className={`text-black text-base ${getFontClassName(
+                        "bold"
+                      )}`}
+                      style={{ fontFamily: getFontClassName("bold") }}
+                    >
+                      💵 {t("receiptProcess.subtotal")}
+                      {" : "}
                     </Text>{" "}
-                    {extractedData.subtotal.toFixed(2)}{" "}
-                    {/* Added .toFixed(2) for consistent display */}
+                    {i18n.language.startsWith("ar")
+                      ? convertToArabicNumerals(
+                          extractedData.subtotal.toFixed(2)
+                        )
+                      : extractedData.subtotal.toFixed(2)}{" "}
+                    {t("common.currency_symbol_short")}
                   </Text>
                 )}
               {/* VAT Display */}
               {typeof extractedData.vat === "number" &&
                 !isNaN(extractedData.vat) &&
                 extractedData.vat !== 0 &&
-                !showAllItems && ( // <--- MODIFIED CONDITION
-                  <Text className="text-red-900 text-base font-psemibold mb-1">
-                    <Text className="text-black font-pbold text-base">
-                      🧾 VAT →
+                !showAllItems && (
+                  <Text
+                    className={`text-red-900 text-base mb-1 ${getFontClassName(
+                      "semibold"
+                    )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    <Text
+                      className={`text-black text-base ${getFontClassName(
+                        "bold"
+                      )}`}
+                      style={{ fontFamily: getFontClassName("bold") }}
+                    >
+                      🧾 {t("receiptProcess.vat")}
+                      {" : "}
                     </Text>{" "}
-                    {extractedData.vat.toFixed(2)}{" "}
-                    {/* Added .toFixed(2) for consistent display */}
+                    {i18n.language.startsWith("ar")
+                      ? convertToArabicNumerals(extractedData.vat.toFixed(2))
+                      : extractedData.vat.toFixed(2)}{" "}
+                    {t("common.currency_symbol_short")}
                   </Text>
                 )}
             </View>
 
+            {/* Total Display */}
             {typeof extractedData.total === "number" &&
               !isNaN(extractedData.total) &&
               extractedData.total !== 0 &&
-              !showAllItems && ( // <--- MODIFIED CONDITION
-                <Text className="text-red-900 text-base font-psemibold mb-1">
-                  <Text className="text-black font-pbold text-base">
-                    💰 Total →
+              !showAllItems && (
+                <Text
+                  className={`text-red-900 text-base mb-4 ${getFontClassName(
+                    "semibold"
+                  )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                  style={{ fontFamily: getFontClassName("bold") }}
+                >
+                  <Text
+                    className={`text-black text-base ${getFontClassName(
+                      "bold"
+                    )}`}
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
+                    💰 {t("receiptProcess.total")}
+                    {" : "}
                   </Text>{" "}
-                  {extractedData.total.toFixed(2)}{" "}
-                  {/* Added .toFixed(2) for consistent display */}
+                  {i18n.language.startsWith("ar")
+                    ? convertToArabicNumerals(extractedData.total.toFixed(2))
+                    : extractedData.total.toFixed(2)}{" "}
+                  {t("common.currency_symbol_short")}
                 </Text>
               )}
 
             {/* Consent checkbox */}
-            <View className="flex-row items-center mt-4 gap-2 px-4">
+            <View
+              className={`flex-row items-center mt-6 mb-4 px-4 gap-2 ${
+                I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
+              }`}
+            >
               <Checkbox
                 value={consentGiven}
                 onValueChange={setConsentGiven}
-                color={consentGiven ? "#22c55e" : undefined}
+                color={consentGiven ? "#22c55e" : undefined} // Use green-500 equivalent
+                className="rounded-sm" // Small border radius for checkbox
               />
-              <Text className="text-base text-black/90 font-pregular underline ">
-                Your data is saved securely and may be shared anonymized with
-                trusted third parties..
+
+              <Text
+                className={`flex-1 ${
+                  I18nManager.isRTL ? "mr-2" : "ml-2"
+                } text-gray-700 text-sm ${getFontClassName("regular")} ${
+                  I18nManager.isRTL ? "text-right" : "text-left"
+                }`}
+                style={{ fontFamily: getFontClassName("semibold") }}
+              >
+                {" "}
+                {t("receiptProcess.consentMessage")}
               </Text>
             </View>
 
-            {/* Buttons */}
-            <View className="flex-row justify-center items-center gap-6 mt-0 mb-1">
-              {/* Cancel Button - Hidden when hasSaved is true */}
-              {!hasSaved && (
-                <TouchableOpacity onPress={onCancel}>
-                  <View className="items-center">
-                    <Image
-                      source={images.cancel}
-                      resizeMode="contain"
-                      className="w-[55px] h-[55px] rounded-full p-1 border-2 border-red-400 opacity-90"
-                    />
-                    <Text className="mt-1 font-pregular text-sm text-black/80">
-                      Cancel
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity onPress={handleSave}>
-                <View className="items-center opacity-100">
-                  <Image
-                    source={images.confirm}
-                    resizeMode="contain"
-                    className={`w-[58px] h-[58px] rounded-full p-1 border-2 ${
-                      consentGiven ? "border-green-500" : "border-gray-300"
-                    }`}
-                  />
-                  <Text className="mt-1 font-pregular text-sm text-black/80">
-                    Save
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+            {/* Save Button */}
+            <TouchableOpacity
+              onPress={handleSave}
+              className={`bg-[#4E17B3] py-3 rounded-md w-full mt-4 mb-8 ${
+                isProcessing && hasSaved ? "opacity-50" : ""
+              }`}
+              disabled={isProcessing && hasSaved} // Disable if saving
+            >
+              <Text
+                className={`text-white text-center ${getFontClassName(
+                  "semibold"
+                )}`}
+                style={{ fontFamily: getFontClassName("semibold") }}
+              >
+                {isProcessing && hasSaved
+                  ? t("receiptProcess.saving")
+                  : t("receiptProcess.save")}{" "}
+              </Text>
+            </TouchableOpacity>
           </>
         )}
 
         {/* This block shows only after save is clicked OR during initial processing */}
         {extractedData &&
           isProcessing &&
-          hasSaved && ( // <-- Added hasSaved condition here
+          hasSaved && ( // Corrected condition: shows if data extracted, processing, AND saving has started
             <View className="items-center mt-4 mb-6 px-4">
               <ActivityIndicator size="large" color="#ef6969" />
-              <Text className="text-center mt-2 text-black/70 font-pregular">
-                Your data is saving securely...
+              <Text
+                className={`text-center mt-2 text-black/70 ${getFontClassName(
+                  "regular"
+                )}`}
+                style={{ fontFamily: getFontClassName("regular") }}
+              >
+                {t("receiptProcess.dataSavingSecurely")}
               </Text>
-              <Text className="text-center mt-2 text-black/70 font-pregular">
-                Please wait while we process your request.
+              <Text
+                className={`text-center mt-2 text-black/70 ${getFontClassName(
+                  "regular"
+                )}`}
+                style={{ fontFamily: getFontClassName("regular") }}
+              >
+                {t("receiptProcess.pleaseWaitProcessing")}
               </Text>
             </View>
           )}

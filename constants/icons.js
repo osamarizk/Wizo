@@ -41,6 +41,11 @@ import star from "../assets/icons/star.png";
 import medal from "../assets/icons/medal.png";
 import gear from "../assets/icons/gear.png";
 import upgrade from "../assets/icons/upgrade.png";
+import edit from "../assets/icons/edit.png";
+import download from "../assets/icons/download.png";
+import trash from "../assets/icons/trash.png";
+import lock from "../assets/icons/lock.png";
+import check from "../assets/icons/check.png";
 // budget.png
 // import receipt from "../assets/icons/receipt";
 export default {
@@ -87,4 +92,9 @@ export default {
   medal,
   gear,
   upgrade,
+  edit,
+  download,
+  trash,
+  lock,
+  check,
 };

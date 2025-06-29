@@ -28,6 +28,7 @@ module.exports = {
         },
       },
       fontFamily: {
+        // Poppins Fonts (for LTR / English) - Keep as is
         pthin: ["Poppins-Thin", "sans-serif"],
         pextralight: ["Poppins-ExtraLight", "sans-serif"],
         plight: ["Poppins-Light", "sans-serif"],
@@ -37,6 +38,18 @@ module.exports = {
         pbold: ["Poppins-Bold", "sans-serif"],
         pextrabold: ["Poppins-ExtraBold", "sans-serif"],
         pblack: ["Poppins-Black", "sans-serif"],
+
+        // Cairo Fonts for Arabic (all 't-' prefixes now mapped to Cairo)
+        // These values on the RIGHT (e.g., "Cairo-Light") MUST EXACTLY match the keys you use in useFonts.js
+        "t-thin": ["Cairo-ExtraLight"], // Cairo has ExtraLight
+        "t-extralight": ["Cairo-ExtraLight"],
+        "t-light": ["Cairo-Light"],
+        "t-regular": ["Cairo-Regular"],
+        "t-medium": ["Cairo-Medium"],
+        "t-semibold": ["Cairo-SemiBold"],
+        "t-bold": ["Cairo-Bold"],
+        "t-extrabold": ["Cairo-ExtraBold"], // Cairo has a distinct ExtraBold
+        "t-black": ["Cairo-Black"], // Cairo has a distinct Black
       },
     },
   },

@@ -12,6 +12,7 @@ import {
   ScrollView,
   Alert,
   Platform,
+  I18nManager,
 } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -22,6 +23,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import GradientBackground from "../../components/GradientBackground";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import icons from "../../constants/icons";
+import i18n from "../../utils/i18n";
+import { ar as arLocale } from "date-fns/locale";
 
 import {
   countUnreadNotifications,
@@ -55,6 +58,9 @@ import images from "../../constants/images";
 import SpendingTrendsChart from "../../components/SpendingTrendsChart";
 import EditReceiptModal from "../../components/EditReceiptModal";
 
+import { useTranslation } from "react-i18next";
+import { getFontClassName } from "../../utils/fontUtils";
+
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
   "#D03957", // Red
@@ -78,7 +84,40 @@ const gradientColors = [
   "#6D83F2", // Light Slate Blue
 ];
 
+const convertToArabicNumerals = (num) => {
+  const numString = String(num);
+
+  if (typeof numString !== "string") return String(numString);
+
+  const arabicNumeralsMap = {
+    0: "٠",
+    1: "١",
+    2: "٢",
+    3: "٣",
+    4: "٤",
+    5: "٥",
+    6: "٦",
+    7: "٧",
+    8: "٨",
+    9: "٩",
+  };
+  return numString.replace(/\d/g, (digit) => arabicNumeralsMap[digit] || digit);
+};
+
+const generateTranslationKey = (originalName) => {
+  if (!originalName) return "";
+  // Convert "Food & Dining" -> "foodDining", "Health & Wellness" -> "healthWellness"
+  return originalName
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "") // Remove non-alphanumeric except spaces
+    .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => {
+      return index === 0 ? word.toLowerCase() : word.toUpperCase();
+    })
+    .replace(/\s+/g, ""); // Remove all spaces after capitalization
+};
+
 const Home = () => {
+  const { t } = useTranslation();
   const hours = new Date().getHours();
   // Global context for user and notification count
   const {
@@ -153,6 +192,39 @@ const Home = () => {
   const [monthlySummary, setMonthlySummary] = useState([]);
 
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const currentDateFormatLocale = i18n.language.startsWith("ar")
+    ? arLocale
+    : undefined; // `undefined` defaults to English (en-US)
+
+  // Helper function to format date and convert numerals if needed
+  const formatLocalizedDate = useCallback(
+    (dateValue, formatStringKey = "common.dateFormatShort") => {
+      if (
+        !dateValue ||
+        (typeof dateValue === "string" && dateValue === "N/A")
+      ) {
+        return t("common.not_available_short");
+      }
+
+      const dateObject = new Date(dateValue);
+      // Add a robust check for "Invalid Date"
+      if (isNaN(dateObject.getTime())) {
+        return t("common.not_available_short"); // Return N/A for invalid dates
+      }
+
+      const formattedDate = format(dateObject, t(formatStringKey), {
+        locale: currentDateFormatLocale,
+      });
+
+      // If current language is Arabic, convert Western numerals to Eastern Arabic numerals
+      if (i18n.language.startsWith("ar")) {
+        return convertToArabicNumerals(formattedDate);
+      }
+      return formattedDate;
+    },
+    [i18n.language, t, currentDateFormatLocale]
+  ); // Dependencies for useCallback
 
   useEffect(() => {
     if (user?.$id && !globalLoading) {
@@ -293,9 +365,10 @@ const Home = () => {
         // Determine overall total receipts count and latest date from the `allReceipts` array
         // This is more reliable for *overall* summaries if fetchUserReceipts truly returns all.
         const overallTotalReceipts = allReceipts.length;
+
         const overallLatestDate =
           allReceipts.length > 0
-            ? new Date(allReceipts[0].datetime).toDateString() // Assuming allReceipts is ordered descending by datetime
+            ? allReceipts[0].datetime // Store the original raw datetime string here
             : "N/A";
 
         // Update receiptStats state, merging existing stats and adding overall data
@@ -310,10 +383,7 @@ const Home = () => {
 
         setAllReceipts(allReceipts); // Set all receipts to state
         setMonthlySummary(fetchedMonthlySummary); // Set monthly summary data
-        console.log(
-          "Fetched Monthly Summary for Home Page:",
-          fetchedMonthlySummary
-        ); // Fixed log variable name
+
         setLatestReceipts(allReceipts.slice(0, 5)); // Show latest 5 receipts
 
         const spendingByCategory = stats.monthlyCategorySpendingBreakdown || {};
@@ -323,20 +393,32 @@ const Home = () => {
 
         const chartData = Object.keys(spendingByCategory).map(
           (categoryName, index) => {
+            // --- CRITICAL FIX: Use the standardized generateTranslationKey function ---
+            const categoryTranslationKey = generateTranslationKey(categoryName);
+
+            // Example logging for debugging the generated key:
+            console.log(
+              `Home (Chart): Original category: "${categoryName}" -> Generated key: "${categoryTranslationKey}"`
+            );
+
+            // Ensure population and value are numbers, default to 0 if undefined
+            const populationValue = spendingByCategory[categoryName] || 0;
+
             return {
-              name: categoryName,
-              population: spendingByCategory[categoryName],
-              color: gradientColors[index % gradientColors.length], // Assuming gradientColors is defined
+              // Use the translated category name here
+              name: t(`categories.${categoryTranslationKey}`, {
+                defaultValue: categoryName,
+              }), // Translate the category name
+              population: populationValue,
+              color: gradientColors[index % gradientColors.length],
               legendFontColor: "#7F7F7F",
               legendFontSize: 12,
               percent:
                 totalItemsPriceForMonth > 0
-                  ? (spendingByCategory[categoryName] /
-                      totalItemsPriceForMonth) *
-                    100
+                  ? (populationValue / totalItemsPriceForMonth) * 100
                   : 0,
-              id: categoryName,
-              value: spendingByCategory[categoryName],
+              id: categoryName, // Keep original categoryName for ID
+              value: populationValue,
             };
           }
         );
@@ -382,15 +464,15 @@ const Home = () => {
       } catch (error) {
         console.error("Error fetching data in Home.jsx:", error);
         Alert.alert(
-          "Data Load Error",
-          "Failed to load some data. Please try again."
+          t("common.dataLoadErrorTitle"), // Translated
+          t("common.dataLoadErrorMessage") // Translated
         );
       } finally {
         setIsLoading(false); // Assuming setIsLoading is a state setter
         setRefreshing(false); // Assuming setRefreshing is a state setter
       }
     }
-  }, [user]); // Dependencies for useCallback
+  }, [user, t, currentDateFormatLocale]); // Dependencies for useCallback
 
   const performSearch = useCallback(async () => {
     setIsSearching(true); // <--- Set loading to true when search starts
@@ -545,8 +627,11 @@ const Home = () => {
       <GradientBackground colors={gradientColors}>
         <SafeAreaView className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text className="text-black mt-4 font-pextralight text-lg">
-            Loading your dashboard...
+          <Text
+            className={`text-black mt-4 text-lg`} // Removed font class from className
+            style={{ fontFamily: getFontClassName("extralight") }} // Applied directly
+          >
+            {t("home.loadingDashboard")} {/* Translated */}
           </Text>
         </SafeAreaView>
       </GradientBackground>
@@ -558,20 +643,21 @@ const Home = () => {
   };
 
   const handlePieChartPress = (item) => {
-    setSelectedCategory(item);
-    setShowSpendingModal(true);
+    // `item` here comes from `categorySpendingData`, which has:
+    // `name` (translated), `id` (original English name), `population`, `percent`, `value`, etc.
+    setSelectedCategory(item); // selectedCategory.name will be the translated name
 
-    // Retrieve pre-calculated merchant analysis for the selected category from receiptStats
+    // --- CRITICAL FIX: Use item.id (original English name) to lookup merchant analysis ---
     // receiptStats.monthlyCategoryMerchantAnalysis is structured as:
-    // { "CategoryName": { "MerchantName": { totalSpending: X, numberOfVisits: Y } } }
+    // { "OriginalEnglishCategoryName": { "MerchantName": { totalSpending: X, numberOfVisits: Y } } }
     const merchantsForSelectedCategory =
-      receiptStats.monthlyCategoryMerchantAnalysis[item.name] || {};
+      receiptStats.monthlyCategoryMerchantAnalysis[item.id] || {}; // Use item.id here!
 
     console.log("merchantsForSelectedCategory", merchantsForSelectedCategory);
     // Convert the aggregated object for the specific category into an array for rendering
     const merchantAnalysisArray = Object.keys(merchantsForSelectedCategory).map(
       (merchantName) => ({
-        merchantName: merchantName,
+        merchantName: merchantName, // Merchant names are typically not translated here
         totalSpending: merchantsForSelectedCategory[merchantName].totalSpending,
         numberOfVisits:
           merchantsForSelectedCategory[merchantName].numberOfVisits,
@@ -579,13 +665,20 @@ const Home = () => {
     );
 
     setCategoryMerchantAnalysis(merchantAnalysisArray);
+    setShowSpendingModal(true); // Moved this here to ensure data is set before modal opens
   };
 
   const renderMerchantAnalysisTable = () => {
+    // Ensure 't', 'getFontClassName', 'i18n', 'convertToArabicNumerals', 'I18nManager'
+    // are accessible in this scope.
+
     if (categoryMerchantAnalysis.length === 0) {
       return (
-        <Text className="text-gray-500 italic mt-4 text-center">
-          No merchant data for this category.
+        <Text
+          className={`text-gray-500 italic mt-4 text-center`} // Removed font class from className
+          style={{ fontFamily: getFontClassName("regular") }} // Applied directly
+        >
+          {t("home.noMerchantData")} {/* Translated */}
         </Text>
       );
     }
@@ -595,14 +688,30 @@ const Home = () => {
       <View className="w-full mt-4 border border-gray-300 rounded-md overflow-hidden">
         {/* Table Header */}
         <View className="flex-row bg-gray-200 py-2 px-3 border-b border-gray-300">
-          <Text className="flex-1 font-pbold text-gray-700 text-sm">
-            Merchant
+          <Text
+            className={`flex-1 text-gray-700 text-sm ${
+              I18nManager.isRTL ? "text-right" : "text-left"
+            }`} // Removed font class from className
+            style={{ fontFamily: getFontClassName("bold") }} // Applied directly
+          >
+            {t("home.merchant")} {/* Translated */}
           </Text>
-          <Text className="w-1/4 font-pbold text-gray-700 text-sm text-right">
-            Total (💵 )
+          <Text
+            className={`w-1/4 text-gray-700 text-sm text-right ${
+              I18nManager.isRTL ? "text-right" : "text-left"
+            }`} // Removed font class from className
+            style={{ fontFamily: getFontClassName("bold") }} // Applied directly
+          >
+            {t("home.total")} ({t("common.currency_symbol_short")}){" "}
+            {/* Translated + Currency Symbol */}
           </Text>
-          <Text className="w-1/4 font-pbold text-gray-700 text-sm text-right">
-            Visits
+          <Text
+            className={`w-1/4 text-gray-700 text-sm text-right ${
+              I18nManager.isRTL ? "text-right" : "text-left"
+            }`} // Removed font class from className
+            style={{ fontFamily: getFontClassName("bold") }} // Applied directly
+          >
+            {t("home.visits")} {/* Translated */}
           </Text>
         </View>
 
@@ -614,14 +723,36 @@ const Home = () => {
               index % 2 === 0 ? "bg-white" : "bg-gray-50"
             } border-b border-gray-200 last:border-none`}
           >
-            <Text className="flex-1 text-gray-800 text-sm">
+            <Text
+              className={`flex-1 text-gray-800 text-sm ${
+                I18nManager.isRTL ? "text-right" : "text-left"
+              }`} // Removed font class from className
+              style={{ fontFamily: getFontClassName("regular") }} // Applied directly
+            >
+              {/* Merchant name (assumed not translated unless specific mapping exists) */}
               {data.merchantName}
             </Text>
-            <Text className="w-1/4 text-gray-800 text-sm text-right">
-              {data.totalSpending.toFixed(2)}
+            <Text
+              className={`w-1/4 text-gray-800 text-sm text-right ${
+                I18nManager.isRTL ? "text-right" : "text-left"
+              }`} // Removed font class from className
+              style={{ fontFamily: getFontClassName("regular") }} // Applied directly
+            >
+              {/* Conditionally convert totalSpending to Arabic numerals */}
+              {i18n.language.startsWith("ar")
+                ? convertToArabicNumerals(data.totalSpending.toFixed(2))
+                : data.totalSpending.toFixed(2)}
             </Text>
-            <Text className="w-1/4 text-gray-800 text-sm text-right">
-              {data.numberOfVisits}
+            <Text
+              className={`w-1/4 text-gray-800 text-sm text-right ${
+                I18nManager.isRTL ? "text-right" : "text-left"
+              }`} // Removed font class from className
+              style={{ fontFamily: getFontClassName("regular") }} // Applied directly
+            >
+              {/* Conditionally convert numberOfVisits to Arabic numerals */}
+              {i18n.language.startsWith("ar")
+                ? convertToArabicNumerals(data.numberOfVisits)
+                : data.numberOfVisits}
             </Text>
           </View>
         ))}
@@ -633,8 +764,11 @@ const Home = () => {
     // console.log("categorySpendingData", categorySpendingData);
     if (categorySpendingData.length === 0) {
       return (
-        <Text className="text-gray-500 italic mt-4">
-          No spending data available.
+        <Text
+          className={`text-gray-500 italic mt-4`} // Removed font class from className
+          style={{ fontFamily: getFontClassName("regular") }} // Applied directly
+        >
+          {t("home.noSpendingData")} {/* Translated */}
         </Text>
       );
     }
@@ -736,7 +870,7 @@ const Home = () => {
 
   const handleViewDetails = async () => {
     if (!selectedReceipt || !selectedReceipt.image_file_id) {
-      Alert.alert("Info", "No image available for this receipt.");
+      Alert.alert(t("common.info"), t("receipts.noImageAvailable"));
       setShowReceiptOptionsModal(false); // Close the options modal
       return;
     }
@@ -757,13 +891,16 @@ const Home = () => {
       try {
         await createNotification({
           user_id: user.$id,
-          title: "Receipt Viewed",
-          message: `You viewed the receipt for ${
-            selectedReceipt.merchant || "Unknown Merchant"
-          } from ${format(
-            new Date(selectedReceipt.datetime),
-            "MMM dd, yyyy"
-          )}.`,
+          title: t("notifications.receiptViewed"), // Translated
+          message: t("notifications.receiptViewedMessage", {
+            // Translated with interpolation
+            merchant: selectedReceipt.merchant || t("home.unknownMerchant"),
+            date: format(
+              new Date(selectedReceipt.datetime),
+              t("common.dateFormatShort"),
+              { locale: currentDateFormatLocale }
+            ),
+          }),
           type: "receipt_action",
           expiresAt: getFutureDate(7), // <--- Expiry: 7 days for success notifications
           receipt_id: selectedReceipt.$id,
@@ -779,7 +916,10 @@ const Home = () => {
       }
     } catch (error) {
       console.error("Error fetching receipt image:", error);
-      Alert.alert("Error", `Failed to load receipt image: ${error.message}`);
+      Alert.alert(
+        t("common.error"),
+        t("receipts.failedToLoadReceiptImage", { error: error.message })
+      ); // Translated
       setShowReceiptDetailsModal(false); // Ensure modal doesn't open on error
       setDisplayedReceiptImageUri(null); // Clear image URI on error
     } finally {
@@ -797,8 +937,8 @@ const Home = () => {
   const handleDowanLoadReceipt = async () => {
     if (!selectedReceipt || !selectedReceipt.image_file_id) {
       Alert.alert(
-        "Error",
-        "Receipt image information is missing. Cannot download."
+        t("common.error"),
+        t("receipts.receiptImageInfoMissing") // Translated
       );
       return;
     }
@@ -808,8 +948,8 @@ const Home = () => {
     // --- START NEW: Monthly Download Limit Check ---
     if (!user || !applicationSettings) {
       Alert.alert(
-        "Error",
-        "User or application settings not loaded. Please try again."
+        t("common.error"),
+        t("common.userOrAppSettingsNotLoaded") // Translated
       );
       return;
     }
@@ -820,12 +960,14 @@ const Home = () => {
 
     if (!user.isPremium && userCurrentDownloadCount >= freeDownloadLimit) {
       Alert.alert(
-        "Download Limit Reached!",
-        `You've reached your monthly limit of ${freeDownloadLimit} receipt downloads. Upgrade to Premium for unlimited downloads and more features!`,
+        t("notifications.downloadLimitReached"), // Translated
+        t("notifications.downloadLimitReachedMessage", {
+          limit: freeDownloadLimit,
+        }), // Translated
         [
-          { text: "Later", style: "cancel" }, // Just dismiss
+          { text: t("common.later"), style: "cancel" }, // Translated
           {
-            text: "Upgrade Now",
+            text: t("common.upgradeNow"), // Translated
             onPress: () => {
               setShowReceiptOptionsModal(false);
               router.push("/upgrade-premium");
@@ -837,8 +979,10 @@ const Home = () => {
       try {
         await createNotification({
           user_id: user.$id,
-          title: "Download Limit Reached",
-          message: `You've used all ${freeDownloadLimit} free monthly receipt downloads. Upgrade to Premium!`,
+          title: t("notifications.downloadLimitReached"), // Translated
+          message: t("notifications.downloadLimitNotificationMessage", {
+            limit: freeDownloadLimit,
+          }),
           type: "limit_reached",
           expiresAt: getFutureDate(30),
           receipt_id: null,
@@ -863,7 +1007,10 @@ const Home = () => {
       );
 
       if (!fileUrlString) {
-        Alert.alert("Error", "Failed to retrieve receipt image download URL.");
+        Alert.alert(
+          t("common.error"),
+          t("receipts.failedToRetrieveDownloadUrl")
+        );
         return;
       }
 
@@ -880,7 +1027,7 @@ const Home = () => {
       );
 
       if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert("Error", "Sharing is not available on your platform.");
+        Alert.alert(t("common.error"), t("common.sharingNotAvailable"));
         return;
       }
 
@@ -910,13 +1057,16 @@ const Home = () => {
       try {
         await createNotification({
           user_id: user.$id,
-          title: "Receipt Downloaded & Shared",
-          message: `Your receipt for ${
-            selectedReceipt.merchant || "Unknown Merchant"
-          } from ${format(
-            new Date(selectedReceipt.datetime),
-            "MMM dd, yyyy"
-          )} has been downloaded and shared successfully!`,
+          title: t("notifications.receiptDownloaded"), // Translated
+          message: t("notifications.receiptDownloadedMessage", {
+            // Translated
+            merchant: selectedReceipt.merchant || t("home.unknownMerchant"),
+            date: format(
+              new Date(selectedReceipt.datetime),
+              t("common.dateFormatShort"),
+              { locale: currentDateFormatLocale }
+            ),
+          }),
           type: "receipt_action",
           expiresAt: getFutureDate(7), // <--- Expiry: 7 days for success notifications
           receipt_id: selectedReceipt.$id,
@@ -933,8 +1083,8 @@ const Home = () => {
     } catch (error) {
       console.error("Error in handleDowanLoadReceipt:", error);
       Alert.alert(
-        "Error",
-        `Failed to download or share receipt image: ${error.message}`
+        t("common.error"),
+        t("receipts.failedToDownloadReceipt", { error: error.message })
       );
     } finally {
       setIsDownloading(false); // <--- Set loading to false when download finishes (success or error)
@@ -946,69 +1096,68 @@ const Home = () => {
     setIsDeleting(true); // <--- Set loading to true when download starts
 
     Alert.alert(
-      "Delete Receipt",
-      `Are you sure you want to delete the receipt from ${selectedReceipt.merchant}? This action cannot be undone.`,
+      t("receipts.confirmDeleteTitle"), // Translated
+      t("receipts.confirmDeleteMessage"), // Translated
       [
         {
-          text: "Cancel",
+          text: t("common.noCancel"), // Translated
           style: "cancel",
-          onPress: () => setShowReceiptOptionsModal(false), // Close modal if cancelled
+          onPress: () => setShowReceiptOptionsModal(false), // Dismiss options modal if canceled
         },
         {
-          text: "Delete",
-          style: "destructive",
+          text: t("common.yesDelete"), // Translated
           onPress: async () => {
-            try {
-              await deleteReceiptById(selectedReceipt.$id); // Implement this Appwrite function
-              Alert.alert("Success", "Receipt deleted successfully.");
-              onRefresh(); // Refresh the list to reflect deletion
+            setIsDeleting(true);
+            setShowReceiptOptionsModal(false); // Close the options modal immediately
 
-              // NEW: Notification for successful deletion - WITHOUT receipt_id
+            try {
+              await deleteReceiptById(selectedReceipt.$id);
+              Alert.alert(
+                t("common.success"),
+                t("receipts.receiptDeletedSuccess")
+              ); // Translated
+              onRefresh(); // Refresh the list
               try {
                 await createNotification({
                   user_id: user.$id,
-                  title: "Receipt Deleted",
-                  message: `The receipt for ${
-                    selectedReceipt.merchant || "Unknown Merchant"
-                  } (${parseFloat(selectedReceipt.total).toFixed(
-                    2
-                  )}) from ${format(
-                    new Date(selectedReceipt.datetime),
-                    "MMM dd,yyyy"
-                  )} has been permanently deleted.`,
+                  title: t("notifications.receiptDeleted"), // Translated
+                  message: t("notifications.receiptDeletedMessage", {
+                    // Translated
+                    merchant:
+                      selectedReceipt.merchant || t("home.unknownMerchant"),
+                    date: format(
+                      new Date(selectedReceipt.datetime),
+                      t("common.dateFormatShort"),
+                      { locale: currentDateFormatLocale }
+                    ),
+                  }),
                   type: "receipt_action",
-                  expiresAt: getFutureDate(7), // <--- Expiry: 7 days for success notifications
-                  // IMPORTANT: Do NOT pass receipt_id here, to prevent it from being immediately deleted
-                  // receipt_id: selectedReceipt.$id, // <--- REMOVED THIS LINE
+                  expiresAt: getFutureDate(7),
+                  receipt_id: selectedReceipt.$id,
                 });
-                console.log(
-                  "Successfully created 'receipt deleted' notification."
-                );
                 const updatedUnreadCount = await countUnreadNotifications(
                   user.$id
                 );
-                setUnreadCount(updatedUnreadCount); // Use setUnreadCount as per your setup
+                updateUnreadCount(updatedUnreadCount);
               } catch (notificationError) {
                 console.warn(
-                  "Failed to create 'delete success' notification after receipt deletion:",
+                  "Failed to create 'delete receipt' notification:",
                   notificationError
                 );
               }
             } catch (error) {
               console.error("Error deleting receipt:", error);
               Alert.alert(
-                "Error",
-                "Failed to delete receipt. Please try again."
-              );
+                t("common.error"),
+                t("receipts.failedToDeleteReceipt", { error: error.message })
+              ); // Translated
             } finally {
-              setShowReceiptOptionsModal(false); // Always close modal
-              setSelectedReceipt(null);
-              setIsDeleting(false); // <--- Set loading to false when download finishes (success or error)
+              setIsDeleting(false);
+              setSelectedReceipt(null); // Clear selected receipt
             }
           },
         },
-      ],
-      { cancelable: false }
+      ]
     );
   };
 
@@ -1048,12 +1197,53 @@ const Home = () => {
   const monthOptions = { month: "long" };
   const monthName = now.toLocaleString("default", monthOptions); // 'default' uses the user's default locale
 
+  const currentMonthDate = new Date();
+  const currentMonthIndex = currentMonthDate.getMonth();
+
+  const monthNamesEn = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const monthNamesAr = [
+    "يناير",
+    "فبراير",
+    "مارس",
+    "أبريل",
+    "مايو",
+    "يونيو",
+    "يوليو",
+    "أغسطس",
+    "سبتمبر",
+    "أكتوبر",
+    "نوفمبر",
+    "ديسمبر",
+  ];
+
+  const displayMonthName = t(
+    `common.monthNames.${currentMonthIndex}`, // Using a common translation key for month names
+    {
+      defaultValue: i18n.language.startsWith("ar")
+        ? monthNamesAr[currentMonthIndex]
+        : monthNamesEn[currentMonthIndex],
+    }
+  );
+
   const greeting =
     hours < 12
-      ? "Good Morning"
+      ? t("home.goodMorning")
       : hours < 18
-      ? "Good Afternoon"
-      : "Good Evening";
+      ? t("home.goodAfternoon")
+      : t("home.goodEvening");
 
   const closeModal = () => {
     setShowSpendingModal(false);
@@ -1077,10 +1267,16 @@ const Home = () => {
               {/* Header Section */}
               <View className="flex-row justify-between items-center mb-4 mt-1 p-4">
                 <View>
-                  <Text className="text-base text-gray-500 font-pregular">
+                  <Text
+                    className="text-base text-gray-500 "
+                    style={{ fontFamily: getFontClassName("regular") }}
+                  >
                     {greeting}
                   </Text>
-                  <Text className="text-xl font-bold text-center font-pbold">
+                  <Text
+                    className="text-xl font-bold text-center"
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
                     {user?.username
                       ? `${user.username
                           .charAt(0)
@@ -1105,7 +1301,10 @@ const Home = () => {
                     />
                     {unreadCount > 0 && (
                       <View className="absolute -top-1 -right-1 bg-red-600 rounded-full w-5 h-5 items-center justify-center">
-                        <Text className="text-white text-xs font-bold">
+                        <Text
+                          className="text-white text-xs"
+                          style={{ fontFamily: getFontClassName("bold") }}
+                        >
                           {unreadCount}
                         </Text>
                       </View>
@@ -1135,9 +1334,12 @@ const Home = () => {
                       tintColor="#06d6a0" // Adjust tint color as needed
                       resizeMode="contain"
                     />
-
-                    <Text className="text-[#4E17B3] font-psemibold text-xs mt-1">
-                      Premium
+                    {/* premium */}
+                    <Text
+                      className="text-[#4E17B3]  text-xs mt-1"
+                      style={{ fontFamily: getFontClassName("bold") }}
+                    >
+                      {t("settings.premium")}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1152,10 +1354,16 @@ const Home = () => {
                     // style={{ width: width * 0.9, height: height * 0.35 }}
                   />
                   <View className="p-4  rounded-lg  mb-6">
-                    <Text className="text-lg font-pextrabold text-black mb-4">
-                      Welcome, {user?.username || "Guest"}!
+                    <Text
+                      className="text-lg  text-black mb-4"
+                      style={{ fontFamily: getFontClassName("extrabold") }}
+                    >
+                      {t("home.welcome")} {user?.username || "Guest"}!
                     </Text>
-                    <Text className="text-base font-pregular text-gray-700 mb-3">
+                    <Text
+                      className="text-base text-gray-700 mb-3"
+                      style={{ fontFamily: getFontClassName("regular") }}
+                    >
                       🔥 Wizo is your personal finance companion that turns your
                       everyday receipts into powerful insights. Snap a photo,
                       and Wizo instantly extracts key data — like merchants,
@@ -1203,15 +1411,22 @@ const Home = () => {
                     className="bg-slate-300 p-6 rounded-lg w-11/12 max-h-[75vh]"
                     onStartShouldSetResponder={() => true} // Prevents closing when tapping inside
                   >
-                    <Text className="text-xl font-bold text-center mb-4">
-                      Receipt Details
+                    <Text
+                      className="text-xl  text-center mb-4"
+                      style={{ fontFamily: getFontClassName("bold") }}
+                    >
+                      {t("receiptDetails.title")}
                     </Text>
 
                     {isFetchingImage ? (
                       <View className="items-center justify-center py-10">
                         <ActivityIndicator size="large" color="#4E17B3" />
-                        <Text className="mt-2 text-gray-600 font-pregular">
-                          Loading image...
+                        <Text
+                          className="mt-2 text-gray-600 "
+                          style={{ fontFamily: getFontClassName("regular") }}
+                        >
+                          {/* Loading image... loadingImage */}
+                          {t("receipts.loadingImage")}
                         </Text>
                       </View>
                     ) : selectedReceipt && displayedReceiptImageUri ? (
@@ -1262,8 +1477,13 @@ const Home = () => {
                               }}
                             />
                             <View className="absolute bottom-36 right-2 bg-black/70 px-2 py-1 rounded">
-                              <Text className="font-psemibold text-base text-white">
-                                Tap to view full
+                              <Text
+                                className="text-base text-white"
+                                style={{
+                                  fontFamily: getFontClassName("semibold"),
+                                }}
+                              >
+                                {t("receiptProcess.tapToViewFull")}
                               </Text>
                             </View>
                           </TouchableOpacity>
@@ -1276,7 +1496,10 @@ const Home = () => {
                         </View>
                       </ScrollView>
                     ) : (
-                      <Text className="text-center text-gray-500">
+                      <Text
+                        className="text-center text-gray-500"
+                        style={{ fontFamily: getFontClassName("regular") }}
+                      >
                         No receipt data or image available.
                       </Text>
                     )}
@@ -1314,6 +1537,7 @@ const Home = () => {
                       access!
                     </Text> */}
 
+                    {/* Monthly Tracking */}
                     {(() => {
                       const renderTrackerRow = (title, currentCount, limit) => {
                         const percentageUsed =
@@ -1323,10 +1547,21 @@ const Home = () => {
 
                         return (
                           <View className="mb-4 items-start w-full">
-                            <Text className="text-base font-pbold text-gray-800 mb-1">
+                            <Text
+                              className="text-base  text-gray-800 mb-1"
+                              style={{ fontFamily: getFontClassName("bold") }}
+                            >
                               {title}:{" "}
-                              <Text className="text-sm font-pbold text-gray-700">
-                                {currentCount}
+                              <Text
+                                className="text-base  text-[#4E17B3]"
+                                style={{
+                                  fontFamily: getFontClassName("extrabold"),
+                                }}
+                              >
+                                {" "}
+                                {i18n.language.startsWith("ar")
+                                  ? convertToArabicNumerals(currentCount)
+                                  : currentCount}
                                 {limit > 0 && (
                                   <Text
                                     className={
@@ -1335,7 +1570,10 @@ const Home = () => {
                                         : "text-gray-600"
                                     }
                                   >
-                                    / {limit}
+                                    {"/"}{" "}
+                                    {i18n.language.startsWith("ar")
+                                      ? convertToArabicNumerals(limit)
+                                      : limit}
                                   </Text>
                                 )}
                               </Text>
@@ -1355,13 +1593,23 @@ const Home = () => {
                             )}
 
                             <Text
-                              className={`text-xs font-psemibold mt-1 ${
-                                isOverLimit ? "text-red-600" : "text-green-600"
-                              }`}
+                              className={`text-sm mt-1  ${
+                                isOverLimit ? "text-red-600" : "text-[#4E17B3]"
+                              } ${
+                                I18nManager.isRTL ? "text-right" : "text-left"
+                              }`} // Conditional text alignment
+                              style={{
+                                fontFamily: getFontClassName("semibold"),
+                              }}
                             >
                               {isOverLimit
-                                ? `Limit Reached!`
-                                : `Remaining: ${remaining} Receipts`}
+                                ? t("home.limitReached") // Translated "Limit Reached!"
+                                : `${t("budget.remaining")} ${
+                                    i18n.language.startsWith("ar")
+                                      ? convertToArabicNumerals(remaining)
+                                      : remaining
+                                  } ${t("receipts.receipts")}`}{" "}
+                              {/* Translated and conditionally converted remaining count */}
                             </Text>
                           </View>
                         );
@@ -1371,13 +1619,13 @@ const Home = () => {
                         <>
                           {/* Monthly Receipts Upload */}
                           {renderTrackerRow(
-                            "Monthly Receipts Uploads",
+                            t("home.monthlyReceiptsUploads"),
                             user.currentMonthReceiptCount || 0,
                             applicationSettings.free_tier_receipt_limit || 0
                           )}
                           {/* Monthly Data Downloads */}
                           {renderTrackerRow(
-                            "Monthly Receipts Downloads",
+                            t("home.monthlyReceiptsDownloads"),
                             user.currentMonthDownloadCount || 0,
                             applicationSettings.free_tier_data_downloads_monthly ||
                               0
@@ -1400,36 +1648,98 @@ const Home = () => {
                       Total Receipts
                     </Text> */}
 
-                    <Text className="text-center text-2xl font-bold text-gray-800 mb-2 ">
-                      <Text className=" text-2xl font-pextralight ">®️</Text>{" "}
-                      Receipts : {receiptStats.totalCount}
+                    <Text
+                      // Keep general Tailwind classes, but remove font-specific ones
+                      className="text-center text-2xl text-gray-800 mb-2"
+                      style={{ fontFamily: getFontClassName("extrabold") }} // NEW: Apply font directly via style
+                    >
+                      <Text
+                        className="text-2xl" // Remove font class from inner Text as well
+                        style={{ fontFamily: getFontClassName("extralight") }} // Apply font directly
+                      >
+                        ®️
+                      </Text>{" "}
+                      {t("receipts.receipts")} :{" "}
+                      {i18n.language.startsWith("ar")
+                        ? convertToArabicNumerals(receiptStats.totalCount)
+                        : receiptStats.totalCount}
+                    </Text>
+                    <Text
+                      className={`text-base text-gray-600 ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`} // Dynamic font
+                      style={{
+                        fontSize: Platform.select({
+                          ios: 14,
+                          android: 12,
+                        }),
+                        fontFamily: getFontClassName("semibold"),
+                      }}
+                    >
+                      <Text
+                        className="text-base text-[#4E17B3] mt-4 "
+                        style={{ fontFamily: getFontClassName("bold") }}
+                      >
+                        {" "}
+                        {/* Dynamic font */}
+                        🔥{"("}
+                        {/* Conditionally convert thisMonthCount to Arabic numerals */}
+                        {i18n.language.startsWith("ar")
+                          ? convertToArabicNumerals(receiptStats.thisMonthCount)
+                          : receiptStats.thisMonthCount}
+                        {")"}
+                      </Text>{" "}
+                      {t("home.receiptsOnMonth", {
+                        monthName: displayMonthName,
+                      })}{" "}
+                      |{" "}
+                      {t("home.monthSpending", { monthName: displayMonthName })}{" "}
+                      : {""} {/* Translated parts with interpolation */}
+                      <Text
+                        className="text-base text-[#4E17B3] mt-4 "
+                        style={{ fontFamily: getFontClassName("bold") }}
+                      >
+                        {i18n.language.startsWith("ar")
+                          ? convertToArabicNumerals(
+                              receiptStats.monthlySpending.toFixed(2)
+                            )
+                          : receiptStats.monthlySpending.toFixed(2)}
+                      </Text>
                     </Text>
 
                     <Text
-                      className=" text-base font-pregular text-gray-600"
-                      style={{
-                        fontSize: Platform.select({
-                          // <--- Use Platform.select for fontSize
-                          ios: 14, // Smaller font size for iOS (e.g., original text-xs)
-                          android: 12, // Slightly larger for Android if needed, or keep 10
-                        }),
-                      }}
+                      // Apply text-right conditionally based on I18nManager.isRTL for correct alignment
+                      className={`text-base text-gray-600 mt-1 ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`}
+                      style={{ fontFamily: getFontClassName("semibold") }}
                     >
-                      <Text className="text-base font-pbold text-[#4E17B3] mt-4 ">
-                        🔥{"("}
-                        {receiptStats.thisMonthCount}
-                        {")"}
-                      </Text>{" "}
-                      R on {monthName} | {monthName} Spending : {""}
-                      <Text className="text-center text-base font-pbold text-[#4E17B3] mt-4 ">
-                        💵 {receiptStats.monthlySpending.toFixed(2)}
-                      </Text>
-                    </Text>
-                    <Text className=" text-base font-pregular text-gray-600 mt-1">
-                      🔥 Last Receipt Date:
-                      <Text className="text-center text-base font-pbold text-[#4E17B3] mt-4 ">
-                        {" "}
-                        {receiptStats.latestDate}
+                      🔥 {t("home.lastReceiptDate")}:{" "}
+                      <Text
+                        // Removed 'text-center' from here, as the parent handles alignment
+                        className={`text-base text-[#4E17B3] mt-4 ${getFontClassName(
+                          "bold"
+                        )}`}
+                      >
+                        {/* This logic attempts to format the date if valid, then converts numerals if Arabic */}
+                        {
+                          receiptStats.latestDate &&
+                          receiptStats.latestDate !== "N/A" &&
+                          !isNaN(new Date(receiptStats.latestDate))
+                            ? i18n.language.startsWith("ar")
+                              ? convertToArabicNumerals(
+                                  format(
+                                    new Date(receiptStats.latestDate),
+                                    t("common.dateFormatShort"),
+                                    { locale: arLocale }
+                                  )
+                                )
+                              : format(
+                                  new Date(receiptStats.latestDate),
+                                  t("common.dateFormatShort")
+                                )
+                            : t("common.not_available_short") // Fallback to translated "N/A"
+                        }
                       </Text>
                     </Text>
                   </TouchableOpacity>
@@ -1438,32 +1748,44 @@ const Home = () => {
               {/* Spending Categories Charts */}
               {receiptStats.monthlySpending > 0 && (
                 <View
-                  className=" p-2 border-t border-[#9F54B6] border-opacity-50"
+                  className="p-2 border-t border-[#9F54B6] border-opacity-50"
                   style={{
                     fontSize: Platform.select({
-                      // <--- Use Platform.select for fontSize
-                      ios: 14, // Smaller font size for iOS (e.g., original text-xs)
-                      android: 11, // Slightly larger for Android if needed, or keep 10
+                      ios: 14,
+                      android: 11,
                     }),
                   }}
                 >
-                  <Text className="text-base font-pregular text-black -mb-1  mt-2">
-                    Spending Categories of{" "}
-                    <Text className="font-psemibold text-xl text-[#b31731]">
-                      {monthName}
+                  {/* Apply text-align dynamically to the main text container */}
+                  <Text
+                    className={`text-base text-black -mb-1 mt-2  ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`}
+                    style={{ fontFamily: getFontClassName("regular") }}
+                  >
+                    {t("home.spendingCategoriesOf")} {/* Translated */}
+                    <Text
+                      className="text-xl text-[#b31731]"
+                      style={{ fontFamily: getFontClassName("semibold") }}
+                    >
+                      {displayMonthName}
                     </Text>
                     <Text
-                      className="text-xl font-pbold text-black  mt-2"
+                      className="text-xl text-black mt-2"
                       style={{
                         fontSize: Platform.select({
-                          // <--- Use Platform.select for fontSize
-                          ios: 18, // Smaller font size for iOS (e.g., original text-xs)
-                          android: 14, // Slightly larger for Android if needed, or keep 10
+                          ios: 18,
+                          android: 14,
                         }),
+                        fontFamily: getFontClassName("bold"),
                       }}
                     >
-                      {" : "}
-                      💵 {receiptStats.monthlySpending.toFixed(2)}
+                      {"  :  "}
+                      {i18n.language.startsWith("ar")
+                        ? convertToArabicNumerals(
+                            receiptStats.monthlySpending.toFixed(2)
+                          )
+                        : receiptStats.monthlySpending.toFixed(2)}
                     </Text>
                   </Text>
 
@@ -1474,23 +1796,54 @@ const Home = () => {
                       </View>
 
                       <View className="flex-1 flex-col">
-                        <Text className="font-psemibold mb-2 text-blue-800 text-base">
-                          👇 View details 👇
+                        {/* Apply text-align dynamically to this text also */}
+                        <Text
+                          className={`mb-2 text-blue-800 text-base  ${
+                            I18nManager.isRTL ? "text-right" : "text-left"
+                          }`}
+                          style={{ fontFamily: getFontClassName("semibold") }}
+                        >
+                          {t("home.viewDetailsPrompt")}
                         </Text>
+
                         {categorySpendingData.map((item) => (
                           <TouchableOpacity
                             key={item.id}
                             onPress={() => handlePieChartPress(item)}
-                            className="flex-row items-center mb-2 "
+                            className="flex-row items-center mb-2"
                           >
                             <View
-                              className="w-3 h-3 rounded-full mr-2"
+                              className="w-3 h-3 rounded-full mr-2" // Tailwind handles mr-2 to ml-2 for RTL
                               style={{ backgroundColor: item.color || "gray" }}
                             />
-                            <Text className="text-md font-pregular text-gray-700 underline">
-                              {item.name} (
+
+                            <Text
+                              className={`text-base text-gray-700 underline  ${
+                                I18nManager.isRTL ? "text-right" : "text-left"
+                              }`} // Added text alignment
+                              style={{
+                                fontFamily: getFontClassName("regular"),
+                              }}
+                            >
+                              {/* Translate item.name here using the generated key */}
+                              {t(
+                                `categories.${item.name
+                                  .toLowerCase()
+                                  .replace(/ & /g, "_")
+                                  .replace(/ /g, "")}`,
+                                { defaultValue: item.name }
+                              )}{" "}
+                              (
                               {typeof item.percent === "number"
-                                ? item.percent.toFixed(1)
+                                ? // Conditionally apply convertToArabicNumerals
+                                  i18n.language.startsWith("ar")
+                                  ? convertToArabicNumerals(
+                                      item.percent.toFixed(1)
+                                    )
+                                  : item.percent.toFixed(1)
+                                : // Also conditionally apply for the default "0"
+                                i18n.language.startsWith("ar")
+                                ? convertToArabicNumerals("0")
                                 : "0"}
                               %)
                             </Text>
@@ -1499,12 +1852,16 @@ const Home = () => {
                       </View>
                     </View>
                   ) : (
-                    <Text className="text-gray-500 italic mt-4">
-                      No spending data available.
+                    <Text
+                      className="text-gray-500 italic mt-4"
+                      style={{ fontFamily: getFontClassName("regular") }}
+                    >
+                      {t("home.noSpendingDataAvailable")} {/* Translated */}
                     </Text>
                   )}
                 </View>
               )}
+
               {/* /* NEW: Spending Trends Chart */}
               {receiptStats.totalCount > 0 && (
                 <View className="my-3 p-2">
@@ -1529,50 +1886,111 @@ const Home = () => {
                   >
                     <Pressable
                       className="bg-slate-100 p-10 w-80 rounded-md max-h-[80vh]"
-                      onPress={() => {}}
+                      onPress={(e) => e.stopPropagation()} // Prevent closing when pressing inside the modal content
                     >
-                      <Text className="font-pextrabold text-xl ">
-                        {selectedCategory.name} Details
+                      {/* Modal Title: Category Name Details */}
+                      <Text
+                        className={`text-xl mb-2  ${
+                          I18nManager.isRTL ? "text-right" : "text-left"
+                        }`}
+                        style={{ fontFamily: getFontClassName("extrabold") }}
+                      >
+                        {selectedCategory.name} {t("home.detailsTitle")}{" "}
+                        {/* Translated " Details" */}
                       </Text>
-                      <Text className="font-pregular text-base mb-2">
-                        Total Spending:{" "}
-                        {parseFloat(selectedCategory.population).toFixed(2)} 💵
+
+                      {/* Total Spending */}
+                      <Text
+                        className={`text-base mb-2  ${
+                          I18nManager.isRTL ? "text-right" : "text-left"
+                        }`}
+                        style={{ fontFamily: getFontClassName("regular") }}
+                      >
+                        {t("home.totalSpending")}: {/* Translated */}
+                        {i18n.language.startsWith("ar")
+                          ? convertToArabicNumerals(
+                              parseFloat(selectedCategory.population).toFixed(2)
+                            )
+                          : parseFloat(selectedCategory.population).toFixed(
+                              2
+                            )}{" "}
+                        {t("common.currency_symbol_short")}{" "}
+                        {/* Currency symbol */}
                       </Text>
-                      <Text className="text-lg font-bold ">
-                        Merchant Breakdown
+
+                      {/* Merchant Breakdown Title */}
+                      <Text
+                        className={`text-lg  ${
+                          I18nManager.isRTL ? "text-right" : "text-left"
+                        }`}
+                        style={{ fontFamily: getFontClassName("bold") }}
+                      >
+                        {t("home.merchantBreakdownTitle")} {/* Translated */}
                       </Text>
-                      <Text className="text-sm font-pregular text-gray-600 mb-2 italic">
-                        Merchant spending figures are calculated based on the
-                        individual item prices from your receipts, prior to any
-                        discounts, VAT, or other service charges.
+
+                      {/* Merchant Spending Figures Description */}
+                      <Text
+                        className={`text-sm text-gray-600 mb-2 italic  ${
+                          I18nManager.isRTL ? "text-right" : "text-left"
+                        }`}
+                        style={{ fontFamily: getFontClassName("bold") }}
+                      >
+                        {t("home.merchantSpendingDescription")}{" "}
+                        {/* Translated */}
                       </Text>
-                      {renderMerchantAnalysisTable()}
+
+                      {/* Render Merchant Analysis Table - this function will need to be updated next! */}
+                      {/* Pass selectedCategory.id (original English name) if renderMerchantAnalysisTable needs it to fetch data */}
+                      {renderMerchantAnalysisTable(selectedCategory.id)}
+
+                      {/* Close Button */}
                       <TouchableOpacity
                         onPress={closeModal}
                         className="mt-5 py-2.5 px-5 bg-[#4E17B3] rounded-md"
                       >
-                        <Text className="text-white text-center">Close</Text>
+                        <Text
+                          className="text-white text-center "
+                          style={{ fontFamily: getFontClassName("regular") }}
+                        >
+                          {t("common.close")} {/* Translated "Close" */}
+                        </Text>
                       </TouchableOpacity>
                     </Pressable>
                   </Pressable>
                 </Modal>
               )}
+
               {/* Top Spending Insights */}
               {receiptStats.highestSpendingCategory && (
-                <View className=" p-4 mt-2 border-opacity-50 mb-4 border-t border-[#9F54B6]">
-                  <Text className="text-base font-pregular text-black mb-2">
-                    Top Spending Insight of{" "}
-                    <Text className="font-psemibold text-xl text-[#b31731]">
-                      {monthName}
+                <View className="p-4 mt-2 border-opacity-50 mb-4 border-t border-[#9F54B6]">
+                  {/* Title text with conditional alignment and dynamic fonts */}
+                  <Text
+                    className={`text-base text-black mb-2 ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`}
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
+                    {t("home.topSpendingInsightOf")}{" "}
+                    <Text
+                      className="text-xl text-[#b31731] "
+                      style={{ fontFamily: getFontClassName("semibold") }}
+                    >
+                      {displayMonthName}
                     </Text>
                   </Text>
-                  <Text className="text-sm font-pregular text-gray-600 mb-2 italic">
-                    Calculation based on the individual item prices from your
-                    receipts, prior to any discounts, VAT, or other service
-                    charges.
+                  {/* Description text with conditional alignment and dynamic fonts */}
+                  <Text
+                    className={`text-sm text-gray-600 mb-2 italic ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`}
+                    style={{ fontFamily: getFontClassName("regular") }}
+                  >
+                    {t("home.spendingInsightDescription")}
                   </Text>
                   <View className="flex-row items-center justify-between">
+                    {/* Flex row automatically handles LTR/RTL ordering */}
                     <View className="flex-row items-center gap-2">
+                      {/* ICON LOGIC: Use receiptStats.highestSpendingCategory.name for comparison (ORIGINAL ENGLISH) */}
                       {receiptStats.highestSpendingCategory.name ===
                         "Food & Dining" && (
                         <Image
@@ -1597,29 +2015,73 @@ const Home = () => {
                           resizeMode="contain"
                         />
                       )}
-                      <Text className="text-lg font-semibold text-gray-800 font-psemibold">
-                        {receiptStats.highestSpendingCategory.name}
+                      {/* Category name with dynamic fonts - THIS WILL BE THE TRANSLATED NAME */}
+                      <Text
+                        className="text-lg text-gray-800"
+                        style={{ fontFamily: getFontClassName("bold") }}
+                      >
+                        {/* CRITICAL FIX: Translate the category name here for display */}
+                        {t(
+                          `categories.${generateTranslationKey(
+                            receiptStats.highestSpendingCategory.name
+                          )}`,
+                          {
+                            defaultValue:
+                              receiptStats.highestSpendingCategory.name,
+                          }
+                        )}
                       </Text>
                     </View>
-                    <Text className="text-xl font-bold text-primary-500 font-pbold">
-                      💵{" "}
-                      {receiptStats.highestSpendingCategory.amount.toFixed(2)}
+                    {/* Amount with dynamic fonts and conditional numeral conversion */}
+                    <Text
+                      className="text-xl text-primary-500 "
+                      style={{ fontFamily: getFontClassName("bold") }}
+                    >
+                      {i18n.language.startsWith("ar")
+                        ? convertToArabicNumerals(
+                            receiptStats.highestSpendingCategory.amount.toFixed(
+                              2
+                            )
+                          )
+                        : receiptStats.highestSpendingCategory.amount.toFixed(
+                            2
+                          )}
                     </Text>
                   </View>
-                  <Text className="text-md text-gray-600 mt-1">
+                  {/* Percentage text with conditional alignment, dynamic fonts, and numeral conversion */}
+                  <Text
+                    className={`text-md text-gray-600 mt-1 ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`}
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
                     (
-                    {receiptStats.highestSpendingCategory.percentage.toFixed(1)}
-                    % of total)
+                    {i18n.language.startsWith("ar")
+                      ? convertToArabicNumerals(
+                          receiptStats.highestSpendingCategory.percentage.toFixed(
+                            1
+                          )
+                        )
+                      : receiptStats.highestSpendingCategory.percentage.toFixed(
+                          1
+                        )}
+                    {t("common.percentageSymbol")}){" "}
                   </Text>
                 </View>
               )}
-              {/* Consolidated Receipts Latest Upload and Search Display Section */}
+
               {/* Collapsible Search Filter Section */}
               {receiptStats.totalCount > 0 && (
-                <View className="p-2  mb-1 border-t border-[#9F54B6]">
+                <View className="p-2 mb-1 border-t border-[#9F54B6]">
                   <View className="flex-row justify-between items-center">
-                    <Text className="text-lg font-psemibold text-black">
-                      Search & Filter
+                    {/* Search & Filter Title with dynamic fonts and alignment */}
+                    <Text
+                      className={`text-lg text-black  ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`}
+                      style={{ fontFamily: getFontClassName("semibold") }}
+                    >
+                      {t("home.searchFilterTitle")}
                     </Text>
                     <TouchableOpacity
                       onPress={() => {
@@ -1636,8 +2098,8 @@ const Home = () => {
                     >
                       <Image
                         source={
-                          isSearchFilterExpanded ? icons.action : icons.action
-                        } // Toggle icon
+                          icons.action // Keep existing icon for now as per your code
+                        }
                         className="w-8 h-8 tint-gray-600"
                         resizeMode="contain"
                       />
@@ -1676,48 +2138,175 @@ const Home = () => {
               {/* Consolidated Receipts Display Section */}
               {receiptStats.totalCount > 0 && (
                 <View className="p-4 border rounded-md border-[#9F54B6] mb-4 border-x-0 ">
-                  <Text className="text-lg font-psemibold text-black mb-2">
+                  <Text
+                    className={`text-lg text-black mb-2 ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`}
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
                     {isSearchActive
-                      ? "Search Results"
-                      : "Latest Uploaded Receipts"}
+                      ? t("home.searchResults")
+                      : t("home.latestUploadedReceipts")}
                   </Text>
 
                   {isSearching ? (
                     <View className="flex-1 justify-center items-center py-8">
                       <ActivityIndicator size="large" color="#9F54B6" />
-                      <Text className="text-gray-600 mt-2">Searching...</Text>
+                      <Text
+                        className="text-gray-600 mt-2 "
+                        style={{ fontFamily: getFontClassName("regular") }}
+                      >
+                        {t("common.searching")}
+                      </Text>
                     </View>
                   ) : isSearchActive ? (
                     filteredReceipts.length > 0 ? (
-                      filteredReceipts.map((item) => (
+                      // Replaced .map() with FlashList for performance, as per earlier full snippet
+                      <FlashList
+                        data={filteredReceipts}
+                        keyExtractor={(item) => item.$id}
+                        estimatedItemSize={100}
+                        renderItem={({ item }) => (
+                          <View
+                            key={item.$id}
+                            className="flex-row items-center justify-between py-2 border-b border-gray-200 last:border-none"
+                          >
+                            {/* Apply gap-2 here and remove mr-2 from the inner image View */}
+                            <View className="flex-row items-center flex-1 gap-2">
+                              {" "}
+                              <View className="rounded-md p-2">
+                                {" "}
+                                <Image
+                                  source={icons.bill}
+                                  resizeMode="contain"
+                                  className="w-7 h-7 tint-primary"
+                                />
+                              </View>
+                              <View className="flex-1">
+                                <Text
+                                  className={`text-lg text-gray-800  ${
+                                    I18nManager.isRTL
+                                      ? "text-right"
+                                      : "text-left"
+                                  }`}
+                                  style={{
+                                    fontFamily: getFontClassName("semibold"),
+                                  }}
+                                  numberOfLines={1}
+                                  ellipsizeMode="tail"
+                                >
+                                  {item.merchant || t("home.unknownMerchant")}
+                                </Text>
+                                {item.datetime && (
+                                  <Text
+                                    className={`text-sm text-gray-600  ${
+                                      I18nManager.isRTL
+                                        ? "text-right"
+                                        : "text-left"
+                                    }`}
+                                    style={{
+                                      fontFamily: getFontClassName("regular"),
+                                    }}
+                                  >
+                                    {formatLocalizedDate(item.datetime)}{" "}
+                                    {/* Using formatLocalizedDate */}
+                                    {" | "}
+                                    {item.total
+                                      ? `${t("common.currency_symbol_short")} ${
+                                          i18n.language.startsWith("ar")
+                                            ? convertToArabicNumerals(
+                                                parseFloat(item.total).toFixed(
+                                                  2
+                                                )
+                                              )
+                                            : parseFloat(item.total).toFixed(2)
+                                        }`
+                                      : ""}
+                                  </Text>
+                                )}
+                              </View>
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => {
+                                setSelectedReceipt(item);
+                                setShowReceiptOptionsModal(true);
+                                setIsDeleting(false);
+                                setIsDownloading(false);
+                              }}
+                              className="p-2"
+                            >
+                              <Image
+                                source={icons.dots}
+                                className="w-6 h-6 tint-gray-600"
+                              />
+                            </TouchableOpacity>
+                          </View>
+                        )}
+                        contentContainerStyle={{ paddingBottom: 0 }}
+                      />
+                    ) : (
+                      <View className="py-4 items-center">
+                        <Text
+                          className="text-black italic mb-3 text-center "
+                          style={{ fontFamily: getFontClassName("regular") }}
+                        >
+                          {t("home.noSearchResults")}
+                        </Text>
+                      </View>
+                    )
+                  ) : latestReceipts.length > 0 ? (
+                    // Replaced .map() with FlashList for performance
+                    <FlashList
+                      data={latestReceipts}
+                      keyExtractor={(item) => item.$id}
+                      estimatedItemSize={100}
+                      renderItem={({ item }) => (
                         <View
                           key={item.$id}
                           className="flex-row items-center justify-between py-2 border-b border-gray-200 last:border-none"
                         >
-                          <View className="flex-row items-center flex-1">
-                            <View className="rounded-md p-2 mr-2">
+                          {/* Apply gap-2 here and remove mr-2 from the inner image View */}
+                          <View className="flex-row items-center flex-1 gap-2">
+                            <View className="rounded-md p-2">
                               <Image
                                 source={icons.bill}
                                 resizeMode="contain"
-                                className="w-7 h-7"
+                                className="w-7 h-7 tint-primary" // Added tint for consistency
                               />
                             </View>
                             <View className="flex-1">
                               <Text
-                                className="text-lg font-semibold text-gray-800 font-psemibold"
+                                className={`text-lg text-gray-800  ${
+                                  I18nManager.isRTL ? "text-right" : "text-left"
+                                }`}
                                 numberOfLines={1}
                                 ellipsizeMode="tail"
+                                style={{
+                                  fontFamily: getFontClassName("semibold"),
+                                }}
                               >
-                                {item.merchant || "Unknown Merchant"}
+                                {item.merchant || t("home.unknownMerchant")}
                               </Text>
                               {item.datetime && (
-                                <Text className="text-sm text-gray-600">
-                                  {new Date(item.datetime).toLocaleDateString()}{" "}
-                                  |
+                                <Text
+                                  className={`text-sm text-gray-600  ${
+                                    I18nManager.isRTL
+                                      ? "text-right"
+                                      : "text-left"
+                                  }`}
+                                  style={{
+                                    fontFamily: getFontClassName("regular"),
+                                  }}
+                                >
+                                  {formatLocalizedDate(item.datetime)} {" | "}
                                   {item.total
-                                    ? ` 💵  ${parseFloat(item.total).toFixed(
-                                        2
-                                      )}`
+                                    ? `${t("common.currency_symbol_short")} ${
+                                        i18n.language.startsWith("ar")
+                                          ? convertToArabicNumerals(
+                                              parseFloat(item.total).toFixed(2)
+                                            )
+                                          : parseFloat(item.total).toFixed(2)
+                                      }`
                                     : ""}
                                 </Text>
                               )}
@@ -1732,69 +2321,25 @@ const Home = () => {
                             }}
                             className="p-2"
                           >
-                            <Image source={icons.dots} className="w-6 h-6" />
+                            <Image
+                              source={icons.dots}
+                              className="w-6 h-6 tint-gray-600"
+                            />
                           </TouchableOpacity>
                         </View>
-                      ))
-                    ) : (
-                      <View className="py-4 items-center">
-                        <Text className="text-black italic mb-3">
-                          No receipts found matching your search criteria.
-                        </Text>
-                      </View>
-                    )
-                  ) : latestReceipts.length > 0 ? (
-                    latestReceipts.map((item) => (
-                      <View
-                        key={item.$id}
-                        className="flex-row items-center justify-between py-2 border-b border-gray-200 last:border-none"
-                      >
-                        <View className="flex-row items-center flex-1">
-                          <View className="rounded-md p-2 mr-2">
-                            <Image
-                              source={icons.bill}
-                              resizeMode="contain"
-                              className="w-7 h-7"
-                            />
-                          </View>
-                          <View className="flex-1">
-                            <Text
-                              className="text-lg font-semibold text-gray-800 font-psemibold"
-                              numberOfLines={1}
-                              ellipsizeMode="tail"
-                            >
-                              {item.merchant || "Unknown Merchant"}
-                            </Text>
-                            {item.datetime && (
-                              <Text className="text-sm text-gray-600">
-                                {new Date(item.datetime).toLocaleDateString()} |
-                                {item.total
-                                  ? ` 💵  ${parseFloat(item.total).toFixed(2)}`
-                                  : ""}
-                              </Text>
-                            )}
-                          </View>
-                        </View>
-                        <TouchableOpacity
-                          onPress={() => {
-                            setSelectedReceipt(item);
-                            setShowReceiptOptionsModal(true);
-                            setIsDeleting(false);
-                            setIsDownloading(false);
-                          }}
-                          className="p-2"
-                        >
-                          <Image source={icons.dots} className="w-6 h-6" />
-                        </TouchableOpacity>
-                      </View>
-                    ))
+                      )}
+                      contentContainerStyle={{ paddingBottom: 0 }}
+                    />
                   ) : (
                     <View className="py-4 items-center">
-                      <Text className="text-black italic mb-3">
-                        ✨ No receipts uploaded yet. Let's get started! ✨
+                      <Text
+                        className="text-black italic mb-3 text-center "
+                        style={{ fontFamily: getFontClassName("regular") }}
+                      >
+                        {t("home.noReceiptsUploadedYet")}
                       </Text>
                       <TouchableOpacity
-                        className=" rounded-full   items-center justify-center w-24 h-24 border-2 bg-slate-100 border-[#D24726]"
+                        className=" rounded-full items-center justify-center w-24 h-24 border-2 bg-slate-100 border-[#D24726]"
                         onPress={() => setShowUploadModal(true)}
                       >
                         <Image
@@ -1803,8 +2348,11 @@ const Home = () => {
                           resizeMode="contain"
                           tintColor="#D24726"
                         />
-                        <Text className="text-[#D24726] text-sm mt-2 font-semibold">
-                          Upload
+                        <Text
+                          className="text-[#D24726] text-sm mt-2 "
+                          style={{ fontFamily: getFontClassName("semibold") }}
+                        >
+                          {t("common.upload")}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -1846,7 +2394,7 @@ const Home = () => {
                       categories={categories}
                       performSearch={performSearch}
                       clearSearch={clearSearch}
-                      setShowSearchFilterModal={setShowSearchFilterModal} // <--- Pass the new prop
+                      setShowSearchFilterModal={setShowSearchFilterModal} // Pass the new prop
                     />
                   </Pressable>
                 </Pressable>
@@ -1884,77 +2432,116 @@ const Home = () => {
               className="bg-slate-300 p-8 w-80 rounded-md max-h-[80vh] opacity-85"
               onStartShouldSetResponder={() => true}
             >
-              <Text className="text-xl font-bold text-center">
-                Receipt Options
+              <Text
+                className="text-xl text-gray-800 mb-4 text-center"
+                style={{ fontFamily: getFontClassName("bold") }}
+              >
+                {t("home.receiptOptions")}
               </Text>
               {selectedReceipt && (
-                <Text className="text-base text-center font-pregular text-gray-600 mb-2 mt-1">
-                  {selectedReceipt.merchant} - 💵{" "}
-                  {parseFloat(selectedReceipt.total).toFixed(2)}
+                <Text
+                  className="text-base text-gray-600 mb-4 mt-1 text-center "
+                  style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+                >
+                  {selectedReceipt.merchant || t("common.unknownMerchant")}{" "}
+                  {i18n.language.startsWith("ar")
+                    ? convertToArabicNumerals(
+                        (selectedReceipt.total || 0).toFixed(2)
+                      ) // Defensive check & Arabic numerals
+                    : (selectedReceipt.total || 0).toFixed(2)}{" "}
+                  {t("common.currency_symbol_short")}
                 </Text>
               )}
               {/* View Receipt */}
               <TouchableOpacity
                 onPress={handleViewDetails}
-                className="mt-3 w-full bg-[#4E17B3] rounded-md p-3 items-center justify-center" // Adjust className for your desired style
+                className={`mt-3 w-full bg-[#4E17B3] rounded-md p-3 items-center justify-center gap-2 ${
+                  I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
+                }`}
               >
-                <Text className="text-white font-pmedium text-base">
-                  View Receipt
+                <Image
+                  source={icons.eye} // Assuming you have an eye icon in icons.js
+                  className="w-5 h-5 mr-2"
+                  resizeMode="contain"
+                  tintColor="#FFFFFF"
+                />
+                <Text
+                  className="text-white text-base"
+                  style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                >
+                  {t("home.viewDetails")} {/* Translated */}
                 </Text>
               </TouchableOpacity>
 
               {/* Edit Receipt  */}
               <TouchableOpacity
                 onPress={handleEditReceipt}
-                className="mt-3 w-full bg-[#2A9D8F] rounded-md p-3 items-center justify-center"
+                className={`mt-3 w-full bg-[#2A9D8F] rounded-md p-3 items-center justify-center  ${
+                  I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
+                }`}
               >
-                <Text className="text-white font-pmedium text-base">
-                  Edit Receipt
+                <Image
+                  source={icons.edit} // Assuming you have an edit icon in icons.js
+                  className="w-5 h-5 ml-2"
+                  resizeMode="contain"
+                  tintColor="#FFFFFF"
+                />
+
+                <Text
+                  className="text-white text-base"
+                  style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                >
+                  {t("home.editReceipt")} {/* Translated */}
                 </Text>
               </TouchableOpacity>
 
               {/* Download Receipt */}
               <TouchableOpacity
-                onPress={() => handleDowanLoadReceipt(selectedReceipt)}
-                disabled={isDownloading} // Disable button while downloading
-                className="mt-5 w-full bg-[#335a69] rounded-md p-3 items-center justify-center "
+                onPress={() => handleDowanLoadReceipt()}
+                disabled={isDownloading}
+                className={`mt-3 w-full bg-[#335a69] rounded-md p-3 items-center justify-center ${
+                  isDownloading ? "opacity-50" : ""
+                } ${I18nManager.isRTL ? "flex-row-reverse" : "flex-row"}`} // Added flex-row-reverse for RTL
               >
-                <Text className="text-white font-pmedium text-base">
-                  Download Receipt
+                <Image
+                  source={icons.download} // Assuming you have a download icon
+                  className="w-5 h-5 ml-2"
+                  resizeMode="contain"
+                  tintColor="#FFFFFF"
+                />
+                <Text
+                  className="text-white text-base"
+                  style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                >
+                  {isDownloading
+                    ? t("common.downloading")
+                    : t("home.downloadImage")}{" "}
+                  {/* Translated, with loading state */}
                 </Text>
               </TouchableOpacity>
 
               {/* Delete Receipt */}
               <TouchableOpacity
-                onPress={() => handleDeleteReceipt(selectedReceipt.$id)} // Ensure you pass the correct ID for deletion
-                disabled={isDeleting} // Disable button while deleting
-                className="mt-5 w-full bg-[#D03957] rounded-md p-3 items-center justify-center"
+                onPress={() => handleDeleteReceipt()} // Adjusted to call main handler without passing ID directly here
+                disabled={isDeleting}
+                className={`mt-3 w-full bg-[#D03957] rounded-md p-3 items-center justify-center ${
+                  isDeleting ? "opacity-50" : ""
+                } ${I18nManager.isRTL ? "flex-row-reverse" : "flex-row"}`} // Added flex-row-reverse for RTL
               >
-                <Text className="text-white font-pmedium text-base">
-                  Delete Receipt
+                <Image
+                  source={icons.trash} // Assuming you have a trash icon
+                  className="w-5 h-5 ml-2"
+                  resizeMode="contain"
+                  tintColor="#FFFFFF"
+                />
+                <Text
+                  className="text-white text-base"
+                  style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                >
+                  {isDeleting ? t("common.deleting") : t("home.deleteReceipt")}{" "}
+                  {/* Translated, with loading state */}
                 </Text>
               </TouchableOpacity>
-
-              {isDownloading && (
-                <View
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    justifyContent: "center",
-                    alignItems: "center",
-                    backgroundColor: "rgba(0,0,0,0.5)", // Semi-transparent background
-                    zIndex: 999, // Ensure it's on top
-                  }}
-                >
-                  <ActivityIndicator size="large" color="#FFFFFF" />
-                  <Text style={{ color: "#FFFFFF", marginTop: 10 }}>
-                    Downloading...
-                  </Text>
-                </View>
-              )}
 
               {isDeleting && (
                 <View
@@ -1970,9 +2557,21 @@ const Home = () => {
                     zIndex: 999, // Ensure it's on top
                   }}
                 >
-                  <ActivityIndicator size="large" color="##FFFFFF" />
-                  <Text style={{ color: "#FFFFFF", marginTop: 10 }}>
-                    Deleting...
+                  <ActivityIndicator size="large" color="#FFFFFF" />
+                  <Text
+                    style={{
+                      color: "#FFFFFF",
+                      marginTop: 10,
+                      fontFamily: getFontClassName("regular"), // Apply font directly
+                      textAlign: i18n.language.startsWith("ar")
+                        ? "right"
+                        : "left", // Ensure text alignment for RTL
+                      writingDirection: i18n.language.startsWith("ar")
+                        ? "rtl"
+                        : "ltr", // Explicit writing direction
+                    }}
+                  >
+                    {t("common.deleting")} {/* Translated */}
                   </Text>
                 </View>
               )}
@@ -2115,6 +2714,28 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "600",
     color: "#333",
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)", // Semi-transparent black background
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20, // Reduced padding slightly for a tighter look
+    width: "90%", // Adjusted width to be more responsive
+    alignItems: "center", // Center content horizontally
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   // --- END NEW STYLES ---
 });

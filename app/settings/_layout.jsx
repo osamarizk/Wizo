@@ -13,11 +13,7 @@ import { StatusBar } from "expo-status-bar";
 const SettLayout = () => {
   return (
     <>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"} // Moves content up when keyboard appears
-          style={{ flex: 1 }}
-        >
+
           <Stack>
             <Stack.Screen
               name="app-settings"
@@ -40,8 +36,7 @@ const SettLayout = () => {
             */}
           </Stack>
           <StatusBar backgroundColor="#161622" style="light" />
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
+       
     </>
   );
 };

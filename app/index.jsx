@@ -9,6 +9,8 @@ import images from "../constants/images";
 import { useGlobalContext } from "../context/GlobalProvider";
 import { Dimensions } from "react-native";
 import GradientBackground from "../components/GradientBackground";
+
+import i18n from "../utils/i18n";
 const Index = () => {
   const { width, height } = Dimensions.get("window");
   const { loading, isLogged } = useGlobalContext();
@@ -33,16 +35,37 @@ const Index = () => {
             />
 
             <View className="flex-1">
-              <Text className="text-xl text-gray-700 font-plight text-center ">
+              {/* <Text className="text-xl text-gray-700 font-plight text-center ">
                 Receipts are tedious to manage are often lost and hard to track
+                {"\n"}
+              </Text> */}
+              <Text className="text-xl text-gray-700 font-plight text-center ">
+                {i18n.t("onboarding.heroText")}
                 {"\n"}
               </Text>
               {/* <Text className="text-sm text-secondary font-pregular text-center -mt-7 ">--------------------------------------------------{"\n "}</Text> */}
-              <Text className="text-gray-700  text-sm    mb-3   ">
+              {/* <Text className="text-gray-700  text-sm    mb-3   ">
                 🔥 Capture and upload your receipt with ease.{"\n"}
                 {"\n"}🔥 Let AI handle the storing and processing for you.{"\n"}
                 {"\n"}🔥 Say goodbay to hassle of manual record-keeping{"\n"}
                 {"\n"}🔥 No Personal informations is shared ever.
+              </Text> */}
+
+              <Text className="text-gray-700 text-sm mb-3 ">
+                {/* ORIGINAL: 🔥 Capture and upload your receipt with ease.{"\n"} */}
+                {i18n.t("onboarding.feature1")}
+                {"\n"}
+                {/* ORIGINAL: {"\n"}🔥 Let AI handle the storing and processing for you.{"\n"} */}
+                {"\n"}
+                {i18n.t("onboarding.feature2")}
+                {"\n"}
+                {/* ORIGINAL: {"\n"}🔥 Say goodbay to hassle of manual record-keeping{"\n"} */}
+                {"\n"}
+                {i18n.t("onboarding.feature3")}
+                {"\n"}
+                {/* ORIGINAL: {"\n"}🔥 No Personal informations is shared ever. */}
+                {"\n"}
+                {i18n.t("onboarding.feature4")}
               </Text>
             </View>
 

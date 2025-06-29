@@ -1,3 +1,5 @@
+// context/GlobalProvider.js
+
 import React, {
   createContext,
   useContext,
@@ -6,6 +8,10 @@ import React, {
   useCallback,
 } from "react";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import i18n, { setI18nConfig } from "../utils/i18n";
+import { Alert, Platform } from "react-native";
+import RNRestart from "react-native-restart";
 import {
   getCurrentUser,
   countUnreadNotifications,
@@ -19,15 +25,15 @@ export const useGlobalContext = () => useContext(GlobalContext);
 const GlobalProvider = ({ children }) => {
   const [isLogged, setIsLogged] = useState(false);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Initial loading for getCurrentUser
-  const [globalLoading, setGlobalLoading] = useState(false); // For operations like budget check
+  const [loading, setLoading] = useState(true);
+  const [globalLoading, setGlobalLoading] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [hasBudget, setHasBudget] = useState(false);
   const [applicationSettings, setApplicationSettings] = useState(null);
-  // Removed `isBudgetInitialized` as `hasBudget` now serves this purpose.
+  const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
+  const [isLanguageInitialized, setIsLanguageInitialized] = useState(false);
 
-  // Function to fetch unread notifications count
   const fetchUnreadCount = async (userId) => {
     try {
       const count = await countUnreadNotifications(userId);
@@ -37,56 +43,7 @@ const GlobalProvider = ({ children }) => {
     }
   };
 
-  // New function to explicitly check session and fetch user data
-  const checkSessionAndFetchUser = useCallback(async () => {
-    setGlobalLoading(true); // Indicate a global loading operation
-    try {
-      const res = await getCurrentUser();
-      if (res) {
-        setIsLogged(true);
-        setUser(res);
-        fetchUnreadCount(res.$id);
-        // Also check budget initialization whenever user data is fetched
-        await checkBudgetInitialization(res.$id); // Call the new function
-      } else {
-        setIsLogged(false);
-        setUser(null);
-        setUnreadCount(0); // Clear unread count if no user
-        setHasBudget(false); // Clear budget status if no user
-      }
-    } catch (error) {
-      console.error("Error in checkSessionAndFetchUser:", error);
-      setIsLogged(false);
-      setUser(null);
-    } finally {
-      setGlobalLoading(false);
-    }
-  }, []); // No dependencies as it manages its own loading and internal calls
-
-  // NEW: Function to fetch global application settings
-  const fetchApplicationGlobalSettings = useCallback(async () => {
-    try {
-      const settings = await getApplicationSettings();
-      setApplicationSettings(settings);
-      console.log("Global Application Settings fetched:", settings);
-    } catch (error) {
-      console.error("Error fetching global application settings:", error);
-      // Even if fetch fails, the getApplicationSettings function returns defaults,
-      // so applicationSettings won't be null.
-    }
-  }, []);
-  useEffect(() => {
-    // Initial check on component mount
-    fetchApplicationGlobalSettings();
-    checkSessionAndFetchUser().finally(() => {
-      setLoading(false); // Mark initial loading as complete
-    });
-  }, [fetchApplicationGlobalSettings, checkSessionAndFetchUser]); // Dependency array to re-run only if checkSessionAndFetchUser changes (which it won't due to useCallback)
-
-  // Function to check budget initialization status
   const checkBudgetInitialization = useCallback(async (userId) => {
-    // No setGlobalLoading here, as checkSessionAndFetchUser already handles it,
-    // or this can be called independently if only budget status is needed.
     try {
       const isInitialized = await chkBudgetInitialization(userId);
       setHasBudget(isInitialized);
@@ -97,7 +54,111 @@ const GlobalProvider = ({ children }) => {
     }
   }, []);
 
-  // Method to update unread count (can be called by other components)
+  const checkSessionAndFetchUser = useCallback(async () => {
+    setGlobalLoading(true);
+    try {
+      const res = await getCurrentUser();
+      if (res) {
+        setIsLogged(true);
+        setUser(res);
+        fetchUnreadCount(res.$id);
+        await checkBudgetInitialization(res.$id);
+      } else {
+        setIsLogged(false);
+        setUser(null);
+        setUnreadCount(0);
+        setHasBudget(false);
+      }
+    } catch (error) {
+      console.error("Error in checkSessionAndFetchUser:", error);
+      setIsLogged(false);
+      setUser(null);
+    } finally {
+      setGlobalLoading(false);
+    }
+  }, [fetchUnreadCount, checkBudgetInitialization]);
+
+  const fetchApplicationGlobalSettings = useCallback(async () => {
+    try {
+      const settings = await getApplicationSettings();
+      setApplicationSettings(settings);
+      console.log("Global Application Settings fetched:", settings);
+    } catch (error) {
+      console.error("Error fetching global application settings:", error);
+    }
+  }, []);
+
+  const changeLanguage = useCallback(
+    async (lang) => {
+      if (lang === currentLanguage) return;
+
+      try {
+        await AsyncStorage.setItem("userLanguage", lang);
+        setI18nConfig(lang); // This updates i18next and I18nManager
+        setCurrentLanguage(lang); // Update global state
+
+        // NEW: More explicit message for restart
+        Alert.alert(
+          i18n.t("common.languageChangeTitle"), // New translation key for title
+          i18n.t("common.languageChangeMessage", {
+            // New translation key for message
+            lang:
+              lang === "en"
+                ? i18n.t("settings.english")
+                : i18n.t("settings.arabic"),
+          }),
+          [
+            {
+              text: i18n.t("common.ok"),
+              onPress: () => {
+                if (Platform.OS === "web") {
+                  window.location.reload(); // Web can reload directly
+                } else {
+                  // For native, users MUST manually close and reopen the app
+                  // Or use a library like react-native-restart if installed
+                  console.log(
+                    "Please close the app completely and reopen it for RTL changes to take full effect."
+                  );
+                  // Example with react-native-restart (if installed):
+                  // import RNRestart from 'react-native-restart';
+                  // RNRestart.Restart();
+                }
+              },
+            },
+          ]
+        );
+      } catch (error) {
+        console.error("Failed to change language:", error);
+        Alert.alert(
+          i18n.t("common.error"),
+          i18n.t("common.somethingWentWrong")
+        );
+      }
+    },
+    [currentLanguage]
+  );
+
+  useEffect(() => {
+    const initializeAppData = async () => {
+      setLoading(true);
+      try {
+        const storedLanguage = await AsyncStorage.getItem("userLanguage");
+        setI18nConfig(storedLanguage || i18n.language);
+        setCurrentLanguage(i18n.language);
+        setIsLanguageInitialized(true);
+
+        await fetchApplicationGlobalSettings();
+        await checkSessionAndFetchUser();
+      } catch (error) {
+        console.error("Error initializing app data in GlobalProvider:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAppData();
+  }, []);
+
   const updateUnreadCount = (count) => {
     setUnreadCount(count);
   };
@@ -109,20 +170,22 @@ const GlobalProvider = ({ children }) => {
         setIsLogged,
         user,
         setUser,
-        loading, // Initial app loading state
-        globalLoading, // Loading state for background operations
+        loading,
+        globalLoading,
         unreadCount,
         updateUnreadCount,
         showUploadModal,
         setShowUploadModal,
         hasBudget,
         setHasBudget,
-        checkBudgetInitialization, // Expose this function for external use
-        checkSessionAndFetchUser, // Expose the new function for re-fetching user data
+        checkBudgetInitialization,
+        checkSessionAndFetchUser,
         applicationSettings,
+        currentLanguage,
+        changeLanguage,
       }}
     >
-      {children}
+      {isLanguageInitialized ? children : null}
     </GlobalContext.Provider>
   );
 };

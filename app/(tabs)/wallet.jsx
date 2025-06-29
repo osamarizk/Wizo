@@ -18,6 +18,7 @@ import {
   Alert,
   Image,
   Pressable,
+  I18nManager,
 } from "react-native";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import {
@@ -30,13 +31,37 @@ import {
   getFutureDate,
 } from "../../lib/appwrite";
 import { format, isSameMonth, isSameYear } from "date-fns";
+import { ar as arLocale } from "date-fns/locale";
 import icons from "../../constants/icons";
 import GradientBackground from "../../components/GradientBackground";
 import { useFocusEffect } from "@react-navigation/native";
 
+import { useTranslation } from "react-i18next";
+import { getFontClassName } from "../../utils/fontUtils"; // Assumed to return direct font family name
+import i18n from "../../utils/i18n";
+
 const screenWidth = Dimensions.get("window").width;
 
+const convertToArabicNumerals = (num) => {
+  const numString = String(num || 0); // Defensive check for null/undefined
+  if (typeof numString !== "string") return String(numString);
+  const arabicNumeralsMap = {
+    0: "٠",
+    1: "١",
+    2: "٢",
+    3: "٣",
+    4: "٤",
+    5: "٥",
+    6: "٦",
+    7: "٧",
+    8: "٨",
+    9: "٩",
+  };
+  return numString.replace(/\d/g, (digit) => arabicNumeralsMap[digit] || digit);
+};
+
 const Wallet = () => {
+  const { t } = useTranslation();
   // Ensure updateUnreadCount is destructured from useGlobalContext
   const {
     user,
@@ -433,8 +458,11 @@ const Wallet = () => {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-primary">
         <ActivityIndicator size="large" color="#FFFFFF" />
-        <Text className="text-white mt-4 font-pextralight text-lg">
-          Loading your wallet...
+        <Text
+          className="text-white mt-4" // Removed font-pextralight from className
+          style={{ fontFamily: getFontClassName("extralight") }} // Apply font directly
+        >
+          {t("wallet.loadingWallet")} {/* Translated */}
         </Text>
       </SafeAreaView>
     );
@@ -449,8 +477,13 @@ const Wallet = () => {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <View className="flex-row justify-between items-center mb-6 mt-4">
-            <Text className="text-lg font-pbold text-black">My Wallet</Text>
+          <View className="flex-row justify-between items-center mb-6 mt-4 mr-8">
+            <Text
+              className="text-lg text-black" // Removed font-pbold from className
+              style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+            >
+              {t("wallet.myWalletTitle")} {/* Translated */}
+            </Text>
             <Image
               source={icons.wallet}
               className="w-6 h-6"
@@ -459,120 +492,238 @@ const Wallet = () => {
             />
           </View>
 
-          <Text className="text-sm font-pregular text-gray-700 text-left mb-4 mt-2">
-            Manage your cash balance here. You can add or withdraw funds, and
-            see a history of all your wallet transactions.
+          <Text
+            className={`text-sm text-gray-700 mb-4 mt-1 mr-4 ${
+              I18nManager.isRTL ? "text-right" : "text-left" // Align description
+            }`} // Removed font-pregular from className
+            style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+          >
+            {t("wallet.walletDescription")} {/* Translated */}
           </Text>
 
           {/* Current Balance Card */}
           <View className="bg-transparent p-6 rounded-lg mb-2 border-t border-[#9F54B6]">
-            <Text className="text-base font-pmedium text-gray-600 mb-2 text-center">
-              Current Balance
+            <Text
+              className="text-base text-gray-600 mb-2 text-center" // Removed font-pmedium
+              style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+            >
+              {t("wallet.currentBalance")} {/* Translated */}
             </Text>
-            <Text className="text-4xl font-pbold text-center text-black">
-              ${walletBalance.toFixed(2)}
+            <Text
+              className="text-3xl text-center text-black" // Removed font-pbold
+              style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+            >
+              {i18n.language.startsWith("ar")
+                ? convertToArabicNumerals(walletBalance.toFixed(2))
+                : walletBalance.toFixed(2)}{" "}
+              {t("common.currency_symbol_short")}
             </Text>
           </View>
 
           {/* Monthly Cash Flow Summary */}
           <View className="bg-transparent p-4 rounded-lg mb-2 border-t border-[#9F54B6]">
-            <Text className="text-lg font-pbold text-black mb-3">
-              Monthly Cash Flow ({format(new Date(), "MMM,yyyy")})
+            <Text
+              className={`text-lg text-black mb-3 ${
+                I18nManager.isRTL ? "text-right" : "text-left" // Align title
+              }`} // Removed font-pbold
+              style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+            >
+              {t("wallet.monthlyCashFlow", {
+                // Translated with variables for month/year
+                month: format(new Date(), "MMM", {
+                  locale: i18n.language.startsWith("ar") ? arLocale : undefined,
+                }),
+                year: format(new Date(), "yyyy", {
+                  locale: i18n.language.startsWith("ar") ? arLocale : undefined,
+                }),
+              })}
             </Text>
             <View className="flex-row justify-around items-center">
               <View className="items-center">
-                <Text className="text-base font-pmedium text-gray-600">
-                  Deposits
+                <Text
+                  className="text-base text-gray-600" // Removed font-pmedium
+                  style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                >
+                  {t("wallet.deposits")} {/* Translated */}
                 </Text>
-                <Text className="text-xl font-psemibold text-green-600">
-                  +${monthlyDeposits.toFixed(2)}
+                <Text
+                  className="text-xl text-green-600" // Removed font-psemibold
+                  style={{ fontFamily: getFontClassName("semibold") }} // Apply font directly
+                >
+                  +
+                  {i18n.language.startsWith("ar")
+                    ? convertToArabicNumerals(monthlyDeposits.toFixed(2))
+                    : monthlyDeposits.toFixed(2)}{" "}
+                  {t("common.currency_symbol_short")}
                 </Text>
               </View>
               <View className="items-center">
-                <Text className="text-base font-pmedium text-gray-600">
-                  Expenses/Withdrawals
+                <Text
+                  className="text-base text-gray-600" // Removed font-pmedium
+                  style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                >
+                  {t("wallet.expensesWithdrawals")} {/* Translated */}
                 </Text>
-                <Text className="text-xl font-psemibold text-red-600">
-                  -${monthlyExpensesWithdrawals.toFixed(2)}
+                <Text
+                  className="text-xl text-red-600" // Removed font-psemibold
+                  style={{ fontFamily: getFontClassName("semibold") }} // Apply font directly
+                >
+                  -
+                  {i18n.language.startsWith("ar")
+                    ? convertToArabicNumerals(
+                        monthlyExpensesWithdrawals.toFixed(2)
+                      )
+                    : monthlyExpensesWithdrawals.toFixed(2)}{" "}
+                  {t("common.currency_symbol_short")}
                 </Text>
               </View>
             </View>
-            <Text className="text-sm font-pregular text-gray-700 text-center mt-3">
-              Net Flow: $
-              {(monthlyDeposits - monthlyExpensesWithdrawals).toFixed(2)}
+            <Text
+              className={`text-sm text-gray-700 text-center mt-3 ${
+                I18nManager.isRTL ? "text-right" : "text-left" // Align net flow
+              }`} // Removed font-pregular
+              style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+            >
+              {t("wallet.netFlow")}: {/* Translated */}
+              {i18n.language.startsWith("ar")
+                ? convertToArabicNumerals(
+                    (monthlyDeposits - monthlyExpensesWithdrawals).toFixed(2)
+                  )
+                : (monthlyDeposits - monthlyExpensesWithdrawals).toFixed(
+                    2
+                  )}{" "}
+              {t("common.currency_symbol_short")}
             </Text>
           </View>
 
           {/* Average Cash Expense Card */}
-          <View className="bg-transparent p-4 rounded-lg mb-6 border-t border-[#9F54B6]">
-            <Text className="text-lg font-pbold text-black mb-3">
-              Average Cash Expense (This Month)
+          <View className="bg-transparent p-4 rounded-lg mb-1 border-t border-[#9F54B6]">
+            <Text
+              className={`text-lg text-black mb-3 ${
+                I18nManager.isRTL ? "text-right" : "text-left" // Align title
+              }`} // Removed font-pbold
+              style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+            >
+              {t("wallet.averageCashExpenseTitle")} {/* Translated */}
             </Text>
             {averageCashExpense > 0 ? (
-              <Text className="text-3xl font-psemibold text-center text-black">
-                ${averageCashExpense.toFixed(2)}
+              <Text
+                className="text-3xl text-center text-black" // Removed font-psemibold
+                style={{ fontFamily: getFontClassName("semibold") }} // Apply font directly
+              >
+                {i18n.language.startsWith("ar")
+                  ? convertToArabicNumerals(averageCashExpense.toFixed(2))
+                  : averageCashExpense.toFixed(2)}{" "}
+                {t("common.currency_symbol_short")}
               </Text>
             ) : (
-              <Text className="text-gray-500 italic text-center">
-                No cash expenses this month to calculate average.
+              <Text
+                className="text-gray-500 italic text-center" // Removed font-pregular
+                style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+              >
+                {t("wallet.noCashExpensesThisMonth")} {/* Translated */}
               </Text>
             )}
           </View>
-
           {/* Single "Record Transaction" Button */}
-          <TouchableOpacity
-            onPress={() => openTransactionModal(null)}
-            className="mb-2 w-full bg-[#D03957] rounded-md p-3 items-center justify-center"
-          >
-            <Text className="text-white font-psemibold text-lg">
-              Record New Transaction
-            </Text>
-          </TouchableOpacity>
+          <View className="bg-transparent p-4 rounded-lg mb-3 ">
+            <TouchableOpacity
+              onPress={() => openTransactionModal(null)}
+              className="mb-2 w-full bg-[#D03957] rounded-md p-3 items-center justify-center "
+            >
+              <Text
+                className="text-white text-lg" // Removed font-psemibold
+                style={{ fontFamily: getFontClassName("semibold") }} // Apply font directly
+              >
+                {t("wallet.recordNewTransaction")} {/* Translated */}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Recent Transactions List */}
           <View className="bg-transparent p-4 rounded-lg border-t border-[#9F54B6]">
-            <Text className="text-lg font-pbold text-black mb-4">
-              Recent Transactions
+            <Text
+              className={`text-lg text-black mb-4 ${
+                I18nManager.isRTL ? "text-right" : "text-left" // Align title
+              }`} // Removed font-pbold
+              style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+            >
+              {t("wallet.recentTransactions")} {/* Translated */}
             </Text>
             {transactions.length === 0 ? (
               <View className="items-center py-8">
-                <Text className="text-gray-500 italic">
-                  No transactions yet.
+                <Text
+                  className="text-gray-500 italic" // Removed font-pmedium
+                  style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                >
+                  {t("wallet.noTransactionsYet")} {/* Translated */}
                 </Text>
               </View>
             ) : (
               transactions.map((tx) => (
                 <View
                   key={tx.$id}
-                  className="flex-row justify-between items-center py-3 border-b border-gray-200 last:border-none"
+                  className={`flex-row justify-between items-center py-3 border-b border-gray-200 last:border-none ${
+                    I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse transaction row for RTL
+                  }`}
                 >
                   <View className="flex-1">
-                    <Text className="font-pmedium text-black text-base">
+                    <Text
+                      className={`text-black text-base ${
+                        I18nManager.isRTL ? "text-right" : "text-left" // Align text
+                      }`} // Removed font-pmedium
+                      style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
+                    >
                       {tx.type === "deposit"
-                        ? "Deposit"
+                        ? t("wallet.transactionTypeDeposit")
                         : tx.type === "withdrawal"
-                        ? "Withdrawal"
-                        : "Manual Expense"}
+                        ? t("wallet.transactionTypeWithdrawal")
+                        : t("wallet.transactionTypeManualExpense")}{" "}
+                      {/* Translated transaction type */}
                     </Text>
                     {tx.description ? (
-                      <Text className="text-gray-600 text-sm">
+                      <Text
+                        className={`text-[#264653] text-sm ${
+                          I18nManager.isRTL ? "text-right" : "text-left" // Align description
+                        }`}
+                        style={{ fontFamily: getFontClassName("regular") }} // Apply font
+                      >
                         {tx.description}
                       </Text>
                     ) : null}
-                    <Text className="text-gray-400 text-xs mt-1">
-                      {format(new Date(tx.datetime), "MMM dd,yyyy HH:mm")}
+                    <Text
+                      className={`text-[#4E17B3] text-xs mt-1 ${
+                        I18nManager.isRTL ? "text-right" : "text-left" // Align date
+                      }`}
+                      style={{ fontFamily: getFontClassName("semibold") }} // Apply font
+                    >
+                      {format(new Date(tx.datetime), "MMM dd,yyyy HH:mm", {
+                        locale: i18n.language.startsWith("ar")
+                          ? arLocale
+                          : undefined, // Localize date format
+                      })}
                     </Text>
                   </View>
-                  <View className="flex-row items-center">
+                  <View
+                    className={`flex-row items-center ${
+                      I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse amount and dots icon for RTL
+                    }`}
+                  >
                     <Text
-                      className={`font-psemibold text-base mr-2 ${
+                      className={`text-base ${
                         tx.type === "deposit"
                           ? "text-green-600"
                           : "text-red-600"
-                      }`}
+                      } ${I18nManager.isRTL ? "ml-2" : "mr-2"}`} // Adjust margin for RTL
+                      style={{ fontFamily: getFontClassName("semibold") }} // Apply font
                     >
-                      {tx.type === "deposit" ? "+" : "-"} $
-                      {parseFloat(tx.amount).toFixed(2)}
+                      {tx.type === "deposit" ? "+" : "-"}{" "}
+                      {i18n.language.startsWith("ar")
+                        ? convertToArabicNumerals(
+                            parseFloat(tx.amount).toFixed(2)
+                          )
+                        : parseFloat(tx.amount).toFixed(2)}{" "}
+                      {t("common.currency_symbol_short")}
                     </Text>
                     <TouchableOpacity
                       onPress={() => setSelectedTransactionForEdit(tx)}
@@ -592,7 +743,6 @@ const Wallet = () => {
           </View>
         </ScrollView>
 
-        {/* Transaction Modal (Add/Edit) */}
         <Modal
           animationType="slide"
           transparent={true}
@@ -605,29 +755,43 @@ const Wallet = () => {
           >
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
               <View style={styles.centeredView}>
-                <View style={styles.modalView}>
-                  <Text className="text-xl font-pbold text-black mb-6 text-center">
+                <View
+                  style={styles.modalView}
+                  onStartShouldSetResponder={() => true} // Keep to prevent closing on tap inside
+                >
+                  <Text
+                    className={`text-xl text-black mb-6 text-center ${
+                      I18nManager.isRTL ? "text-right" : "text-left" // Align title
+                    }`} // Removed font-pbold
+                    style={{ fontFamily: getFontClassName("bold") }} // Apply font
+                  >
                     {selectedTransactionForEdit
-                      ? "Edit Transaction"
-                      : "Record New Transaction"}
+                      ? t("wallet.editTransactionTitle")
+                      : t("wallet.recordNewTransactionTitle")}{" "}
+                    {/* Translated */}
                   </Text>
 
                   {/* Transaction Type Selector */}
-                  <View className="flex-row justify-between w-full mb-2 bg-gray-100 rounded-lg p-1">
+                  <View
+                    className={`flex-row justify-between w-full mb-2 bg-gray-100 rounded-lg p-1 ${
+                      I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse buttons for RTL
+                    }`}
+                  >
                     <TouchableOpacity
                       onPress={() => setTransactionType("deposit")}
                       className={`flex-1 p-2 rounded-md items-center ${
-                        transactionType === "deposit" ? "bg-green-500" : ""
-                      }`}
+                        I18nManager.isRTL ? "ml-1" : "mr-1" // Adjust margin
+                      } ${transactionType === "deposit" ? "bg-green-500" : ""}`}
                     >
                       <Text
-                        className={`font-psemibold text-base ${
+                        className={`text-base ${
                           transactionType === "deposit"
                             ? "text-white"
                             : "text-gray-700"
-                        }`}
+                        }`} // Removed font-psemibold
+                        style={{ fontFamily: getFontClassName("semibold") }} // Apply font
                       >
-                        Deposit
+                        {t("wallet.transactionTypeDeposit")} {/* Translated */}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -637,53 +801,84 @@ const Wallet = () => {
                       }`}
                     >
                       <Text
-                        className={`font-psemibold text-base ${
+                        className={`text-base ${
                           transactionType === "withdrawal"
                             ? "text-white"
                             : "text-gray-700"
-                        }`}
+                        }`} // Removed font-psemibold
+                        style={{ fontFamily: getFontClassName("semibold") }} // Apply font
                       >
-                        Withdrawal
+                        {t("wallet.transactionTypeWithdrawal")}{" "}
+                        {/* Translated */}
                       </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => setTransactionType("manual_expense")}
                       className={`flex-1 p-2 rounded-md items-center ${
+                        I18nManager.isRTL ? "mr-1" : "ml-1" // Adjust margin
+                      } ${
                         transactionType === "manual_expense"
                           ? "bg-blue-500"
                           : ""
                       }`}
                     >
                       <Text
-                        className={`font-psemibold text-base ${
+                        className={`text-base ${
                           transactionType === "manual_expense"
                             ? "text-white"
                             : "text-gray-700"
-                        }`}
+                        }`} // Removed font-psemibold
+                        style={{ fontFamily: getFontClassName("semibold") }} // Apply font
                       >
-                        Manual Expense
+                        {t("wallet.transactionTypeManualExpense")}{" "}
+                        {/* Translated */}
                       </Text>
                     </TouchableOpacity>
                   </View>
 
                   {/* Transaction Type Description */}
                   {transactionType && (
-                    <Text className="text-xs text-gray-500 text-center mb-4">
-                      {getTransactionTypeDescription()}
+                    <Text
+                      className={`text-xs text-gray-500 text-center mb-4 ${
+                        I18nManager.isRTL ? "text-right" : "text-left" // Align description
+                      }`}
+                      style={{ fontFamily: getFontClassName("regular") }} // Apply font
+                    >
+                      {/* Use a switch or object for localized descriptions */}
+                      {(() => {
+                        switch (transactionType) {
+                          case "deposit":
+                            return t("wallet.depositDescription");
+                          case "withdrawal":
+                            return t("wallet.withdrawalDescription");
+                          case "manual_expense":
+                            return t("wallet.manualExpenseDescription");
+                          default:
+                            return "";
+                        }
+                      })()}
                     </Text>
                   )}
 
                   <TextInput
-                    className="w-full p-3 bg-gray-100 rounded-md border border-gray-300 mb-4 text-black text-base font-pregular"
-                    placeholder={`Amount ($)`}
+                    className={`w-full p-3 bg-gray-100 rounded-md border border-gray-300 mb-4 text-black text-base ${
+                      I18nManager.isRTL ? "text-right" : "text-left" // Align text input
+                    }`} // Removed font-pregular
+                    style={{ fontFamily: getFontClassName("regular") }} // Apply font
+                    placeholder={t("wallet.amountPlaceholder", {
+                      currencySymbol: t("common.currency_symbol_short"),
+                    })} // Translated placeholder with currency
                     keyboardType="numeric"
                     value={transactionAmount}
                     onChangeText={setTransactionAmount}
                     placeholderTextColor="#999"
                   />
                   <TextInput
-                    className="w-full p-3 bg-gray-100 rounded-md border border-gray-300 mb-6 text-black text-base font-pregular"
-                    placeholder="Description (Optional)"
+                    className={`w-full p-3 bg-gray-100 rounded-md border border-gray-300 mb-6 text-black text-base ${
+                      I18nManager.isRTL ? "text-right" : "text-left" // Align text input
+                    }`} // Removed font-pregular
+                    style={{ fontFamily: getFontClassName("regular") }} // Apply font
+                    placeholder={t("wallet.descriptionPlaceholder")} // Translated placeholder
                     value={transactionDescription}
                     onChangeText={setTransactionDescription}
                     placeholderTextColor="#999"
@@ -700,10 +895,14 @@ const Wallet = () => {
                     {isProcessingTransaction ? (
                       <ActivityIndicator color="#FFFFFF" />
                     ) : (
-                      <Text className="text-white font-pbold text-lg">
+                      <Text
+                        className="text-white text-lg" // Removed font-pbold
+                        style={{ fontFamily: getFontClassName("bold") }} // Apply font
+                      >
                         {selectedTransactionForEdit
-                          ? "Update Transaction"
-                          : "Record Transaction"}
+                          ? t("wallet.updateTransaction")
+                          : t("wallet.recordTransaction")}{" "}
+                        {/* Translated */}
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -712,8 +911,11 @@ const Wallet = () => {
                     onPress={closeModal}
                     className="p-3 rounded-lg w-full items-center bg-gray-300"
                   >
-                    <Text className="text-gray-800 font-psemibold text-lg">
-                      Cancel
+                    <Text
+                      className="text-gray-800 text-lg" // Removed font-psemibold
+                      style={{ fontFamily: getFontClassName("semibold") }} // Apply font
+                    >
+                      {t("wallet.cancel")} {/* Translated */}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -737,9 +939,17 @@ const Wallet = () => {
             style={styles.centeredView}
             onPress={() => setSelectedTransactionForEdit(null)}
           >
-            <View style={styles.actionSheetView}>
-              <Text className="text-lg font-pbold text-black mb-4 text-center">
-                Transaction Options
+            <View
+              style={styles.actionSheetView}
+              onStartShouldSetResponder={() => true} // Keep to prevent closing on tap inside
+            >
+              <Text
+                className={`text-lg text-black mb-4 text-center ${
+                  I18nManager.isRTL ? "text-right" : "text-left" // Align title
+                }`} // Removed font-pbold
+                style={{ fontFamily: getFontClassName("bold") }} // Apply font
+              >
+                {t("wallet.transactionOptions")} {/* Translated */}
               </Text>
 
               <TouchableOpacity
@@ -748,8 +958,11 @@ const Wallet = () => {
                 }}
                 className="p-4 rounded-lg w-full items-center bg-blue-500 mb-2"
               >
-                <Text className="text-white font-pbold text-lg">
-                  Edit Transaction
+                <Text
+                  className="text-white text-lg" // Removed font-pbold
+                  style={{ fontFamily: getFontClassName("bold") }} // Apply font
+                >
+                  {t("wallet.editTransactionButton")} {/* Translated */}
                 </Text>
               </TouchableOpacity>
 
@@ -759,8 +972,11 @@ const Wallet = () => {
                 }}
                 className="p-4 rounded-lg w-full items-center bg-red-500 mb-4"
               >
-                <Text className="text-white font-pbold text-lg">
-                  Delete Transaction
+                <Text
+                  className="text-white text-lg" // Removed font-pbold
+                  style={{ fontFamily: getFontClassName("bold") }} // Apply font
+                >
+                  {t("wallet.deleteTransactionButton")} {/* Translated */}
                 </Text>
               </TouchableOpacity>
 
@@ -768,8 +984,11 @@ const Wallet = () => {
                 onPress={() => setSelectedTransactionForEdit(null)}
                 className="p-3 rounded-lg w-full items-center bg-gray-300"
               >
-                <Text className="text-gray-800 font-psemibold text-lg">
-                  Cancel
+                <Text
+                  className="text-gray-800 text-lg" // Removed font-psemibold
+                  style={{ fontFamily: getFontClassName("semibold") }} // Apply font
+                >
+                  {t("wallet.cancel")} {/* Translated */}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -787,13 +1006,25 @@ const Wallet = () => {
             style={styles.centeredView}
             onPress={() => setIsConfirmDeleteModalVisible(false)}
           >
-            <View style={styles.modalView}>
-              <Text className="text-xl font-pbold text-black mb-4 text-center">
-                Confirm Deletion
+            <View
+              style={styles.modalView}
+              onStartShouldSetResponder={() => true} // Keep to prevent closing on tap inside
+            >
+              <Text
+                className={`text-xl text-black mb-4 text-center ${
+                  I18nManager.isRTL ? "text-right" : "text-left" // Align title
+                }`} // Removed font-pbold
+                style={{ fontFamily: getFontClassName("bold") }} // Apply font
+              >
+                {t("wallet.confirmDeletionTitle")} {/* Translated */}
               </Text>
-              <Text className="text-base text-gray-700 text-center mb-6">
-                Are you sure you want to delete this transaction? This action
-                cannot be undone.
+              <Text
+                className={`text-base text-gray-700 text-center mb-6 ${
+                  I18nManager.isRTL ? "text-right" : "text-left" // Align message
+                }`}
+                style={{ fontFamily: getFontClassName("regular") }} // Apply font
+              >
+                {t("wallet.confirmDeletionMessage")} {/* Translated */}
               </Text>
               <TouchableOpacity
                 onPress={() =>
@@ -807,15 +1038,23 @@ const Wallet = () => {
                 {isProcessingTransaction ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text className="text-white font-pbold text-lg">Delete</Text>
+                  <Text
+                    className="text-white text-lg" // Removed font-pbold
+                    style={{ fontFamily: getFontClassName("bold") }} // Apply font
+                  >
+                    {t("wallet.delete")} {/* Translated */}
+                  </Text>
                 )}
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setIsConfirmDeleteModalVisible(false)}
                 className="p-3 rounded-lg w-full items-center bg-gray-300"
               >
-                <Text className="text-gray-800 font-psemibold text-lg">
-                  Cancel
+                <Text
+                  className="text-gray-800 text-lg" // Removed font-psemibold
+                  style={{ fontFamily: getFontClassName("semibold") }} // Apply font
+                >
+                  {t("wallet.cancel")} {/* Translated */}
                 </Text>
               </TouchableOpacity>
             </View>

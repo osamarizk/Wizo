@@ -14,14 +14,21 @@ import {
   Platform,
   Modal,
   Pressable,
+  I18nManager,
+  Dimensions,
 } from "react-native";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import GradientBackground from "../../components/GradientBackground";
-import { useNavigation, useFocusEffect } from "expo-router";
+import { useNavigation, useFocusEffect, router } from "expo-router";
 // Collapsible is removed as it's no longer needed for "Your Current Budgets"
 import icons from "../../constants/icons";
 
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { ar as arLocale } from "date-fns/locale";
+
+import { useTranslation } from "react-i18next";
+import { getFontClassName } from "../../utils/fontUtils"; // Assumed to return direct font family name
+import i18n from "../../utils/i18n";
 
 import {
   getUserBudgets,
@@ -33,6 +40,7 @@ import {
   deleteBudget,
   createNotification,
   countUnreadNotifications,
+  getFutureDate,
 } from "../../lib/appwrite";
 
 // Import the new modal components (ensure paths are correct relative to Budget.jsx)
@@ -44,7 +52,76 @@ if (Platform.OS === "android") {
     UIManager.setLayoutLayoutAnimationEnabledExperimental(true);
 }
 
+const screenWidth = Dimensions.get("window").width;
+
+// Utility function to convert numbers to Arabic numerals (already exists in your provided code)
+const convertToArabicNumerals = (num) => {
+  const numString = String(num || 0); // Defensive check for null/undefined
+  if (typeof numString !== "string") return String(numString);
+  const arabicNumeralsMap = {
+    0: "٠",
+    1: "١",
+    2: "٢",
+    3: "٣",
+    4: "٤",
+    5: "٥",
+    6: "٦",
+    7: "٧",
+    8: "٨",
+    9: "٩",
+  };
+  return numString.replace(/\d/g, (digit) => arabicNumeralsMap[digit] || digit);
+};
+
+const mapCategoryNameToI18nKey = (categoryNameFromDB) => {
+  if (!categoryNameFromDB) return ""; // Handle null or undefined input
+
+  // Convert common database formats (e.g., "Food & Dining") to i18n keys (e.g., "foodDining")
+  // This mapping needs to be comprehensive for ALL your categories.
+  // Add more cases as needed for your specific category names from Appwrite.
+  switch (categoryNameFromDB) {
+    case "Food & Dining":
+      return "foodDining";
+    case "Transportation":
+      return "transportation";
+    case "Shopping":
+      return "shopping";
+    case "Health & Wellness":
+      return "healthWellness";
+    case "Bills & Utilities":
+      return "billsUtilities";
+    case "Entertainment & Leisure":
+      return "entertainmentLeisure";
+    case "Business Expenses":
+      return "businessExpenses";
+    case "Education":
+      return "education";
+    case "Financial Services":
+      return "financialServices";
+    case "Gifts & Donations":
+      return "giftsDonations";
+    case "Home Improvement":
+      return "homeImprovement";
+    case "Miscellaneous":
+      return "miscellaneous";
+    case "Household Items":
+      return "householdItems";
+    case "Clothing":
+      return "clothing";
+    // Add more cases for any other categories from your database
+    default:
+      // Fallback if no specific mapping, try a basic camelCase conversion
+      // This handles cases like "Groceries" -> "groceries"
+      return categoryNameFromDB
+        .replace(/[^a-zA-Z0-9]+(.)?/g, (match, chr) =>
+          chr ? chr.toUpperCase() : ""
+        )
+        .replace(/^./, (match) => match.toLowerCase());
+  }
+};
 const Budget = () => {
+  const { t } = useTranslation();
+
   const {
     user,
     isLoading: globalLoading,
@@ -153,7 +230,6 @@ const Budget = () => {
   };
 
   const fetchBudgetData = useCallback(async () => {
-    console.log("fetchBudgetData: Function started.");
     if (!user?.$id) {
       console.log(
         "fetchBudgetData: User ID not available, stopping data fetch."
@@ -310,7 +386,12 @@ const Budget = () => {
       console.log("monthlySpendingSummary:.", monthlySpendingSummary);
     } catch (error) {
       console.error("fetchBudgetData: !!! ERROR during data fetch !!!", error);
-      Alert.alert("Error", "Failed to load budget data.");
+      Alert.alert(
+        t("common.errorTitle"),
+        t("budget.budgetSaveFailed", {
+          error: error.message || t("common.unknownError"),
+        })
+      );
     } finally {
       console.log(
         "fetchBudgetData: Setting isLoadingData to FALSE in finally block."
@@ -352,9 +433,10 @@ const Budget = () => {
   const handleSetupBudget = () => {
     // --- START NEW: Active Budget Limit Check ---
     if (!user || !applicationSettings) {
+      // Replaced Alert.alert with i18n translations
       Alert.alert(
-        "Error",
-        "User or application settings not loaded. Please try again."
+        t("common.errorTitle"),
+        t("common.userOrSettingsNotLoaded") // New i18n key for this
       );
       return;
     }
@@ -363,13 +445,22 @@ const Budget = () => {
 
     if (!user.isPremium && activeBudgetsCount >= freeBudgetLimit) {
       Alert.alert(
-        "Budget Limit Reached!",
-        `You've reached your limit of ${freeBudgetLimit} active budgets. Upgrade to Premium for unlimited budgets and more features!`,
+        t("budget.budgetLimitReachedTitle"), // Translated title
+        t("budget.budgetLimitReachedMessage", {
+          // Translated message with interpolation
+          limit: freeBudgetLimit,
+          // You might need to pass `router` from `useNavigation`
+          // router: router // If router is directly passed or imported
+        }),
         [
-          { text: "Later", style: "cancel" }, // Just dismiss
+          { text: t("common.later"), style: "cancel" }, // Translated
           {
-            text: "Upgrade Now",
-            onPress: () => router.push("/upgrade-premium"),
+            text: t("common.upgradeNow"), // Translated
+            onPress: () => {
+              // Assuming 'router' is available in this scope, e.g., from useNavigation hook
+
+              router.push("/upgrade-premium");
+            },
           },
         ]
       );
@@ -377,11 +468,10 @@ const Budget = () => {
       // try {
       //     await createNotification({
       //         user_id: user.$id,
-      //         title: "Budget Limit Reached",
-      //         message: `You've used all ${freeBudgetLimit} free active budgets. Upgrade to Premium!`,
+      //         title: t("budget.budgetLimitReachedNotificationTitle"),
+      //         message: t("budget.budgetLimitReachedNotificationMessage", { limit: freeBudgetLimit }),
       //         type: "limit_reached",
-      //         expiresAt: getFutureDate(30), // You need getFutureDate from lib/appwrite
-      //         budget_id: null,
+      //         expiresAt: getFutureDate(30),
       //     });
       //     const updatedUnreadCount = await countUnreadNotifications(user.$id);
       //     updateUnreadCount(updatedUnreadCount);
@@ -406,59 +496,146 @@ const Budget = () => {
     setShowBudgetSetupModal(true);
   };
 
-  const handleDeleteBudget = async (budgetToDelete) => {
-    // Changed from budgetId to budgetToDelete object
-    setShowActionMenuModal(false); // Close menu immediately
-    Alert.alert(
-      "Confirm Delete",
-      "Are you sure you want to delete this budget? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          onPress: async () => {
-            try {
-              await deleteBudget(budgetToDelete.$id); // Use the ID from the object
-              Alert.alert("Success", "Budget deleted successfully.");
+  const handleDeleteBudget = useCallback(
+    async (budgetId) => {
+      // Renamed parameter to budgetId for clarity
+      setShowActionMenuModal(false); // Close menu immediately
+      Alert.alert(
+        t("budget.confirmDeletionTitle"),
+        t("budget.confirmDeletionMessage", {
+          categoryName:
+            actionMenuBudgetData?.categoryName || t("common.unknownCategory"),
+        }), // Use actionMenuBudgetData for category name here
+        [
+          { text: t("common.cancel"), style: "cancel" },
+          {
+            text: t("budget.deleteButton"),
+            onPress: async () => {
+              try {
+                // --- DEBUGGING START ---
+                console.log(
+                  "Attempting to delete budget. ID received directly:",
+                  budgetId
+                );
+                // --- DEBUGGING END ---
 
-              // Create notification for delete action with specific details
-              await createNotification({
-                user_id: user.$id,
-                title: "Budget Deleted",
-                message: `The budget for ${getCategoryName(
-                  budgetToDelete.categoryId
-                )} ($${parseFloat(budgetToDelete.budgetAmount).toFixed(
-                  2
-                )}) from ${format(
-                  new Date(budgetToDelete.startDate),
-                  "PPP"
-                )} to ${format(
-                  new Date(budgetToDelete.endDate),
-                  "PPP"
-                )} has been deleted.`,
-                budget_id: budgetToDelete.$id, // Still link for historical context if needed
-                // Add specific fields for deleted budget details
-                deleted_budget_amount: parseFloat(budgetToDelete.budgetAmount),
-                deleted_budget_category_id: budgetToDelete.categoryId,
-                deleted_budget_start_date: budgetToDelete.startDate,
-                deleted_budget_end_date: budgetToDelete.endDate,
-              });
-              // Update unread count
-              const updatedUnreadCount = await countUnreadNotifications(
-                user.$id
-              );
-              updateUnreadCount(updatedUnreadCount);
+                if (!budgetId) {
+                  console.error(
+                    "Critical: Budget ID is null or undefined for deletion!"
+                  );
+                  Alert.alert(
+                    t("common.errorTitle"),
+                    t("budget.budgetDeleteFailed", {
+                      error: t("common.unknownError"),
+                    })
+                  );
+                  return; // Stop execution if ID is missing
+                }
 
-              onRefresh(); // Refresh the list after deletion
-            } catch (error) {
-              console.error("Error deleting budget:", error);
-              Alert.alert("Error", "Failed to delete budget.");
-            }
+                // Fetch the budget details BEFORE deleting it, so we can use its properties for the notification
+                const budgetDetailsForNotification = userBudgets.find(
+                  (b) => b.$id === budgetId
+                );
+
+                await deleteBudget(budgetId); // Pass the ID directly to the appwrite function
+                Alert.alert(
+                  t("common.success"),
+                  t("budget.budgetDeleteSuccess")
+                );
+
+                // Create notification for delete action with specific details
+                if (budgetDetailsForNotification) {
+                  const categoryNameForNotif = getCategoryName(
+                    budgetDetailsForNotification.category_id
+                  );
+                  const currencySymbol = t("common.currency_symbol_short");
+
+                  await createNotification({
+                    user_id: user.$id,
+                    title: t("budget.budgetDeletedNotificationTitle"),
+                    message: t("budget.budgetDeletedNotificationMessage", {
+                      categoryName: categoryNameForNotif,
+                      amount: parseFloat(
+                        budgetDetailsForNotification.amount
+                      ).toFixed(2), // Use amount from fetched details
+                      currencySymbol: currencySymbol,
+                    }),
+                    type: "budget",
+                    expiresAt: getFutureDate(7),
+                    budget_id: budgetDetailsForNotification.$id, // Still link for historical context if needed
+                    deleted_budget_amount: parseFloat(
+                      budgetDetailsForNotification.amount
+                    ),
+                    deleted_budget_category_id:
+                      budgetDetailsForNotification.category_id,
+                  });
+                  const updatedUnreadCount = await countUnreadNotifications(
+                    user.$id
+                  );
+                  updateUnreadCount(updatedUnreadCount);
+                } else {
+                  console.warn(
+                    "Deleted budget details not found for notification creation. Notification will be generic."
+                  );
+                  // Create a generic notification if details couldn't be found
+                  await createNotification({
+                    user_id: user.$id,
+                    title: t("budget.budgetDeletedNotificationTitle"),
+                    message: t("budget.budgetDeletedNotificationMessage", {
+                      categoryName: t("common.unknownCategory"),
+                      amount: "N/A",
+                      currencySymbol: currencySymbol,
+                    }),
+                    type: "budget",
+                    expiresAt: getFutureDate(7),
+                  });
+                }
+
+                await onRefresh(); // Refresh the list after deletion
+              } catch (error) {
+                console.error("Error deleting budget:", error);
+                Alert.alert(
+                  t("common.errorTitle"),
+                  t("budget.budgetDeleteFailed", {
+                    error: error.message || t("common.unknownError"),
+                  })
+                );
+                try {
+                  await createNotification({
+                    user_id: user.$id,
+                    title: t("budget.budgetActionFailedNotificationTitle"),
+                    message: t("budget.budgetActionFailedNotificationMessage", {
+                      error: error.message || t("common.unknownError"),
+                    }),
+                    type: "error",
+                    expiresAt: getFutureDate(14),
+                  });
+                  const updatedUnreadCount = await countUnreadNotifications(
+                    user.$id
+                  );
+                  updateUnreadCount(updatedUnreadCount);
+                } catch (notificationError) {
+                  console.warn(
+                    "Failed to create budget deletion failure notification:",
+                    notificationError
+                  );
+                }
+              }
+            },
           },
-        },
-      ]
-    );
-  };
+        ]
+      );
+    },
+    [
+      user?.$id,
+      onRefresh,
+      updateUnreadCount,
+      getCategoryName,
+      t,
+      userBudgets,
+      actionMenuBudgetData,
+    ]
+  );
 
   const toggleActionMenu = (event, budget) => {
     // Measure the position of the touched element to position the modal correctly
@@ -477,8 +654,11 @@ const Budget = () => {
       <GradientBackground>
         <SafeAreaView className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text className="text-white mt-4 font-pextralight text-lg">
-            Loading your budgets...
+          <Text
+            className="text-white mt-4 text-lg"
+            style={{ fontFamily: getFontClassName("extralight") }}
+          >
+            {t("budget.loadingBudgets")} {/* Translated */}
           </Text>
         </SafeAreaView>
       </GradientBackground>
@@ -495,33 +675,64 @@ const Budget = () => {
           }
         >
           {/* Header with "My Budgets" and "Add New Budget" button */}
-          <View className="flex-row justify-between items-center mb-2 mt-4">
-            <Text className="text-lg font-pbold text-black">My Budgets</Text>
-            {hasBudget && (
-              <TouchableOpacity
-                onPress={handleSetupBudget}
-                className="bg-red-600 rounded-md p-3 items-center justify-center mt-3 w-60"
+          <View
+            className={`flex-row justify-between items-center mb-2 mt-4 ${
+              I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse header for RTL
+            }`}
+          >
+            <Text
+              className="text-lg text-black" // Removed font-pbold
+              style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
+            >
+              {t("budget.myBudgetsTitle")} {/* Translated */}
+            </Text>
+            {/* The "Set New Budget" button should generally always be visible to allow creation */}
+            <TouchableOpacity
+              onPress={() => handleSetupBudget()} // Call openBudgetModal with null for new budget
+              className="bg-[#2A9D8F] rounded-md px-4 py-2 items-center justify-center" // Smaller button style
+            >
+              <Text
+                className="text-white text-base" // Removed font-psemibold
+                style={{ fontFamily: getFontClassName("semibold") }} // Apply font directly
               >
-                <Text className="text-white font-psemibold text-base">
-                  Add New Budget
-                </Text>
-              </TouchableOpacity>
-            )}
+                {t("budget.setNewBudgetButton")} {/* Translated */}
+              </Text>
+            </TouchableOpacity>
           </View>
-          <Text className="text-sm font-pregular text-gray-600 text-left mb-4 mt-2">
-            Set up and manage your budgets to keep track of your spending habits
-            and financial goals.
+
+          {/* Budget Description */}
+          <Text
+            className={`text-base text-gray-700 mb-4 mt-2 ${
+              I18nManager.isRTL ? "text-right" : "text-left" // Align description
+            }`} // Removed font-pregular
+            style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+          >
+            {t("budget.budgetDescription")} {/* Translated */}
           </Text>
+
           {/* --- START NEW: Active Budget Tracker Card --- */}
-          {user && !user.isPremium && applicationSettings && (
-            <View className="bg-white rounded-xl p-4 mx-0 mb-6 shadow-md border border-gray-200">
-              <Text className="text-lg font-pbold text-gray-800 mb-2">
-                Active Budget Tracker
+          {user && hasBudget && !user.isPremium && applicationSettings && (
+            <View
+              className={`bg-white rounded-xl p-4 mx-0 mb-6 shadow-md border border-gray-200 ${
+                I18nManager.isRTL ? "items-end" : "items-start" // Align card content based on RTL
+              }`}
+            >
+              <Text
+                className={`text-lg text-gray-800 mb-2 ${
+                  I18nManager.isRTL ? "text-right" : "text-left" // Align title
+                }`} // Removed font-pbold
+                style={{ fontFamily: getFontClassName("bold") }} // Apply font
+              >
+                {t("budget.activeBudgetTrackerTitle")}
               </Text>
 
-              <Text className="text-sm font-pregular text-gray-600 mb-4">
-                Monitor your current active budgets and manage your financial
-                goals.
+              <Text
+                className={`text-sm text-gray-600 mb-4 ${
+                  I18nManager.isRTL ? "text-right" : "text-left" // Align description
+                }`} // Removed font-pregular
+                style={{ fontFamily: getFontClassName("regular") }} // Apply font
+              >
+                {t("budget.activeBudgetTrackerDescription")} {/* Translated */}
               </Text>
 
               {(() => {
@@ -533,18 +744,38 @@ const Budget = () => {
                 const remainingBudgets = limit - currentActive;
 
                 return (
-                  <View className="mb-2 items-start w-full">
-                    <Text className="text-base font-pbold text-gray-800 mb-1">
-                      Active Budgets:
-                      <Text className="text-sm font-pbold text-gray-700">
-                        {currentActive}{" "}
+                  <View
+                    className={`mb-2 w-full ${
+                      I18nManager.isRTL ? "items-end" : "items-start"
+                    }`}
+                  >
+                    <Text
+                      className={`text-base text-gray-800 mb-1 ${
+                        I18nManager.isRTL ? "text-right" : "text-left" // Align text
+                      }`} // Removed font-pbold
+                      style={{ fontFamily: getFontClassName("bold") }} // Apply font
+                    >
+                      {t("budget.activeBudgetsCount")}{" "}
+                      {/* Translated "Active Budgets:" */}
+                      <Text
+                        className={`text-sm text-gray-700 ${
+                          I18nManager.isRTL ? "text-right" : "text-left" // Align text
+                        }`} // Removed font-pbold
+                        style={{ fontFamily: getFontClassName("bold") }} // Apply font
+                      >
+                        {i18n.language.startsWith("ar")
+                          ? convertToArabicNumerals(currentActive)
+                          : currentActive}{" "}
                         {limit > 0 && (
                           <Text
                             className={
                               isOverLimit ? "text-red-500" : "text-gray-600"
                             }
                           >
-                            / {limit}{" "}
+                            /{" "}
+                            {i18n.language.startsWith("ar")
+                              ? convertToArabicNumerals(limit)
+                              : limit}{" "}
                           </Text>
                         )}
                       </Text>
@@ -554,36 +785,54 @@ const Budget = () => {
                       <View className="h-3 bg-gray-200 rounded-full w-full overflow-hidden">
                         <View
                           className={`h-full ${
-                            isOverLimit ? "bg-red-500" : "bg-purple-600"
+                            isOverLimit ? "bg-red-500" : "bg-[#9F54B6]" // Using the provided purple color
                           } rounded-full`}
                           style={{ width: `${Math.min(percentageUsed, 100)}%` }}
                         />
                       </View>
                     )}
 
-                    <View className="flex-row justify-between items-center w-full mt-2">
+                    <View
+                      className={`flex-row justify-between items-center w-full mt-2 ${
+                        I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
+                      }`}
+                    >
                       <Text
-                        className={`text-sm font-pregular ${
+                        className={`text-sm ${
                           isOverLimit ? "text-red-600" : "text-green-600"
-                        }`}
+                        } ${I18nManager.isRTL ? "text-right" : "text-left"}`} // Align text
+                        style={{ fontFamily: getFontClassName("regular") }} // Apply font
                       >
                         {isOverLimit
-                          ? `Limit Reached!`
-                          : `Remaining: ${remainingBudgets} budgets`}
+                          ? t("budget.limitReachedMessageSmall") // Translated "Limit Reached!"
+                          : t("budget.remainingBudgets", {
+                              count: i18n.language.startsWith("ar")
+                                ? convertToArabicNumerals(remainingBudgets)
+                                : remainingBudgets,
+                            })}{" "}
                       </Text>
 
                       <TouchableOpacity
-                        onPress={() => router.push("/upgrade-premium")}
-                        className="flex-row items-center justify-center p-2 px-3 rounded-md bg-purple-600 shadow-sm"
+                        onPress={() => {
+                          // Assuming 'router' is imported via useNavigation or other means
+
+                          router.push("/upgrade-premium");
+                        }}
+                        className="flex-row items-center justify-center p-2 px-3 rounded-md bg-[#9F54B6] shadow-sm" // Using the provided purple color
                       >
                         <Image
                           source={icons.star}
-                          className="w-4 h-4 tint-white mr-1"
+                          className={`w-4 h-4 tint-white ${
+                            I18nManager.isRTL ? "ml-1" : "mr-1"
+                          }`} // Adjust margin for RTL
                           resizeMode="contain"
+                          style={{ tintColor: "white" }} // Explicit tint color
                         />
-
-                        <Text className="text-white font-psemibold text-xs">
-                          Upgrade to Premium
+                        <Text
+                          className="text-white text-xs" // Removed font-psemibold
+                          style={{ fontFamily: getFontClassName("semibold") }} // Apply font
+                        >
+                          {t("common.upgradeToPremium")} {/* Translated */}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -596,74 +845,180 @@ const Budget = () => {
           {(userTotalPoints > 0 ||
             userBadges.length > 0 ||
             showBudgetPrompt) && (
-            <View className="mb-5">
+            <View className="mb-2">
               {(userTotalPoints > 0 || userBadges.length > 0) && (
-                <View className="flex-row justify-around items-center bg-transparent py-4 px-2.5 mb-2 border-2 border-[#9F54B6] rounded-xl">
-                  <View className="flex-row items-center">
-                    <Image
-                      source={icons.star}
-                      className="w-8 h-8 mr-2"
-                      tintColor="red"
-                    />
-                    <Text className="text-base font-pmedium text-slate-800">
-                      Points:{" "}
-                      <Text className="font-pbold text-lg text-red-600">
-                        {userTotalPoints}
-                      </Text>
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() =>
-                      showCustomModal(
-                        "Your Badges",
-                        "View your earned achievements!"
-                      )
-                    }
-                    className="flex-row items-center bg-blue-300 rounded-lg py-2 px-3 ml-2"
+                <View
+                  className={`flex-col items-center bg-white rounded-xl p-4 mx-0 mb-6 shadow-md border border-gray-200 w-full`} // Changed to flex-col, removed flex-1 and justify-around from here
+                >
+                  {/* Points Row */}
+                  <View
+                    className={`flex-row justify-between items-center w-full pb-3 mb-3 border-b border-gray-100 ${
+                      I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse inner row for RTL
+                    }`}
                   >
-                    <Image source={icons.medal} className="w-8 h-8 mr-2" />
-                    <Text className="text-base font-pmedium text-black">
-                      Badges:{" "}
-                      <Text className="font-pbold text-lg text-black">
-                        {userBadges.length}
+                    <View
+                      className={`flex-row items-center ${
+                        I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse icon and text for RTL
+                      }`}
+                    >
+                      <Image
+                        source={icons.star}
+                        className={`w-8 h-8 ml-2 ${
+                          I18nManager.isRTL ? "ml-2" : "mr-2"
+                        }`} // Adjust margin for RTL
+                        // tintColor="#D03957" // Red from your gradientColors
+                        resizeMode="contain"
+                      />
+                      <Text
+                        className="text-base text-slate-800" // Removed font-pmedium
+                        style={{ fontFamily: getFontClassName("medium") }} // Apply font
+                      >
+                        {t("budget.points")}: {/* Translated "Points:" */}
+                        <Text
+                          className="text-lg text-red-600" // Removed font-pbold
+                          style={{ fontFamily: getFontClassName("bold") }} // Apply font
+                        >
+                          {i18n.language.startsWith("ar")
+                            ? convertToArabicNumerals(userTotalPoints || 0)
+                            : userTotalPoints || 0}
+                        </Text>
                       </Text>
-                    </Text>
-                    <Image source={icons.arrowRight} className="w-4 h-4 ml-2" />
-                  </TouchableOpacity>
+                    </View>
+                    {/* Optional: Add a button or action for points here if desired */}
+                  </View>
+
+                  {/* Badges Row */}
+                  <View
+                    className={`flex-row justify-between items-center w-full pt-3 ${
+                      I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse inner row for RTL
+                    }`}
+                  >
+                    <View
+                      className={`flex-row items-center ${
+                        I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse icon and text for RTL
+                      }`}
+                    >
+                      <Image
+                        source={icons.medal}
+                        className={`w-8 h-8 ml-2 ${
+                          I18nManager.isRTL ? "ml-2" : "mr-2"
+                        }`} // Adjust margin for RTL
+                        // tintColor="#2A9D8F" // Teal from your gradientColors
+                        resizeMode="contain"
+                      />
+                      <Text
+                        className="text-base text-black" // Removed font-pmedium
+                        style={{ fontFamily: getFontClassName("medium") }} // Apply font
+                      >
+                        {t("budget.badges")}: {/* Translated "Badges:" */}
+                        <Text
+                          className="text-lg text-black" // Removed font-pbold
+                          style={{ fontFamily: getFontClassName("bold") }} // Apply font
+                        >
+                          {i18n.language.startsWith("ar")
+                            ? convertToArabicNumerals(userBadges?.length || 0)
+                            : userBadges?.length || 0}
+                        </Text>
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() =>
+                        showCustomModal(
+                          t("budget.yourBadgesTitle"), // Translated title
+                          t("budget.viewAchievementsMessage") // Translated message
+                        )
+                      }
+                      className={`flex-row items-center bg-[#F4A261] rounded-lg py-2 px-3 ${
+                        I18nManager.isRTL ? "mr-2" : "ml-2" // Adjust margin for RTL, added small padding to match prev
+                      }`}
+                    >
+                      <Text
+                        className="text-white text-base" // Example text style, adjust as needed
+                        style={{ fontFamily: getFontClassName("semibold") }} // Apply font
+                      >
+                        {t("common.view")}{" "}
+                        {/* Assuming a "View" translation in common */}
+                      </Text>
+                      <Image
+                        source={icons.arrowRight} // Assuming you have an arrowRight icon or equivalent
+                        className={`w-4 h-4 ${
+                          I18nManager.isRTL ? "mr-2" : "ml-2"
+                        }`} // Adjust margin for RTL
+                        tintColor="white" // Ensure arrow is visible
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </View>
           )}
           {/* NEW: Button to navigate to Budget Insights */}
-          {hasBudget && (
+          {userBudgets.length > 0 && ( // Conditional render if there are any budgets
             <TouchableOpacity
-              onPress={() => navigation.navigate("budget-insights")} // Assuming "BudgetInsights" is the route name
-              className="bg-purple-600 rounded-md p-3 items-center justify-center mt-3 mb-6"
+              onPress={() => router.push("/budget-insights")} // Use router.push as confirmed by user
+              className="bg-[#264653] rounded-md p-3 items-center justify-center mt-1 mb-6 w-full" // Dark Blue from your palette
             >
-              <Text className="text-white font-psemibold text-base">
-                View Budget Insights 📊
+              <Text
+                className="text-white text-base" // Removed font-psemibold
+                style={{ fontFamily: getFontClassName("semibold") }} // Apply font directly
+              >
+                {t("budget.viewBudgetInsightsButton")} {/* Translated */}
               </Text>
             </TouchableOpacity>
           )}
+
           {monthlySpendingSummary.length > 0 && (
-            <View className="bg-transparent p-4  border-t border-[#9F54B6]">
-              <Text className="text-base font-pbold text-black mb-2">
-                Monthly Spending Overview
+            <View className="bg-transparent p-4 border-t border-[#9F54B6]">
+              <Text
+                className={`text-base text-black mb-2 ${
+                  I18nManager.isRTL ? "text-right" : "text-left" // Align title
+                }`} // Removed font-pbold
+                style={{ fontFamily: getFontClassName("bold") }} // Apply font
+              >
+                {t("budget.monthlySpendingOverviewTitle")} {/* Translated */}
               </Text>
-              <Text className="text-sm font-pregular text-gray-600  mb-4">
-                Track your current month's spending across categories, comparing
-                it to your set budgets. Stay on top of your financial goals!
+              <Text
+                className={`text-sm text-gray-600 mb-4 ${
+                  I18nManager.isRTL ? "text-right" : "text-left" // Align description
+                }`} // Removed font-pregular
+                style={{ fontFamily: getFontClassName("regular") }} // Apply font
+              >
+                {t("budget.monthlySpendingOverviewDescription")}{" "}
+                {/* Translated */}
               </Text>
+
               {monthlySpendingSummary.map((item, index) => (
                 <View
                   key={item.categoryId || index}
-                  className="mb-2 items-start"
+                  className={`mb-4 ${
+                    I18nManager.isRTL ? "items-end" : "items-start"
+                  }`}
                 >
-                  <Text className="text-base font-pbold text-gray-800 mb-1">
-                    {item.categoryName}
+                  <Text
+                    className={`text-base text-gray-800 mb-1 ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`}
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
+                    {/* UPDATED: Use mapCategoryNameToI18nKey to get the correct i18n key */}
+                    {t(
+                      `categories.${mapCategoryNameToI18nKey(
+                        item.categoryName
+                      )}`
+                    )}
                   </Text>
-                  <Text className="text-sm font-pbold text-gray-700 mb-1">
-                    ${item.spent.toFixed(2)}
+                  <Text
+                    className={`text-sm text-gray-700 mb-1 ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`}
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
+                    {t("budget.spent")}:{" "}
+                    {i18n.language.startsWith("ar")
+                      ? convertToArabicNumerals(item.spent.toFixed(2))
+                      : item.spent.toFixed(2)}{" "}
+                    {t("common.currency_symbol_short")}
                     {item.budgetedAmount > 0 && (
                       <Text
                         className={
@@ -671,39 +1026,68 @@ const Budget = () => {
                         }
                       >
                         {" "}
-                        / ${item.budgetedAmount.toFixed(2)}
+                        / {t("budget.budgeted")}:{" "}
+                        {i18n.language.startsWith("ar")
+                          ? convertToArabicNumerals(
+                              item.budgetedAmount.toFixed(2)
+                            )
+                          : item.budgetedAmount.toFixed(2)}{" "}
+                        {t("common.currency_symbol_short")}
                       </Text>
                     )}
                   </Text>
                   {item.budgetedAmount > 0 && (
-                    <View className="h-4 bg-white rounded-md  w-full overflow-hidden">
+                    <View className="h-4 bg-gray-200 rounded-md w-full overflow-hidden">
                       <View
                         className={`h-full ${
                           item.isOverBudget ? "bg-red-500" : "bg-green-500"
                         } rounded-md`}
-                        style={{ width: `${item.percentageOfBudget}%` }}
+                        style={{
+                          width: `${Math.min(item.percentageOfBudget, 100)}%`,
+                        }}
                       />
                     </View>
                   )}
                   {item.budgetedAmount > 0 && (
                     <Text
-                      className={`text-sm font-pregular mt-1 ${
+                      className={`text-sm mt-1 ${
                         item.isOverBudget ? "text-red-600" : "text-green-600"
-                      }`}
+                      } ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                      style={{ fontFamily: getFontClassName("regular") }}
                     >
                       {item.isOverBudget
-                        ? `Over by $${Math.abs(item.remaining).toFixed(2)}`
-                        : `Remaining: $${item.remaining.toFixed(2)}`}
+                        ? t("budget.overBy", {
+                            amount: i18n.language.startsWith("ar")
+                              ? convertToArabicNumerals(
+                                  Math.abs(item.remaining).toFixed(2)
+                                )
+                              : Math.abs(item.remaining).toFixed(2),
+                            currencySymbol: t("common.currency_symbol_short"),
+                          })
+                        : t("budget.remainingAmount", {
+                            amount: i18n.language.startsWith("ar")
+                              ? convertToArabicNumerals(
+                                  item.remaining.toFixed(2)
+                                )
+                              : item.remaining.toFixed(2),
+                            currencySymbol: t("common.currency_symbol_short"),
+                          })}
                     </Text>
                   )}
                 </View>
               ))}
             </View>
           )}
-          {userBudgets.length > 0 && (
+
+          {userBudgets.length > 0 ? (
             <View className="p-2 mb-4 rounded-xl border-t border-purple-400">
-              <Text className="text-base font-pbold text-black mb-4 ">
-                Your Current Budgets
+              <Text
+                className={`text-base text-black mb-4 ${
+                  I18nManager.isRTL ? "text-right" : "text-left" // Align title
+                }`} // Removed font-pbold
+                style={{ fontFamily: getFontClassName("bold") }} // Apply font
+              >
+                {t("budget.yourCurrentBudgetsTitle")} {/* Translated */}
               </Text>
               <View className="mt-2">
                 {userBudgets.map((budget) => (
@@ -712,15 +1096,52 @@ const Budget = () => {
                     className="p-4 mb-3 border border-gray-200 rounded-lg bg-slate-200 shadow-xs flex-row justify-between items-center"
                   >
                     <View className="flex-1">
-                      <Text className="text-base font-psemibold text-black mb-1">
-                        📊 Budget for {getCategoryName(budget.categoryId)}
+                      <Text
+                        className={`text-base text-black mb-1 ${
+                          I18nManager.isRTL ? "text-right" : "text-left" // Align text
+                        }`} // Removed font-psemibold
+                        style={{ fontFamily: getFontClassName("semibold") }} // Apply font
+                      >
+                        {/* Use mapCategoryNameToI18nKey here too */}
+                        {t("budget.budgetFor", {
+                          categoryName: t(
+                            `categories.${mapCategoryNameToI18nKey(
+                              getCategoryName(budget.categoryId)
+                            )}`
+                          ), // Translated category name
+                        })}{" "}
                       </Text>
-                      <Text className="text-sm text-gray-700">
-                        ${parseFloat(budget.budgetAmount).toFixed(2)}
+
+                      <Text
+                        className={`text-sm text-gray-700 ${
+                          I18nManager.isRTL ? "text-right" : "text-left" // Align text
+                        }`}
+                        style={{ fontFamily: getFontClassName("regular") }} // Apply font
+                      >
+                        {i18n.language.startsWith("ar")
+                          ? convertToArabicNumerals(
+                              parseFloat(budget.budgetAmount).toFixed(2)
+                            )
+                          : parseFloat(budget.budgetAmount).toFixed(2)}{" "}
+                        {t("common.currency_symbol_short")}
                       </Text>
-                      <Text className="text-xs text-gray-600">
-                        {format(new Date(budget.startDate), "MMM dd,yyyy")} -{" "}
-                        {format(new Date(budget.endDate), "MMM dd,yyyy")}
+                      <Text
+                        className={`text-xs text-gray-600 mt-1 ${
+                          I18nManager.isRTL ? "text-right" : "text-left" // Align text
+                        }`}
+                        style={{ fontFamily: getFontClassName("regular") }} // Apply font
+                      >
+                        {format(new Date(budget.startDate), "MMM dd,yyyy", {
+                          locale: i18n.language.startsWith("ar")
+                            ? arLocale
+                            : undefined,
+                        })}{" "}
+                        -{" "}
+                        {format(new Date(budget.endDate), "MMM dd,yyyy", {
+                          locale: i18n.language.startsWith("ar")
+                            ? arLocale
+                            : undefined,
+                        })}
                       </Text>
                     </View>
 
@@ -731,7 +1152,7 @@ const Budget = () => {
                       <Image
                         source={icons.dots}
                         className="w-5 h-5"
-                        tintColor="#777"
+                        tintColor="#9F54B6"
                         resizeMode="contain"
                       />
                     </TouchableOpacity>
@@ -739,23 +1160,29 @@ const Budget = () => {
                 ))}
               </View>
             </View>
-          )}
-          {!hasBudget && (
-            <View className="bg-transparent py-4 px-2.5 mb-2 border-2 border-[#9F54B6] rounded-xl">
-              <Text className="text-base font-pmedium text-gray-600 text-center mb-3">
-                No budgets or spending data yet.
+          ) :(<View className="bg-transparent py-4 px-2.5 mb-2 border-2 border-[#9F54B6] rounded-xl">
+              <Text
+                className="text-base text-gray-600 text-center mb-3"
+                style={{ fontFamily: getFontClassName("medium") }}
+              >
+                {t("budget.noBudgetsYetCallToAction")}
               </Text>
 
               <TouchableOpacity
-                onPress={handleSetupBudget}
-                className="mb-4 w-full bg-red-600 rounded-md py-3 items-center justify-center"
+                onPress={handleSetupBudget} 
+                className="w-full bg-[#2A9D8F] rounded-md px-4 py-2 items-center justify-center mt-3"
               >
-                <Text className="text-white font-pmedium text-base">
-                  Start Your First Budget
+                <Text
+                  className="text-white text-base"
+                  style={{ fontFamily: getFontClassName("semibold") }}
+                >
+                  {t("budget.createNewBudgetButton")}
                 </Text>
               </TouchableOpacity>
-            </View>
-          )}
+            </View>)
+          
+          }
+
           <View className="h-20" />
         </ScrollView>
       </SafeAreaView>

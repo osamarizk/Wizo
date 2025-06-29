@@ -7,6 +7,7 @@ import {
   Image,
   Pressable,
   Platform,
+  I18nManager, // NEW: Import I18nManager
 } from "react-native";
 import icons from "../constants/icons";
 import { pickImageFromCamera, pickImageFromGallery } from "../lib/imagePicker";
@@ -16,6 +17,36 @@ import { useGlobalContext } from "../context/GlobalProvider";
 import { getReceiptStats } from "../lib/appwrite";
 import { useFocusEffect } from "@react-navigation/native";
 
+// NEW: Import i18n related hooks/objects and font utility
+import { useTranslation } from "react-i18next";
+import { getFontClassName } from "../utils/fontUtils";
+import i18n from "../utils/i18n"; // Used for conditional numeral conversion
+
+// Make sure `convertToArabicNumerals` is accessible here.
+// It should be defined outside your functional components, e.g., in a utils file or at the top of Home.jsx if it's there.
+// If it's not globally available, you might need to import it or pass it.
+// Assuming it's either in this file (above this component) or a common utility.
+
+const convertToArabicNumerals = (num) => {
+  const numString = String(num);
+
+  if (typeof numString !== "string") return String(numString);
+
+  const arabicNumeralsMap = {
+    0: "٠",
+    1: "١",
+    2: "٢",
+    3: "٣",
+    4: "٤",
+    5: "٥",
+    6: "٦",
+    7: "٧",
+    8: "٨",
+    9: "٩",
+  };
+  return numString.replace(/\d/g, (digit) => arabicNumeralsMap[digit] || digit);
+};
+
 const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
   const [receiptStats, setReceiptStats] = useState({
     totalCount: 0,
@@ -24,13 +55,24 @@ const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
     latestDate: "N/A",
   });
   const { user } = useGlobalContext();
+  const { t } = useTranslation(); // NEW: Initialize translation hook
+
+  // Memoize fetchRecieptStats to ensure stable function reference for useCallback dependency
+  const fetchRecieptStats = useCallback(async () => {
+    try {
+      const recieptData = await getReceiptStats(user.$id);
+      setReceiptStats(recieptData);
+    } catch (error) {
+      console.error("Error fetching receipt stats in UploadModal:", error);
+      // Optionally handle error state or show a message
+    }
+  }, [user?.$id]); // Dependency on user.$id
 
   useEffect(() => {
     if (user?.$id) {
       fetchRecieptStats();
-      // uploadInitialData();
     }
-  }, [user?.$id]);
+  }, [user?.$id, fetchRecieptStats]); // Add fetchRecieptStats as dependency
 
   useFocusEffect(
     useCallback(() => {
@@ -40,21 +82,12 @@ const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
     }, [fetchRecieptStats])
   );
 
-  const fetchRecieptStats = async () => {
-    const recieptData = await getReceiptStats(user.$id);
-    setReceiptStats(recieptData);
-  };
-
-  const [selectedImageUri, setSelectedImageUri] = useState(null);
-  // console.log("Refreshing Value:", onRefresh);
-
   const handleCancel = () => {
     setSelectedImageUri(null);
     onClose(); // Close the modal and reset state via onClose callback
   };
 
   const handleSelect = async (pickerFunc) => {
-    // set to handle android autorefreh
     const uri = await pickerFunc();
 
     if (uri) {
@@ -69,6 +102,8 @@ const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
       setSelectedImageUri(null);
     }, 200);
   };
+
+  const [selectedImageUri, setSelectedImageUri] = useState(null); // Keep this useState here
 
   return (
     <Modal
@@ -85,24 +120,45 @@ const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
         {/* This blocks background tap propagation */}
         <Pressable onPress={() => {}} className="mt-auto mb-[17vh] px-3 pt-2 ">
           {!selectedImageUri ? (
-            <View className="bg-onboarding  px-4 pt-2 pb-2  border ">
-              <View className="px-2 border-2 border-secondary  mb-5 mt-3">
+            <View className="bg-onboarding px-4 pt-2 pb-2 border ">
+              <View className="px-2 border-2 border-secondary mb-5 mt-3">
                 <View className="flex-row items-center justify-between h-[7vh] gap-2 px-4">
-                  <Text className="font-pbold text-base text-gray-700">
-                    Uploaded Receipts #
+                  {/* "Uploaded Receipts #" text with dynamic font and alignment */}
+                  <Text
+                    className={`text-base text-gray-700 ${getFontClassName(
+                      "bold"
+                    )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
+                    {t("uploadModal.uploadedReceiptsCount")}{" "}
                   </Text>
-                  <Text className="font-pextrabold text-lg">
+                  {/* Total Count with dynamic font and conditional Arabic numerals */}
+                  <Text
+                    className={`text-lg ${getFontClassName("pextrabold")} ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`}
+                    style={{ fontFamily: getFontClassName("pextrabold") }}
+                  >
                     {" "}
-                    {receiptStats?.totalCount}
+                    {i18n.language.startsWith("ar")
+                      ? convertToArabicNumerals(receiptStats?.totalCount || 0)
+                      : receiptStats?.totalCount || 0}
                   </Text>
                 </View>
               </View>
 
-              <Text className="text-base font-psemibold mb-4">
-                Please select to upload your receipts
+              {/* "Please select to upload your receipts" text with dynamic font and alignment */}
+              <Text
+                className={`text-base mb-4 ${getFontClassName("semibold")} ${
+                  I18nManager.isRTL ? "text-right" : "text-left"
+                }`}
+                style={{ fontFamily: getFontClassName("semibold") }}
+              >
+                {t("uploadModal.pleaseSelectToUpload")}
               </Text>
 
-              <View className="flex-row justify-center items-center gap-3">
+              <View className="flex-row justify-center items-center gap-3 ">
+                {/* Camera Button */}
                 <TouchableOpacity
                   onPress={() => handleSelect(pickImageFromCamera)}
                   className="flex-row items-center justify-center bg-gray-50 rounded-xl p-1 w-44 gap-1 border-2 border-[#F0F0F2]"
@@ -112,9 +168,18 @@ const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
                     resizeMode="contain"
                     className="w-10 h-10 mb-2"
                   />
-                  <Text className="font-psemibold text-gray-700">Camera</Text>
+                  {/* Camera button text with dynamic font and alignment */}
+                  <Text
+                    className={`text-gray-700 ${getFontClassName("semibold")} ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`}
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    {t("uploadModal.camera")}
+                  </Text>
                 </TouchableOpacity>
 
+                {/* Gallery Button */}
                 <TouchableOpacity
                   onPress={() => handleSelect(pickImageFromGallery)}
                   className="flex-row items-center justify-center bg-gray-50 w-40 rounded-xl p-1 gap-1 border-2 border-[#F0F0F2]"
@@ -124,7 +189,15 @@ const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
                     resizeMode="contain"
                     className="w-10 h-10 mb-2"
                   />
-                  <Text className="font-psemibold text-gray-700">Gallery</Text>
+                  {/* Gallery button text with dynamic font and alignment */}
+                  <Text
+                    className={`text-gray-700 ${getFontClassName("semibold")} ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`}
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    {t("uploadModal.gallery")}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>

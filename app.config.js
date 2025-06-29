@@ -17,11 +17,13 @@ export default {
       backgroundColor: "#ffffff",
     },
     ios: {
+      supportsRTL: true,
       supportsTablet: true,
       bundleIdentifier: "com.o7.rn1",
     },
     android: {
       package: "com.o7.rn1",
+      supportsRTL: true,
       edgeToEdge: true,
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
