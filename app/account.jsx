@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
+  I18nManager,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import UploadModal from "../components/UploadModal";
@@ -17,8 +18,13 @@ import icons from "../constants/icons"; // Adjust path as needed
 import GradientBackground from "../components/GradientBackground"; // If you use this for background
 import { signOut } from "../lib/appwrite"; // Adjust path to your appwrite.js file
 
+import { useTranslation } from "react-i18next";
+import { getFontClassName } from "../utils/fontUtils"; // Adjust path as needed for THIS file
+import i18n from "../utils/i18n";
+
 const Account = () => {
   const navigation = useNavigation();
+  const { t } = useTranslation();
   const {
     user,
     setUser,
@@ -34,15 +40,15 @@ const Account = () => {
 
   const handleLogout = async () => {
     Alert.alert(
-      "Log Out",
-      "Are you sure you want to log out?",
+      t("account.logoutAlertTitle"), // Translated
+      t("account.logoutAlertMessage"), // Translated
       [
         {
-          text: "Cancel",
+          text: t("account.cancelLogout"), // Translated
           style: "cancel",
         },
         {
-          text: "Log Out",
+          text: t("account.confirmLogout"), // Translated
           onPress: async () => {
             setIsLoggingOut(true);
             try {
@@ -50,7 +56,11 @@ const Account = () => {
               setUser(null); // Clear user from global context
               router.replace("/sign-in"); // Navigate to sign-in screen
             } catch (error) {
-              Alert.alert("Logout Error", error.message);
+              // Translated Alert.alert
+              Alert.alert(
+                t("account.logoutErrorTitle"),
+                error.message || t("common.error")
+              );
               console.error("Logout failed:", error);
             } finally {
               setIsLoggingOut(false);
@@ -66,7 +76,12 @@ const Account = () => {
     return (
       <View className="flex-1 justify-center items-center bg-white">
         <ActivityIndicator size="large" color="#4E17B3" />
-        <Text className="mt-2 text-gray-500">Loading user data...</Text>
+        <Text
+          className="mt-2 text-gray-500" // Removed font class from className
+          style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+        >
+          {t("account.loadingUserData")} {/* Translated */}
+        </Text>
       </View>
     );
   }
@@ -75,129 +90,186 @@ const Account = () => {
   const menuOptions = [
     {
       id: "appSettings",
-      title: "Application Settings",
-      icon: icons.settings, // Make sure you have a settings icon
-      onPress: () => router.push("settings/app-settings"), // Use onPress directly
+      title: t("account.applicationSettings"), // Translated
+      icon: icons.settings,
+      onPress: () => router.push("settings/app-settings"),
     },
     {
       id: "privacyPolicy",
-      title: "Privacy Policy",
-      icon: icons.privacy, // Make sure you have a privacy icon
-      onPress: () => router.push("/privacy-policy"),
+      title: t("account.privacyPolicy"), // Translated
+      icon: icons.privacy,
+      onPress: () => router.push("/settings/privacy-policy"),
     },
     {
       id: "termsOfService",
-      title: "Terms of Service",
-      icon: icons.terms, // Make sure you have a terms icon
-      onPress: () => router.push("/terms-of-service"),
+      title: t("account.termsOfService"), // Translated
+      icon: icons.terms,
+      onPress: () => router.push("/settings/terms-of-service"),
     },
     {
       id: "aboutUs",
-      title: "About Us",
-      icon: icons.about, // Make sure you have an info icon
+      title: t("account.aboutUs"), // Translated
+      icon: icons.about,
       onPress: () => router.push("/about-us"),
     },
     {
       id: "helpCenter",
-      title: "Help Center",
-      icon: icons.help, // Make sure you have a help icon
+      title: t("account.helpCenter"), // Translated
+      icon: icons.help,
       onPress: () => router.push("/help-center"),
     },
     {
-      id: "logout", // New logout item
-      title: "Log Out",
-      icon: icons.logout, // Make sure you have a logout icon
-      onPress: handleLogout, // Call the handleLogout function
-      isLogoutOption: true, // Flag to apply specific styling and loading logic
+      id: "logout",
+      title: t("account.logout"), // Translated
+      icon: icons.logout,
+      onPress: handleLogout,
+      isLogoutOption: true,
     },
   ];
 
   return (
     <GradientBackground>
-      {/* Use your GradientBackground component if applicable */}
       <SafeAreaView className="flex-1">
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-10">
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          className="mr-2 ml-2"
+        >
+          {/* Adjusted padding */}
           {/* Header */}
-          <View className="flex-row items-center justify-between mb-10">
+          <View
+            className={`flex-row items-center justify-between mb-8 mt-8 ${
+              I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse header for RTL
+            }`}
+          >
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               className="p-2"
             >
-              <Text className="text-blue-600 text-lg font-pmedium">Back</Text>
+              <Text
+                className="text-blue-600 text-lg"
+                style={{ fontFamily: getFontClassName("medium") }}
+              >
+                {t("common.back")} {/* Translated */}
+              </Text>
             </TouchableOpacity>
-            <Text className="text-2xl font-bold text-black">
-              Account Settings
+            <Text
+              className="text-3xl text-black"
+              style={{ fontFamily: getFontClassName("bold") }}
+            >
+              {t("account.accountSettingsTitle")} {/* Translated */}
             </Text>
+            {/* Spacer for symmetrical layout */}
             <View className="w-10" />
           </View>
-
           {/* User Profile Section */}
-          <View className="bg-transparent  border-t border-[#9F54B6]  rounded-xl p-6 mb-2 flex-row items-center">
+          <View
+            className={`bg-white rounded-xl p-6 mb-6 mt-4  border border-gray-200 flex-row items-center ${
+              I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse for RTL
+            }`}
+          >
             <Image
-              source={user?.avatar ? { uri: user.avatar } : icons.user} // Use user's avatar or a placeholder
-              className="w-20 h-20 rounded-full mr-4 border-2 border-primary-500"
+              source={user?.avatar ? { uri: user.avatar } : icons.user}
+              className={`w-20 h-20 rounded-full border-2 border-[#9F54B6] ${
+                I18nManager.isRTL ? "ml-4" : "mr-4" // Adjust margin
+              }`}
               resizeMode="cover"
             />
             <View className="flex-1">
-              <Text className="text-xl font-pbold text-gray-800">
-                {user?.username || "Guest User"}
+              <Text
+                className={`text-xl text-gray-800 ${
+                  I18nManager.isRTL ? "text-right" : "text-left" // Align text
+                }`}
+                style={{ fontFamily: getFontClassName("bold") }}
+              >
+                {user?.username || t("account.guestUser")} {/* Translated */}
               </Text>
-              <Text className="text-base font-pregular text-gray-600 mt-1">
-                {user?.email || "No email provided"}
+              <Text
+                className={`text-base text-gray-600 mt-1 ${
+                  I18nManager.isRTL ? "text-right" : "text-left" // Align text
+                }`}
+                style={{ fontFamily: getFontClassName("regular") }}
+              >
+                {user?.email || t("account.noEmailProvided")} {/* Translated */}
               </Text>
+              {/* Optional: Edit Profile Button */}
+              <TouchableOpacity
+                onPress={() => router.push("/profile/edit")} // Assuming an edit profile route
+                className={`mt-2 p-2 rounded-md bg-[#2A9D8F] items-center ${
+                  I18nManager.isRTL ? "self-end" : "self-start"
+                }`}
+              >
+                <Text
+                  className="text-white text-sm"
+                  style={{ fontFamily: getFontClassName("medium") }}
+                >
+                  {t("account.editProfile")}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
-
           {/* Menu Options */}
-          <View className="bg-transparent border-t border-[#9F54B6]  rounded-xl mb-8 overflow-hidden ">
+          <View className="bg-white rounded-xl mb-8 shadow-md border border-gray-200 overflow-hidden">
+            {/* Changed bg-transparent to bg-white, added shadow/border */}
             {menuOptions.map((option, index) => (
               <TouchableOpacity
                 key={option.id}
-                className={`flex-row items-center mt-2  p-4 ${
+                className={`flex-row items-center p-5 ${
                   index < menuOptions.length - 1
-                    ? "border-b border-[#9F54B6] "
+                    ? "border-b border-gray-100" // Lighter border
                     : ""
-                }`}
-                onPress={option.onPress} // Use the onPress function defined in the option
-                disabled={option.isLogoutOption && isLoggingOut} // Disable logout option when logging out
+                } ${
+                  option.isLogoutOption ? "bg-red-50" : "bg-white" // Light red background for logout
+                } ${I18nManager.isRTL ? "flex-row-reverse" : "flex-row"}`} // Reverse for RTL
+                onPress={option.onPress}
+                disabled={option.isLogoutOption && isLoggingOut}
               >
                 {/* Conditionally show ActivityIndicator for logout */}
                 {option.isLogoutOption && isLoggingOut ? (
                   <ActivityIndicator
                     size="small"
-                    color="#D03957"
-                    className="mr-4"
+                    color="#D03957" // Red tint for logout indicator
+                    className={`${I18nManager.isRTL ? "ml-4" : "mr-4"}`} // Adjust margin
                   />
                 ) : (
                   option.icon && (
                     <Image
                       source={option.icon}
-                      className={`w-6 h-6 mr-4 ${
-                        option.isLogoutOption ? "tint-red-500" : "#4E17B3"
-                      }`} // Tint logout icon red, others primary
+                      className={`w-6 h-6 ${
+                        I18nManager.isRTL ? "ml-4" : "mr-4" // Adjust margin
+                      }`}
+                      tintColor={
+                        option.isLogoutOption ? "#D03957" : "#264653" // Red for logout, Dark Blue for others
+                      }
                       resizeMode="contain"
                     />
                   )
                 )}
                 <Text
-                  className={`flex-1 text-lg font-pbold ${
-                    option.isLogoutOption ? "text-black" : "text-gray-700"
-                  }`} // Make logout text red, others gray
+                  className={`flex-1 text-lg mr-3 ${
+                    option.isLogoutOption ? "text-red-600" : "text-gray-700" // Red for logout, gray for others
+                  } ${I18nManager.isRTL ? "text-right" : "text-left"}`} // Align text
+                  style={{ fontFamily: getFontClassName("semibold") }} // Always use semibold for menu items
                 >
                   {option.title}
                 </Text>
+                {/* Right Arrow Icon (optional, only for non-logout) */}
+                {!option.isLogoutOption && (
+                  <Image
+                    source={icons.arrowRight} // Assuming you have an arrowRight icon
+                    className="w-4 h-4"
+                    tintColor="#7b7b8b" // Gray tint
+                    resizeMode="contain"
+                  />
+                )}
               </TouchableOpacity>
             ))}
           </View>
-
-          {/* Removed the separate Logout Button section */}
-
-          {/* Upload Modal */}
+          {/* Upload Modal (if applicable) */}
           {showUploadModal && (
             <UploadModal
               visible={showUploadModal}
               onClose={() => setShowUploadModal(false)}
-              // onRefresh={onRefresh} // If onRefresh is still needed for modal context
+              // onRefresh={onRefresh} // Pass if needed
             />
           )}
         </ScrollView>

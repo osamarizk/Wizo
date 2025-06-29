@@ -23,18 +23,8 @@ const AuthLayout = () => {
             <Stack.Screen name="sign-up" options={{ headerShown: false }} />
             <Stack.Screen name="verify-otp" options={{ headerShown: false }} />
             <Stack.Screen name="reset-pwd" options={{ headerShown: false }} />
-            {/* privacy-policy.jsx */}
-            <Stack.Screen
-              name="privacy-policy"
-              options={{ headerShown: false }}
-            />
 
-            {/* terms-of-service */}
-            <Stack.Screen
-              name="terms-of-service"
-              options={{ headerShown: false }}
-            />
-
+         
             <StatusBar backgroundColor="#161622" style="light" />
           </Stack>
         </KeyboardAvoidingView>

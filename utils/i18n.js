@@ -118,6 +118,13 @@ const resources = {
         success: "Success",
         cancel: "Cancel",
         unlimited: "Unlimited",
+        id: "ID",
+        date: "Date",
+        merchant: "Merchant",
+        total: "Total",
+        category: "Category",
+        subcategory: "Subcategory",
+        items: "Items",
       },
       aiMessages: {
         // Update this line to match the exact message from your AI API
@@ -376,7 +383,6 @@ const resources = {
         downloadImage: "Download Image",
         deleteReceipt: "Delete Receipt",
       },
-
       notifications: {
         receiptViewed: "Receipt Viewed",
         receiptDownloaded: "Receipt Downloaded & Shared",
@@ -764,6 +770,163 @@ const resources = {
         budgetCreatedNotificationMessage:
           "Your budget has been created successfully.",
       },
+      account: {
+        accountSettingsTitle: "Account Settings",
+        logoutAlertTitle: "Log Out",
+        logoutAlertMessage: "Are you sure you want to log out?",
+        cancelLogout: "Cancel",
+        confirmLogout: "Log Out",
+        logoutErrorTitle: "Logout Error",
+        loadingUserData: "Loading user data...",
+        applicationSettings: "Application Settings",
+        privacyPolicy: "Privacy Policy",
+        termsOfService: "Terms of Service",
+        aboutUs: "About Us",
+        helpCenter: "Help Center",
+        logout: "Log Out",
+        guestUser: "Guest User",
+        noEmailProvided: "No email provided",
+        editProfile: "Edit Profile", // Assuming there might be an edit profile button later
+      },
+      manageData: {
+        pageTitle: "Manage My Data",
+        dataSummaryTitle: "Your Data Summary",
+        totalReceiptsUploaded: "Total Receipts Uploaded",
+        overallSpendingRecorded: "Overall Spending Recorded",
+        lastReceiptUploaded: "Last Receipt Uploaded",
+        dataActionsTitle: "Data Actions",
+        exportMyDataButton: "Export My Data (CSV)",
+        preparingDataButton: "Preparing Data...",
+        exportSuccessTitle: "Success",
+        exportSuccessMessage: "Your data has been prepared for sharing.",
+        exportSharingUnavailable: "Sharing is not available on this device.",
+        exportErrorTitle: "Error",
+        exportErrorMessage: "Failed to export data. Please try again.",
+        deleteMyAccountButton: "Delete My Account",
+        deletingAccountButton: "Deleting Account...",
+        deleteAccountAlertTitle: "Delete Account",
+        deleteAccountAlertMessage:
+          "Are you absolutely sure you want to delete your account? This action is irreversible and all your data will be lost.",
+        cancelDelete: "Cancel",
+        confirmDelete: "Delete",
+        accountDeletedTitle: "Account Deleted",
+        accountDeletedMessage:
+          "Your account and all associated data have been permanently deleted.",
+        deleteAccountErrorMessage: "Failed to delete account.",
+        couldNotLoadSummary: "Could not load data summary.",
+        loadingDataSummary: "Loading data summary...",
+      },
+      privacyPolicy: {
+        pageTitle: "Privacy Policy",
+        effectiveDate: "Effective Date: June 12, 2025",
+        intro:
+          'Welcome to O7! This Privacy Policy describes how O7 collects, uses, and discloses information about you when you use our mobile application (the "App").',
+
+        section1Title: "1. Information We Collect",
+        section1Content:
+          "We collect information you provide directly to us when you use the App, such as when you create an account, upload receipts, or contact customer support. This includes:",
+        section1List1:
+          "Account Information: Your username, email address, and hashed password.",
+        section1List2:
+          "Receipt Data: Details from your uploaded receipts, including merchant name, date, total amount, items purchased, category, and payment method.",
+        section1List3:
+          "Communication Data: Information you provide when you communicate with us, such as feedback or support inquiries.",
+
+        section2Title: "2. How We Use Your Information",
+        section2Content: "We use the information we collect to:",
+        section2List1:
+          "Provide, maintain, and improve the App's features and functionality.",
+        section2List2:
+          "Process and manage your receipt uploads and spending data.",
+        section2List3:
+          "Provide you with personalized insights and analytics on your spending.",
+        section2List4:
+          "Communicate with you about your account, updates, and promotional offers.",
+        section2List5:
+          "Anonymize and aggregate data for research and analytics to improve our services.",
+
+        section3Title: "3. Sharing Your Information",
+        section3Content: "We may share your information as follows:",
+        section3Subtitle1: "With Your Consent:",
+        section3Desc1:
+          "As explicitly stated during the receipt upload process, by uploading a receipt, you consent to us sharing certain anonymized and aggregated data derived from your receipts with third parties for market research and business analytics purposes. This data will not identify you personally.",
+        section3Subtitle2: "Service Providers:",
+        section3Desc2:
+          "We may share information with third-party vendors, consultants, and other service providers who perform services on our behalf and require access to your information to carry out those services.",
+        section3Subtitle3: "Legal Requirements:",
+        section3Desc3:
+          "We may disclose your information if required to do so by law or in the good faith belief that such action is necessary to comply with a legal obligation.",
+
+        section4Title: "4. Data Security",
+        section4Content:
+          "We implement reasonable security measures to protect your information from unauthorized access, alteration, disclosure, or destruction. However, no internet or email transmission is ever fully secure or error-free.",
+
+        section5Title: "5. Your Choices",
+        section5Content:
+          'You can review and update your account information in your profile settings. You can also manage your data sharing preferences in the "Privacy Controls" section of the App Settings.',
+
+        section6Title: "6. Changes to this Policy",
+        section6Content:
+          "We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy in the App. You are advised to review this Privacy Policy periodically for any changes.",
+
+        section7Title: "7. Contact Us",
+        section7Content:
+          "If you have any questions about this Privacy Policy, please contact us at: support@o7empower.com",
+      },
+      termsOfService: {
+        pageTitle: "Terms of Service",
+        lastUpdated: "Last Updated: June 12, 2025",
+        intro:
+          'Welcome to O7! These Terms of Service ("Terms") govern your use of the O7 mobile application (the "App") provided by O7 ("we," "us," or "our"). By accessing or using the App, you agree to be bound by these Terms. If you do not agree to these Terms, do not use the App.',
+
+        section1Title: "1. Account Registration",
+        section1Content:
+          "You must be at least 18 years old to create an account and use the App. When you register for an account, you agree to provide accurate, current, and complete information as prompted by our registration form. You are responsible for maintaining the confidentiality of your account password and for all activities that occur under your account.",
+
+        section2Title: "2. Use of the App",
+        section2Content1:
+          "The App is designed to help you track your expenses by uploading and managing your receipts. You agree to use the App only for lawful purposes and in accordance with these Terms. You are prohibited from:",
+        section2List1: "Using the App for any illegal or unauthorized purpose.",
+        section2List2: "Uploading malicious software or data.",
+        section2List3:
+          "Attempting to interfere with the proper working of the App.",
+
+        section3Title: "3. Intellectual Property",
+        section3Content:
+          "All content, features, and functionality of the App (including but not limited to all information, software, text, displays, images, video, and audio, and the design, selection, and arrangement thereof) are owned by O7, its licensors, or other providers of such material and are protected by copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws.",
+
+        section4Title: "4. User Data and Privacy",
+        section4Content1:
+          "By using the App and uploading receipts, you agree to the collection and use of your data as outlined in our Privacy Policy.",
+        section4Content2:
+          "This includes the anonymized and aggregated sharing of data derived from your receipts with third parties for market research and business analytics purposes, which is done with your explicit consent obtained during the receipt upload process.",
+
+        section5Title: "5. Premium Features and Subscriptions",
+        section5Content:
+          "The App may offer premium features available through a subscription. All subscriptions are subject to these Terms and the terms of the respective app store (Apple App Store or Google Play Store). Payments are processed through the app store's in-app purchase mechanisms.",
+
+        section6Title: "6. Disclaimers",
+        section6Content:
+          'The App is provided on an "as is" and "as available" basis, without any warranties of any kind, either express or implied. We do not warrant that the App will be uninterrupted, error-free, or free of viruses or other harmful components.',
+
+        section7Title: "7. Limitation of Liability",
+        section7Content:
+          "In no event will O7, its affiliates, or their licensors, service providers, employees, agents, officers, or directors be liable for damages of any kind, under any legal theory, arising out of or in connection with your use, or inability to use, the App.",
+
+        section8Title: "8. Governing Law",
+        section8Content:
+          "These Terms shall be governed by and construed in accordance with the laws of [Your Jurisdiction], without regard to its conflict of law provisions.",
+
+        section9Title: "9. Changes to Terms",
+        section9Content1:
+          "We reserve the right to revise and update these Terms from time to time in our sole discretion. All changes are effective immediately when we post them.",
+        section9Content2:
+          "Your continued use of the App following the posting of revised Terms means that you accept and agree to the changes.",
+
+        section10Title: "10. Contact Information",
+        section10Content:
+          "If you have any questions about these Terms, please contact us at: support@o7empower.com",
+      },
     },
   },
   ar: {
@@ -874,6 +1037,13 @@ const resources = {
         success: "نجاح",
         cancel: "إلغاء",
         unlimited: "غير محدود",
+        id: "المعرف",
+        date: "التاريخ",
+        merchant: "التاجر",
+        total: "الإجمالي",
+        category: "الفئة",
+        subcategory: "الفئة الفرعية",
+        items: "العناصر",
       },
       aiMessages: {
         // Update this line with the correct Arabic translation for the exact English message
@@ -1500,6 +1670,158 @@ const resources = {
         budgetCreatedNotificationTitle: "تم إنشاء الميزانية",
         budgetUpdatedNotificationMessage: "تم تحديث ميزانيتك بنجاح.",
         budgetCreatedNotificationMessage: "تم إنشاء ميزانيتك بنجاح.",
+      },
+      account: {
+        accountSettingsTitle: "إعدادات الحساب",
+        logoutAlertTitle: "تسجيل الخروج",
+        logoutAlertMessage: "هل أنت متأكد أنك تريد تسجيل الخروج؟",
+        cancelLogout: "إلغاء",
+        confirmLogout: "تسجيل الخروج",
+        logoutErrorTitle: "خطأ في تسجيل الخروج",
+        loadingUserData: "جاري تحميل بيانات المستخدم...",
+        applicationSettings: "إعدادات التطبيق",
+        privacyPolicy: "سياسة الخصوصية",
+        termsOfService: "شروط الخدمة",
+        aboutUs: "عنا",
+        helpCenter: "مركز المساعدة",
+        logout: "تسجيل الخروج",
+        guestUser: "مستخدم ضيف",
+        noEmailProvided: "لم يتم تقديم بريد إلكتروني",
+        editProfile: "تعديل الملف الشخصي",
+      },
+      manageData: {
+        pageTitle: "إدارة بياناتي",
+        dataSummaryTitle: "ملخص بياناتك",
+        totalReceiptsUploaded: "إجمالي الإيصالات التي تم تحميلها",
+        overallSpendingRecorded: "إجمالي الإنفاق المسجل",
+        lastReceiptUploaded: "آخر إيصال تم تحميله",
+        dataActionsTitle: "إجراءات البيانات",
+        exportMyDataButton: "تصدير بياناتي (CSV)",
+        preparingDataButton: "جاري تجهيز البيانات...",
+        exportSuccessTitle: "نجاح",
+        exportSuccessMessage: "تم تجهيز بياناتك للمشاركة.",
+        exportSharingUnavailable: "المشاركة غير متاحة على هذا الجهاز.",
+        exportErrorTitle: "خطأ",
+        exportErrorMessage: "فشل تصدير البيانات. الرجاء المحاولة مرة أخرى.",
+        deleteMyAccountButton: "حذف حسابي",
+        deletingAccountButton: "جاري حذف الحساب...",
+        deleteAccountAlertTitle: "حذف الحساب",
+        deleteAccountAlertMessage:
+          "هل أنت متأكد تماماً من أنك تريد حذف حسابك؟ هذا الإجراء لا رجعة فيه وستفقد جميع بياناتك.",
+        cancelDelete: "إلغاء",
+        confirmDelete: "حذف",
+        accountDeletedTitle: "تم حذف الحساب",
+        accountDeletedMessage:
+          "تم حذف حسابك وجميع البيانات المرتبطة به بشكل دائم.",
+        deleteAccountErrorMessage: "فشل حذف الحساب.",
+        couldNotLoadSummary: "تعذر تحميل ملخص البيانات.",
+        loadingDataSummary: "جاري تحميل ملخص البيانات...",
+      },
+      privacyPolicy: {
+        pageTitle: "سياسة الخصوصية",
+        effectiveDate: "تاريخ السريان: 12 يونيو 2025",
+        intro:
+          'مرحباً بك في O7! تصف سياسة الخصوصية هذه كيف تقوم O7 بجمع واستخدام والإفصاح عن معلوماتك عند استخدام تطبيقنا المحمول ("التطبيق").',
+
+        section1Title: "1. المعلومات التي نجمعها",
+        section1Content:
+          "نحن نجمع المعلومات التي تقدمها لنا مباشرة عند استخدام التطبيق، مثل عند إنشاء حساب، أو تحميل الإيصالات، أو الاتصال بدعم العملاء. يتضمن ذلك:",
+        section1List1:
+          "معلومات الحساب: اسم المستخدم الخاص بك، عنوان البريد الإلكتروني، وكلمة المرور المشفرة.",
+        section1List2:
+          "بيانات الإيصالات: تفاصيل من إيصالاتك التي تم تحميلها، بما في ذلك اسم التاجر، التاريخ، المبلغ الإجمالي، العناصر المشتراة، الفئة، وطريقة الدفع.",
+        section1List3:
+          "بيانات الاتصال: المعلومات التي تقدمها عند التواصل معنا، مثل الملاحظات أو استفسارات الدعم.",
+
+        section2Title: "2. كيف نستخدم معلوماتك",
+        section2Content: "نحن نستخدم المعلومات التي نجمعها من أجل:",
+        section2List1: "توفير ميزات ووظائف التطبيق وصيانتها وتحسينها.",
+        section2List2: "معالجة وإدارة تحميلات إيصالاتك وبيانات الإنفاق.",
+        section2List3: "تزويدك بتحليلات ورؤى مخصصة حول إنفاقك.",
+        section2List4: "التواصل معك بشأن حسابك، والتحديثات، والعروض الترويجية.",
+        section2List5:
+          "إخفاء هوية البيانات وتجميعها لأغراض البحث والتحليل لتحسين خدماتنا.",
+
+        section3Title: "3. مشاركة معلوماتك",
+        section3Content: "قد نشارك معلوماتك على النحو التالي:",
+        section3Subtitle1: "بموافقتك:",
+        section3Desc1:
+          "كما هو مذكور صراحة أثناء عملية تحميل الإيصال، من خلال تحميل إيصال، فإنك توافق على قيامنا بمشاركة بيانات مجهولة ومجمعة معينة مستمدة من إيصالاتك مع أطراف ثالثة لأغراض أبحاث السوق وتحليلات الأعمال. لن تحدد هذه البيانات هويتك شخصيًا.",
+        section3Subtitle2: "مقدمو الخدمات:",
+        section3Desc2:
+          "قد نشارك المعلومات مع بائعين خارجيين، ومستشارين، ومقدمي خدمات آخرين يقومون بأداء خدمات نيابة عنا ويحتاجون إلى الوصول إلى معلوماتك لتنفيذ تلك الخدمات.",
+        section3Subtitle3: "المتطلبات القانونية:",
+        section3Desc3:
+          "قد نكشف عن معلوماتك إذا طلب منا ذلك بموجب القانون أو بحسن نية اعتقاداً بأن هذا الإجراء ضروري للامتثال لالتزام قانوني.",
+
+        section4Title: "4. أمان البيانات",
+        section4Content:
+          "نحن ننفذ إجراءات أمنية معقولة لحماية معلوماتك من الوصول غير المصرح به أو التعديل أو الكشف أو التدمير. ومع ذلك، لا يوجد نقل عبر الإنترنت أو البريد الإلكتروني آمن تمامًا أو خالٍ من الأخطاء.",
+
+        section5Title: "5. خياراتك",
+        section5Content:
+          'يمكنك مراجعة وتحديث معلومات حسابك في إعدادات ملفك الشخصي. يمكنك أيضًا إدارة تفضيلات مشاركة بياناتك في قسم "ضوابط الخصوصية" في إعدادات التطبيق.',
+
+        section6Title: "6. التغييرات على هذه السياسة",
+        section6Content:
+          "قد نقوم بتحديث سياسة الخصوصية هذه من وقت لآخر. سنخطرك بأي تغييرات عن طريق نشر سياسة الخصوصية الجديدة في التطبيق. يُنصح بمراجعة سياسة الخصوصية هذه بشكل دوري لأي تغييرات.",
+
+        section7Title: "7. اتصل بنا",
+        section7Content:
+          "إذا كانت لديك أي أسئلة حول سياسة الخصوصية هذه، يرجى الاتصال بنا على: support@o7empower.com",
+      },
+      termsOfService: {
+        pageTitle: "شروط الخدمة",
+        lastUpdated: "آخر تحديث: 12 يونيو 2025",
+        intro:
+          'مرحبًا بك في O7! تحكم شروط الخدمة هذه ("الشروط") استخدامك لتطبيق O7 للجوّال ("التطبيق") المقدم من O7 ("نحن" أو "لنا" أو "خاصتنا"). من خلال الوصول إلى التطبيق أو استخدامه، فإنك توافق على الالتزام بهذه الشروط. إذا كنت لا توافق على هذه الشروط، فلا تستخدم التطبيق.',
+
+        section1Title: "1. تسجيل الحساب",
+        section1Content:
+          "يجب أن يكون عمرك 18 عامًا على الأقل لإنشاء حساب واستخدام التطبيق. عند التسجيل للحصول على حساب، فإنك توافق على تقديم معلومات دقيقة وحديثة وكاملة كما هو مطلوب في نموذج التسجيل الخاص بنا. أنت مسؤول عن الحفاظ على سرية كلمة مرور حسابك وعن جميع الأنشطة التي تتم تحت حسابك.",
+
+        section2Title: "2. استخدام التطبيق",
+        section2Content1:
+          "تم تصميم التطبيق لمساعدتك في تتبع نفقاتك عن طريق تحميل وإدارة إيصالاتك. أنت توافق على استخدام التطبيق لأغراض مشروعة فقط ووفقًا لهذه الشروط. يُحظر عليك:",
+        section2List1: "استخدام التطبيق لأي غرض غير قانوني أو غير مصرح به.",
+        section2List2: "تحميل برامج ضارة أو بيانات.",
+        section2List3: "محاولة التدخل في الأداء السليم للتطبيق.",
+
+        section3Title: "3. الملكية الفكرية",
+        section3Content:
+          "جميع المحتويات والميزات والوظائف الخاصة بالتطبيق (بما في ذلك على سبيل المثال لا الحصر جميع المعلومات والبرامج والنصوص والعروض والصور والفيديو والصوت، وتصميمها واختيارها وترتيبها) مملوكة لـ O7 أو المرخصين لها أو غيرهم من مقدمي هذه المواد، وهي محمية بموجب قوانين حقوق النشر والعلامات التجارية وبراءات الاختراع والأسرار التجارية وغيرها من قوانين الملكية الفكرية أو الحقوق الخاصة.",
+
+        section4Title: "4. بيانات المستخدم والخصوصية",
+        section4Content1:
+          "باستخدام التطبيق وتحميل الإيصالات، فإنك توافق على جمع بياناتك واستخدامها كما هو موضح في سياسة الخصوصية الخاصة بنا.",
+        section4Content2:
+          "يتضمن ذلك المشاركة المجهولة والمجمعة للبيانات المستمدة من إيصالاتك مع أطراف ثالثة لأغراض أبحاث السوق وتحليلات الأعمال، ويتم ذلك بموافقتك الصريحة التي تم الحصول عليها أثناء عملية تحميل الإيصال.",
+
+        section5Title: "5. الميزات المميزة والاشتراكات",
+        section5Content:
+          "قد يقدم التطبيق ميزات مميزة متاحة من خلال الاشتراك. تخضع جميع الاشتراكات لهذه الشروط وشروط متجر التطبيقات المعني (متجر تطبيقات Apple أو متجر Google Play). تتم معالجة المدفوعات من خلال آليات الشراء داخل التطبيق لمتجر التطبيقات.",
+
+        section6Title: "6. إخلاء المسؤولية",
+        section6Content:
+          'يتم تقديم التطبيق "كما هو" و "كما هو متاح"، دون أي ضمانات من أي نوع، سواء صريحة أو ضمنية. نحن لا نضمن أن التطبيق سيكون غير متقطع أو خالٍ من الأخطاء أو خالٍ من الفيروسات أو المكونات الضارة الأخرى.',
+
+        section7Title: "7. تحديد المسؤولية",
+        section7Content:
+          "لن تكون O7 أو الشركات التابعة لها أو المرخصون لها أو مقدمو الخدمات أو الموظفون أو الوكلاء أو المسؤولون أو المديرون مسؤولين بأي حال من الأحوال عن الأضرار من أي نوع، بموجب أي نظرية قانونية، تنشأ عن أو فيما يتعلق باستخدامك، أو عدم قدرتك على استخدام التطبيق.",
+
+        section8Title: "8. القانون الحاكم",
+        section8Content:
+          "تخضع هذه الشروط وتفسر وفقًا لقوانين [الاختصاص القضائي الخاص بك]، دون اعتبار لتضارب أحكام القانون.",
+
+        section9Title: "9. التغييرات على الشروط",
+        section9Content1:
+          "نحتفظ بالحق في مراجعة وتحديث هذه الشروط من وقت لآخر وفقًا لتقديرنا الخاص. تكون جميع التغييرات سارية فور نشرها.",
+        section9Content2:
+          "يعني استمرار استخدامك للتطبيق بعد نشر الشروط المعدلة أنك تقبل التغييرات وتوافق عليها.",
+
+        section10Title: "10. معلومات الاتصال",
+        section10Content:
+          "إذا كانت لديك أي أسئلة حول هذه الشروط، يرجى الاتصال بنا على: support@o7empower.com",
       },
     },
   },

@@ -156,7 +156,7 @@ const PrivacyControls = () => {
             </Text>
 
             <TouchableOpacity
-              onPress={() => router.push("/privacy-policy")} // Link to your Privacy Policy page
+              onPress={() => router.push("/settings/privacy-policy")} // Link to your Privacy Policy page
               className="flex-row items-center justify-between py-3 border-b border-gray-100"
             >
               <Text className="text-lg font-pregular text-gray-700">
@@ -170,7 +170,7 @@ const PrivacyControls = () => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => router.push("/terms-of-service")} // Link to your Terms of Service page
+              onPress={() => router.push("/settings/terms-of-service")} // Link to your Terms of Service page
               className="flex-row items-center justify-between py-3"
             >
               <Text className="text-lg font-pregular text-gray-700">
