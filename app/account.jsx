@@ -95,6 +95,12 @@ const Account = () => {
       onPress: () => router.push("settings/app-settings"),
     },
     {
+      id: "financialInsights", // NEW ID
+      title: t("financialInsights.pageTitle"), // Use the translated page title
+      icon: icons.analysis, // Suggesting a chart-like icon, or sparkles if you have it
+      onPress: () => router.push("/financial-insights"), // Link to the new page
+    },
+    {
       id: "privacyPolicy",
       title: t("account.privacyPolicy"), // Translated
       icon: icons.privacy,

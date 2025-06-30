@@ -59,7 +59,6 @@ const RootLayout = () => {
         I18nManager.allowRTL(shouldBeRTL);
 
         // --- UNCOMMENT THIS ALERT! ---
- 
       } else {
         console.log(
           `_layout.jsx useEffect (languageChanged event): I18nManager.isRTL (${I18nManager.isRTL}) already matches shouldBeRTL (${shouldBeRTL}). No I18nManager change needed.`
@@ -106,7 +105,13 @@ const RootLayout = () => {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="account" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="financial-insights"
+            options={{ headerShown: false }}
+          />
         </Stack>
+
+        {/* financial-insights */}
 
         {/* Debugging Text (optional, can be commented out in production) */}
         {/* <View

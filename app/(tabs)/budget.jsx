@@ -16,6 +16,7 @@ import {
   Pressable,
   I18nManager,
   Dimensions,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import GradientBackground from "../../components/GradientBackground";
@@ -1160,7 +1161,8 @@ const Budget = () => {
                 ))}
               </View>
             </View>
-          ) :(<View className="bg-transparent py-4 px-2.5 mb-2 border-2 border-[#9F54B6] rounded-xl">
+          ) : (
+            <View className="bg-transparent py-4 px-2.5 mb-2 border-2 border-[#9F54B6] rounded-xl">
               <Text
                 className="text-base text-gray-600 text-center mb-3"
                 style={{ fontFamily: getFontClassName("medium") }}
@@ -1169,7 +1171,7 @@ const Budget = () => {
               </Text>
 
               <TouchableOpacity
-                onPress={handleSetupBudget} 
+                onPress={handleSetupBudget}
                 className="w-full bg-[#2A9D8F] rounded-md px-4 py-2 items-center justify-center mt-3"
               >
                 <Text
@@ -1179,9 +1181,8 @@ const Budget = () => {
                   {t("budget.createNewBudgetButton")}
                 </Text>
               </TouchableOpacity>
-            </View>)
-          
-          }
+            </View>
+          )}
 
           <View className="h-20" />
         </ScrollView>
@@ -1258,54 +1259,77 @@ const Budget = () => {
           visible={showActionMenuModal}
           onRequestClose={() => setShowActionMenuModal(false)}
         >
-          <Pressable
-            className="flex-1"
+          <TouchableWithoutFeedback
             onPress={() => setShowActionMenuModal(false)}
           >
-            <View
-              style={{
-                position: "absolute",
-                top: actionMenuPosition.y + actionMenuPosition.height + 5, // Position below the icon
-                left: Math.max(
-                  10,
-                  actionMenuPosition.x + actionMenuPosition.width - 120
-                ), // Adjusted left to prevent going off-screen and align right
-                // Removed the duplicate 'left' key
-              }}
-              className="bg-white border border-gray-200 rounded-lg shadow-lg z-10 w-32"
-              onStartShouldSetResponder={() => true} // Prevent closing when tapping inside the menu
-            >
-              <TouchableOpacity
-                onPress={() => {
-                  setShowActionMenuModal(false);
-                  handleViewBudgetDetails(actionMenuBudgetData.$id);
-                }}
-                className="px-4 py-2 border-b border-gray-100"
-              >
-                <Text className="text-gray-800 font-pregular">
-                  View Details
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setShowActionMenuModal(false);
-                  handleUpdateBudget(actionMenuBudgetData);
-                }}
-                className="px-4 py-2 border-b border-gray-100"
-              >
-                <Text className="text-gray-800 font-pregular">Update</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setShowActionMenuModal(false);
-                  handleDeleteBudget(actionMenuBudgetData.$id);
-                }}
-                className="px-4 py-2"
-              >
-                <Text className="text-red-500 font-pregular">Delete</Text>
-              </TouchableOpacity>
+            <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)" }}>
+              {/* Ensure actionMenuPosition and actionMenuBudgetData states are correctly managed elsewhere */}
+              {actionMenuPosition && (
+                <View
+                  style={{
+                    position: "absolute",
+                    // Position below the dots icon, adjusted for RTL
+                    top: actionMenuPosition.y + actionMenuPosition.height + 5,
+                    left: I18nManager.isRTL
+                      ? actionMenuPosition.x - 150 + actionMenuPosition.width
+                      : actionMenuPosition.x,
+                    backgroundColor: "white",
+                    borderRadius: 8,
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3.84,
+                    elevation: 5,
+                    width: 150, // Fixed width for the menu
+                    paddingVertical: 5,
+                  }}
+                >
+                  <TouchableOpacity
+                    style={{ padding: 10 }}
+                    onPress={() => {
+                      setShowActionMenuModal(false); // Close this modal
+                      // Assuming handleViewBudgetDetails and selectedBudgetIdForDetails are defined
+                      // and actionMenuBudgetData contains the $id
+                      handleViewBudgetDetails(actionMenuBudgetData?.$id);
+                    }}
+                  >
+                    <Text style={{ fontFamily: getFontClassName("regular") }}>
+                      {t("common.viewDetails")}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ padding: 10 }}
+                    onPress={() => {
+                      setShowActionMenuModal(false); // Close this modal
+                      // Assuming handleUpdateBudget is defined and takes the full budget object
+                      handleUpdateBudget(actionMenuBudgetData);
+                    }}
+                  >
+                    <Text style={{ fontFamily: getFontClassName("regular") }}>
+                      {t("common.update")}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ padding: 10 }}
+                    onPress={() => {
+                      setShowActionMenuModal(false); // Close this modal
+                      // Assuming handleDeleteBudget is defined and takes the budget $id
+                      handleDeleteBudget(actionMenuBudgetData?.$id);
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontFamily: getFontClassName("regular"),
+                        color: "red",
+                      }}
+                    >
+                      {t("common.delete")}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
-          </Pressable>
+          </TouchableWithoutFeedback>
         </Modal>
       )}
 

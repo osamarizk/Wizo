@@ -46,7 +46,10 @@ import download from "../assets/icons/download.png";
 import trash from "../assets/icons/trash.png";
 import lock from "../assets/icons/lock.png";
 import check from "../assets/icons/check.png";
-// budget.png
+import sparkles from "../assets/icons/sparkles.png";
+import analysis from "../assets/icons/analysis.png";
+
+// sparkles.png
 // import receipt from "../assets/icons/receipt";
 export default {
   play,
@@ -97,4 +100,6 @@ export default {
   trash,
   lock,
   check,
+  sparkles,
+  analysis
 };

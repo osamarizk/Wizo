@@ -295,10 +295,10 @@ const BudgetSetupModal = ({
         setCategories(fetchedCategories);
 
         if (initialBudgetData) {
-          // IMPORTANT: Ensure initialBudgetData has 'categoryName' and 'amount' for display/notifications
-          setBudgetAmount(String(initialBudgetData.amount)); // Use initialBudgetData.amount, not budgetAmount
-          setSelectedCategory(initialBudgetData.category_id); // Use category_id
-          setSelectedSubcategory(initialBudgetData.subcategory_id || null); // Use subcategory_id
+          // MODIFIED LINES BELOW:
+          setBudgetAmount(String(initialBudgetData.budgetAmount)); // FIX 1: Use 'budgetAmount'
+          setSelectedCategory(initialBudgetData.categoryId); // FIX 2: Use 'categoryId'
+          setSelectedSubcategory(initialBudgetData.subcategoryId || null); // FIX 3: Use 'subcategoryId'
           setStartDate(
             initialBudgetData.start_date
               ? new Date(initialBudgetData.start_date)
@@ -311,9 +311,10 @@ const BudgetSetupModal = ({
           );
           setIsExistingBudget(true);
 
-          if (initialBudgetData.category_id) {
+          if (initialBudgetData.categoryId) {
+            // FIX 4: Use 'categoryId' here too
             const fetchedSubcategories = await getSubcategoriesByCategory(
-              initialBudgetData.category_id
+              initialBudgetData.categoryId // FIX 5: Use 'categoryId' here too
             );
             setSubcategories(fetchedSubcategories);
           }
