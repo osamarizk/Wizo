@@ -131,6 +131,7 @@ const resources = {
         cancel: "Cancel",
         success: "Success",
         error: "Error",
+        notApplicable: "N/A",
       },
       aiMessages: {
         // Update this line to match the exact message from your AI API
@@ -388,6 +389,13 @@ const resources = {
         editReceipt: "Edit Receipt",
         downloadImage: "Download Image",
         deleteReceipt: "Delete Receipt",
+        unlimitedAdviceTitle: "Your Unlimited Financial Insights Await!",
+        newAdviceAvailableTitle: "New Financial Advice Available!",
+        freeAdviceRemainingHome:
+          "You have {{count}} free advises remaining today.",
+        checkYourAdvice: "Check Your Daily Advice",
+        upgradeToUnlimited: "Upgrade for Unlimited Advice",
+        noAdviceYet: "Tap to get your first insight today!",
       },
       notifications: {
         receiptViewed: "Receipt Viewed",
@@ -1127,6 +1135,7 @@ const resources = {
         cancel: "إلغاء",
         success: "نجاح",
         error: "خطأ",
+        notApplicable: "غير متاح",
       },
       aiMessages: {
         // Update this line with the correct Arabic translation for the exact English message
@@ -1380,6 +1389,12 @@ const resources = {
         editReceipt: "تعديل الايصال",
         downloadImage: "تحميل الايصال",
         deleteReceipt: "حذف الايصال",
+        unlimitedAdviceTitle: "نصائحك المالية غير المحدودة في انتظارك!",
+        newAdviceAvailableTitle: "نصيحة مالية جديدة متاحة!",
+        freeAdviceRemainingHome: "لديك {{count}} نصيحة مجانية متبقية اليوم.",
+        checkYourAdvice: "تحقق من نصيحتك اليومية",
+        upgradeToUnlimited: "الترقية للحصول على نصائح غير محدودة",
+        noAdviceYet: "   أحصل على أول نصيحة مالية اليوم",
       },
       notifications: {
         receiptViewed: "تم عرض الإيصال",

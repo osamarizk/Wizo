@@ -129,6 +129,9 @@ const Home = () => {
     applicationSettings,
     setUser,
     updateUnreadCount,
+    dailyFreeRequests,
+    setDailyFreeRequests,
+    loadDailyRequestState,
   } = useGlobalContext();
 
   // State variables for various data and UI controls
@@ -468,11 +471,12 @@ const Home = () => {
           t("common.dataLoadErrorMessage") // Translated
         );
       } finally {
+        await loadDailyRequestState();
         setIsLoading(false); // Assuming setIsLoading is a state setter
         setRefreshing(false); // Assuming setRefreshing is a state setter
       }
     }
-  }, [user, t, currentDateFormatLocale]); // Dependencies for useCallback
+  }, [user, t, currentDateFormatLocale, loadDailyRequestState]); // Dependencies for useCallback
 
   const performSearch = useCallback(async () => {
     setIsSearching(true); // <--- Set loading to true when search starts
@@ -1636,6 +1640,93 @@ const Home = () => {
                   </View>
                 )}
 
+              {/* --- START NEW: Today's Financial Advises Card --- */}
+              {/* Ensure user and applicationSettings are loaded before displaying */}
+              {receiptStats.totalCount > 0 &&
+                user &&
+                !globalLoading &&
+                applicationSettings && (
+                  <TouchableOpacity
+                    onPress={() => router.push("/financial-insights")} // Changed from /settings/financial-insights based on your previous code
+                    className={`bg-[#2A9D8F] rounded-md p-1 mx-0 mb-3 border-t border[#4E17B3] flex-row items-center justify-between ${
+                      I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
+                    }`}
+                    style={{ minHeight: 80 }} // Ensure minimum height for consistent appearance
+                  >
+                    <Image
+                      source={icons.sparkles} // Assuming icons.sparkles exists
+                      className={`w-8 h-8 tint-white ml-4 ${
+                        I18nManager.isRTL ? "ml-4" : "mr-4"
+                      }`}
+                      resizeMode="contain"
+                    />
+                    <View className="flex-1">
+                      {/* REMOVE THE DEBUG CONSOLE.LOG HERE if you haven't already */}
+                      {/* {console.log("Home Advice Card Debug:", { ... })} */}
+
+                      {user.isPremium ? (
+                        <Text
+                          className={`text-lg text-white ${getFontClassName(
+                            "bold"
+                          )}`}
+                          style={{
+                            fontFamily: getFontClassName("bold"),
+                            textAlign: I18nManager.isRTL ? "right" : "left",
+                          }}
+                        >
+                          {t("home.unlimitedAdviceTitle")}
+                        </Text>
+                      ) : (
+                        <>
+                          <Text
+                            className={`text-lg text-white ${getFontClassName(
+                              "bold"
+                            )}`}
+                            style={{
+                              fontFamily: getFontClassName("bold"),
+                              textAlign: I18nManager.isRTL ? "right" : "left",
+                            }}
+                          >
+                            {/* MODIFIED LINE 1: Use user.maxFreeDailyInsights */}
+                            {dailyFreeRequests <
+                            (user.maxFreeDailyInsights || 3)
+                              ? t("home.newAdviceAvailableTitle")
+                              : t("home.noAdviceYet")}
+                          </Text>
+                          <Text
+                            className={`text-sm text-white/80 mt-1 ${getFontClassName(
+                              "regular"
+                            )}`}
+                            style={{
+                              fontFamily: getFontClassName("regular"),
+                              textAlign: I18nManager.isRTL ? "right" : "left",
+                            }}
+                          >
+                            {/* MODIFIED LINE 2: Use user.maxFreeDailyInsights */}
+                            {dailyFreeRequests <
+                            (user.maxFreeDailyInsights || 3)
+                              ? t("home.freeAdviceRemainingHome", {
+                                  count:
+                                    (user.maxFreeDailyInsights || 3) -
+                                    dailyFreeRequests,
+                                })
+                              : t("home.checkYourAdvice")}{" "}
+                            {/* If no advice left, prompt to check existing */}
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                    <Image
+                      source={
+                        I18nManager.isRTL ? icons.arrowLeft : icons.arrowRight
+                      } // Adjust arrow direction
+                      className={`w-5 h-5 tint-white ${
+                        I18nManager.isRTL ? "mr-2" : "ml-2"
+                      }`}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
+                )}
               {/* === END NEW: Combined Monthly Usage Tracker Card === */}
               {/* Receipt Summary */}
               {receiptStats.totalCount > 0 && (

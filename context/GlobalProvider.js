@@ -33,6 +33,7 @@ const GlobalProvider = ({ children }) => {
   const [applicationSettings, setApplicationSettings] = useState(null);
   const [currentLanguage, setCurrentLanguage] = useState(i18n.language);
   const [isLanguageInitialized, setIsLanguageInitialized] = useState(false);
+  const [dailyFreeRequests, setDailyFreeRequests] = useState(0);
 
   const fetchUnreadCount = async (userId) => {
     try {
@@ -54,6 +55,36 @@ const GlobalProvider = ({ children }) => {
     }
   }, []);
 
+  const loadDailyRequestState = useCallback(async () => {
+    const today = new Date().toDateString(); // Get today's date string (e.g., "Mon Jun 30 2025")
+    const storedLastAdviceDate = await AsyncStorage.getItem("lastAdviceDate");
+    const storedDailyFreeRequests = await AsyncStorage.getItem(
+      "dailyFreeRequests"
+    );
+
+    console.log("GlobalProvider: Loading daily request state...");
+    console.log("  Today:", today);
+    console.log("  Stored Last Advice Date:", storedLastAdviceDate);
+    console.log("  Stored Daily Free Requests:", storedDailyFreeRequests);
+
+    if (storedLastAdviceDate !== today) {
+      // It's a new day, reset count to 0
+      console.log(
+        "GlobalProvider: New day detected. Resetting dailyFreeRequests to 0."
+      );
+      await AsyncStorage.setItem("lastAdviceDate", today);
+      await AsyncStorage.setItem("dailyFreeRequests", "0");
+      setDailyFreeRequests(0);
+    } else {
+      // Same day, load existing count
+      const count = parseInt(storedDailyFreeRequests || "0", 10);
+      console.log(
+        "GlobalProvider: Same day. Loading existing dailyFreeRequests:",
+        count
+      );
+      setDailyFreeRequests(count);
+    }
+  }, []);
   const checkSessionAndFetchUser = useCallback(async () => {
     setGlobalLoading(true);
     try {
@@ -149,6 +180,7 @@ const GlobalProvider = ({ children }) => {
 
         await fetchApplicationGlobalSettings();
         await checkSessionAndFetchUser();
+        await loadDailyRequestState();
       } catch (error) {
         console.error("Error initializing app data in GlobalProvider:", error);
       } finally {
@@ -157,7 +189,7 @@ const GlobalProvider = ({ children }) => {
     };
 
     initializeAppData();
-  }, []);
+  }, [loadDailyRequestState]);
 
   const updateUnreadCount = (count) => {
     setUnreadCount(count);
@@ -183,6 +215,9 @@ const GlobalProvider = ({ children }) => {
         applicationSettings,
         currentLanguage,
         changeLanguage,
+        dailyFreeRequests,
+        setDailyFreeRequests,
+        loadDailyRequestState,
       }}
     >
       {isLanguageInitialized ? children : null}
