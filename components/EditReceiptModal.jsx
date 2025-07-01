@@ -67,6 +67,8 @@ const EditReceiptModal = ({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
 
+  const [hasChanges, setHasChanges] = useState(false);
+
   useEffect(() => {
     if (isVisible && initialReceiptData) {
       setMerchant(initialReceiptData.merchant || "");
@@ -90,8 +92,25 @@ const EditReceiptModal = ({
       }
 
       setError(null);
+      setHasChanges(false);
     }
   }, [isVisible, initialReceiptData]);
+
+  useEffect(() => {
+    if (isVisible && initialReceiptData) {
+      const currentMerchant = merchant.trim();
+      const currentTotal = parseFloat(total);
+      const initialTotal = parseFloat(initialReceiptData.total);
+
+      // Check if current values are different from initial values
+      const merchantChanged =
+        currentMerchant !== (initialReceiptData.merchant || "");
+      const totalChanged =
+        !isNaN(currentTotal) && currentTotal !== initialTotal;
+
+      setHasChanges(merchantChanged || totalChanged);
+    }
+  }, [merchant, total, initialReceiptData, isVisible]);
 
   const handleSave = async () => {
     if (!initialReceiptData?.$id) {
@@ -105,6 +124,12 @@ const EditReceiptModal = ({
     const parsedTotal = parseFloat(total);
     if (isNaN(parsedTotal) || parsedTotal <= 0) {
       setError(t("editReceipt.errorTotalInvalid")); // Translated
+      return;
+    }
+
+    if (!hasChanges) {
+      Alert.alert(t("common.infoTitle"), t("editReceipt.noChangesMade")); // NEW: Inform user no changes
+      onClose(); // Just close the modal if no changes
       return;
     }
 
@@ -156,7 +181,6 @@ const EditReceiptModal = ({
           className="bg-white rounded-lg p-6 w-[90%] max-h-[80%] shadow-lg "
           onStartShouldSetResponder={(event) => true} // Prevent parent Pressable from closing
         >
-          {/* Close Button (top-right corner) */}
           <TouchableOpacity
             className="absolute top-3 right-3 p-2 rounded-full z-10" // Added z-10 to ensure it's clickable
             onPress={onClose}
@@ -174,7 +198,7 @@ const EditReceiptModal = ({
             className="text-2xl text-gray-800 mb-6 text-center"
             style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
           >
-            {t("editReceipt.editReceipt")} {/* Translated */}
+            {t("editReceipt.editReceipt")}
           </Text>
 
           {/* Error Message */}
@@ -188,7 +212,6 @@ const EditReceiptModal = ({
           )}
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Merchant Name Input */}
             <View className="mb-4">
               <Text
                 className={`text-base text-gray-700 mb-1 ${
@@ -196,7 +219,7 @@ const EditReceiptModal = ({
                 }`} // Align label text
                 style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
               >
-                {t("editReceipt.merchantName")}: {/* Translated */}
+                {t("editReceipt.merchantName")}:
               </Text>
               <TextInput
                 className={`border border-gray-300 rounded-md p-3 text-base bg-gray-50 ${
@@ -210,7 +233,6 @@ const EditReceiptModal = ({
               />
             </View>
 
-            {/* Total Amount Input */}
             <View className="mb-4">
               <Text
                 className={`text-base text-gray-700 mb-1 ${
@@ -218,7 +240,7 @@ const EditReceiptModal = ({
                 }`} // Align label text
                 style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
               >
-                {t("editReceipt.totalAmount")}: {/* Translated */}
+                {t("editReceipt.totalAmount")}:
               </Text>
               <TextInput
                 className={`border border-gray-300 rounded-md p-3 text-base bg-gray-50 ${
@@ -233,7 +255,6 @@ const EditReceiptModal = ({
               />
             </View>
 
-            {/* Display existing items (read-only) */}
             {items.length > 0 && (
               <View className="mb-4">
                 <Text
@@ -242,8 +263,8 @@ const EditReceiptModal = ({
                   }`} // Align label text
                   style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
                 >
-                  {t("editReceipt.itemsReadOnly")}: {/* Translated */}
-                </Text>{" "}
+                  {t("editReceipt.itemsReadOnly")}:
+                </Text>
                 {items.map((item, index) => (
                   <View
                     key={index}
@@ -251,7 +272,6 @@ const EditReceiptModal = ({
                       I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
                     }`}
                   >
-                    {/* Item Name */}
                     <Text
                       className={`flex-1 text-sm text-gray-800 ${
                         I18nManager.isRTL ? "text-right" : "text-left"
@@ -273,11 +293,11 @@ const EditReceiptModal = ({
                             )}`,
                             { defaultValue: item.category }
                           )}
-                          ) {/* NEW: Category Translation */}
+                          )
                         </Text>
                       )}
                     </Text>
-                    {/* Item Price */}
+
                     <Text
                       className={`text-sm text-gray-800 ${
                         I18nManager.isRTL ? "text-left" : "text-right"
@@ -300,7 +320,6 @@ const EditReceiptModal = ({
             )}
           </ScrollView>
 
-          {/* Save Changes Button */}
           <TouchableOpacity
             onPress={handleSave}
             className={`mt-4 w-full bg-[#4E17B3] rounded-md p-3 items-center justify-center ${
@@ -315,7 +334,7 @@ const EditReceiptModal = ({
                 className="text-white text-base"
                 style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
               >
-                {t("editReceipt.saveChanges")} {/* Translated */}
+                {t("editReceipt.saveChanges")}
               </Text>
             )}
           </TouchableOpacity>

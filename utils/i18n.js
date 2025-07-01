@@ -23,7 +23,8 @@ const resources = {
         somethingWentWrong: "Something went wrong. Please try again.",
         unlimited: "Unlimited",
         user: "User", // for default user name
-        dateFormatShort: "MMM dd, yyyy", // Short date format, e.g., Jan 01, 2024
+        dateFormatShort: "MMM dd, yyyy",
+        dateFormatLong: "MMM dd, yyyy HH:mm", // Short date format, e.g., Jan 01, 2024
         not_available_short: "N/A",
         dataLoadErrorTitle: "Data Load Error",
         dataLoadErrorMessage: "Failed to load some data. Please try again.",
@@ -132,6 +133,9 @@ const resources = {
         success: "Success",
         error: "Error",
         notApplicable: "N/A",
+        notifications: "Notifications",
+        close: "Close",
+        infoTitle: "Info",
       },
       aiMessages: {
         // Update this line to match the exact message from your AI API
@@ -209,6 +213,7 @@ const resources = {
         enterTotalAmount: "Enter total amount",
         itemsReadOnly: "Items (Read-Only)",
         saveChanges: "Save Changes",
+        noChangesMade: "No changes were made to the receipt.",
       },
       receiptDetails: {
         title: "Receipt Details",
@@ -444,6 +449,36 @@ const resources = {
         achievementUnlockedTitle: "Achievement Unlocked!",
         achievementUnlockedMessage:
           "You earned new badges: {{badgeNames}}! You earned Extra Points: {{pointsExtra}}!",
+        importantInfo:
+          "Important notifications may have an expiry date and will disappear automatically once expired.",
+        noNotificationsFound: "No notifications found.",
+        noNotificationsYet: "No notifications yet.",
+        tapToViewDetails: "Tap to view details ↗️",
+        received: "Received:",
+        receiptDetails: "Receipt Details:",
+        merchant: "Merchant:",
+        total: "Total:",
+        date: "Date:",
+        payment: "Payment:",
+        loadingReceipt: "Loading receipt...",
+        budgetDetails: "Budget Details:",
+        budgetName: "Name:",
+        budgetAmount: "Amount:",
+        budgetCategoryId: "Category ID:",
+        budgetStarts: "Starts:",
+        budgetEnds: "Ends:",
+        budgetNoLongerExists: "Budget no longer exists.",
+        loadingBudget: "Loading budget...",
+        expires: "Expires:",
+        type: "Type:",
+        budgetDeletedNotificationTitle: "Budget Deleted", // This title comes from the notification itself
+        receiptUploadedNotificationTitle: "Receipt Uploaded", // Example title
+        budgetAlertNotificationTitle: "Budget Alert", // Example title
+        pointsEarnedNotificationTitle: "Points Earned", // Example title
+        badgeEarnedNotificationTitle: "Badge Earned", // Example title
+        receiptEditedNotificationTitle: "Receipt Edited",
+        receiptEditedNotificationMessage:
+          "The receipt for {{merchantName}} has been updated.",
       },
       settings: {
         applicationSettingsTitle: "Application Settings",
@@ -511,6 +546,11 @@ const resources = {
         receiptUpdatedTitle: "Receipt Updated",
         receiptUpdatedSuccess: "Receipt updated successfully!",
         failedToUpdateReceipt: "Failed to update receipt: {{error}}",
+        paymentMethod_cash: "Cash",
+        paymentMethod_card: "Card",
+        paymentMethod_bankTransfer: "Bank Transfer",
+        paymentMethod_mobilePayment: "Mobile Payment",
+        paymentMethod_other: "Other",
       },
       points_badges: {
         // New namespace from Home.jsx needs
@@ -1079,6 +1119,7 @@ const resources = {
         unknownError: "خطأ غير معروف",
         percentageSymbol: "٪",
         dateFormatShort: "dd MMM, yyyy", // Keep dd MMM, yyyy
+        dateFormatLong: "dd MMM, yyyy HH:mm",
         timeFormatShort: "hh:mm a", // Keep hh:mm a for AM/PM (or use HH:mm for 24-hour if preferred)
         cancel: "إلغاء",
         unknownMerchant: "تاجر غير معروف",
@@ -1136,6 +1177,9 @@ const resources = {
         success: "نجاح",
         error: "خطأ",
         notApplicable: "غير متاح",
+        notifications: "الإشعارات",
+        close: "إغلاق",
+        infoTitle: "معلومات",
       },
       aiMessages: {
         // Update this line with the correct Arabic translation for the exact English message
@@ -1212,6 +1256,7 @@ const resources = {
         enterTotalAmount: "أدخل المبلغ الإجمالي",
         itemsReadOnly: "العناصر (للقراءة فقط)",
         saveChanges: "حفظ التغييرات",
+        noChangesMade: "لم يتم إجراء أي تغييرات على الإيصال.",
       },
       receiptDetails: {
         title: "تفاصيل الفاتورة",
@@ -1441,6 +1486,36 @@ const resources = {
         achievementUnlockedTitle: "تم فتح إنجاز!",
         achievementUnlockedMessage:
           "لقد حصلت على شارات جديدة: {{badgeNames}}! وربحت نقاطًا إضافية: {{pointsExtra}}!",
+        importantInfo:
+          "قد يكون للإشعارات الهامة تاريخ انتهاء صلاحية وستختفي تلقائيًا بمجرد انتهائها.",
+        noNotificationsFound: "لم يتم العثور على إشعارات.",
+        noNotificationsYet: "لا توجد إشعارات بعد.",
+        tapToViewDetails: "انقر لعرض التفاصيل ↗️",
+        received: "تلقى:",
+        receiptDetails: "تفاصيل الإيصال:",
+        merchant: "التاجر:",
+        total: "الإجمالي:",
+        date: "التاريخ:",
+        payment: "طريقة الدفع:",
+        loadingReceipt: "جاري تحميل الإيصال...",
+        budgetDetails: "تفاصيل الميزانية:",
+        budgetName: "الاسم:",
+        budgetAmount: "المبلغ:",
+        budgetCategoryId: "معرف الفئة:",
+        budgetStarts: "يبدأ:",
+        budgetEnds: "ينتهي:",
+        budgetNoLongerExists: "الميزانية لم تعد موجودة.",
+        loadingBudget: "جاري تحميل الميزانية...",
+        expires: "ينتهي:",
+        type: "النوع:",
+        budgetDeletedNotificationTitle: "تم حذف الميزانية",
+        receiptUploadedNotificationTitle: "تم رفع الإيصال",
+        budgetAlertNotificationTitle: "تنبيه الميزانية",
+        pointsEarnedNotificationTitle: "نقاط مكتسبة",
+        badgeEarnedNotificationTitle: "تم الحصول على شارة",
+        receiptEditedNotificationTitle: "تم تعديل الإيصال",
+        receiptEditedNotificationMessage:
+          "تم تحديث الإيصال الخاص بـ {{merchantName}}.",
       },
       settings: {
         applicationSettingsTitle: "إعدادات التطبيق",
@@ -1504,6 +1579,11 @@ const resources = {
         receiptUpdatedTitle: "تم تحديث الإيصال",
         receiptUpdatedSuccess: "تم تحديث الإيصال بنجاح!",
         failedToUpdateReceipt: "فشل تحديث الإيصال: {{error}}",
+        paymentMethod_cash: "نقداً",
+        paymentMethod_card: "بطاقة",
+        paymentMethod_bankTransfer: "تحويل بنكي",
+        paymentMethod_mobilePayment: "دفع عبر الهاتف",
+        paymentMethod_other: "أخرى",
       },
       points_badges: {
         yourPointsAndBadges: "نقاطك وشاراتك",

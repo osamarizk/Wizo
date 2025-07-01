@@ -1167,21 +1167,32 @@ const Home = () => {
 
   const handleEditSuccess = async () => {
     setShowEditReceiptModal(false); // Close the edit modal
-    onRefresh(); // Refresh data on Home screen
-    // Add notification for edited receipt
+    // onRefresh() will be called by the modal's onClose prop, ensuring UI updates.
+    // We create the notification first, then onRefresh will pick up the new count.
+
     try {
       await createNotification({
         user_id: user.$id,
-        title: "Receipt Edited",
-        message: `The receipt for ${
-          selectedReceipt.merchant || "Unknown Merchant"
-        } has been updated.`,
+        // MODIFIED LINES BELOW: Translated title and message
+        title: t("notifications.receiptEditedNotificationTitle"), // Translated title
+        message: t("notifications.receiptEditedNotificationMessage", {
+          // Translated message with interpolation
+          merchantName: selectedReceipt.merchant || t("common.unknownMerchant"),
+        }),
         type: "receipt_action",
         expiresAt: getFutureDate(7),
         receipt_id: selectedReceipt.$id,
       });
-      const updatedUnreadCount = await countUnreadNotifications(user.$id);
-      updateUnreadCount(updatedUnreadCount);
+      // REMOVED: The direct call to updateUnreadCount here is redundant.
+      // The onRefresh() call (triggered by modal's onClose) will handle updating the count
+      // after this notification is created and the modal is closed.
+      // const updatedUnreadCount = await countUnreadNotifications(user.$id);
+      // updateUnreadCount(updatedUnreadCount);
+
+      // IMPORTANT: Ensure onRefresh() is called AFTER the notification is created
+      // and the modal is closed. This is handled by the onClose prop of EditReceiptModal
+      // in Home.jsx, which you previously updated to call onRefresh().
+      onRefresh(); // Keep this here to ensure the Home screen re-fetches all data, including the notification count.
     } catch (notificationError) {
       console.warn(
         "Failed to create edit receipt notification:",
@@ -1266,6 +1277,7 @@ const Home = () => {
             paddingTop: 15,
             paddingBottom: 10,
           }}
+          showsVerticalScrollIndicator={false}
           ListHeaderComponent={
             <>
               {/* Header Section */}
@@ -1392,6 +1404,93 @@ const Home = () => {
                   </View>
                 </View>
               )}
+
+              {/* --- START NEW: Today's Financial Advises Card --- */}
+              {/* Ensure user and applicationSettings are loaded before displaying */}
+              {receiptStats.totalCount > 0 &&
+                user &&
+                !globalLoading &&
+                applicationSettings && (
+                  <TouchableOpacity
+                    onPress={() => router.push("/financial-insights")}
+                    // MODIFIED CLASSNAMES: Increased padding, larger rounded corners, added shadow
+                    className={`bg-[#2A9D8F] rounded-xl p-4 mx-0 mb-6 shadow-lg shadow-red-500 border border-gray-200 flex-row items-center justify-between ${
+                      I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
+                    }`}
+                    style={{ minHeight: 80 }} // Ensure minimum height for consistent appearance
+                  >
+                    <Image
+                      source={icons.sparkles} // Assuming icons.sparkles exists
+                      className={`w-8 h-8 tint-white ml-4 ${
+                        I18nManager.isRTL ? "ml-4" : "mr-4"
+                      }`}
+                      resizeMode="contain"
+                    />
+                    <View className="flex-1">
+                      {/* Remove the console.log if you haven't already */}
+                      {/* {console.log("Home Advice Card Debug:", { ... })} */}
+
+                      {user.isPremium ? (
+                        <Text
+                          className={`text-lg text-white ${getFontClassName(
+                            "bold"
+                          )}`}
+                          style={{
+                            fontFamily: getFontClassName("bold"),
+                            textAlign: I18nManager.isRTL ? "right" : "left",
+                          }}
+                        >
+                          {t("home.unlimitedAdviceTitle")}
+                        </Text>
+                      ) : (
+                        <>
+                          <Text
+                            className={`text-lg text-white ${getFontClassName(
+                              "bold"
+                            )}`}
+                            style={{
+                              fontFamily: getFontClassName("bold"),
+                              textAlign: I18nManager.isRTL ? "right" : "left",
+                            }}
+                          >
+                            {dailyFreeRequests <
+                            (user.maxFreeDailyInsights || 3)
+                              ? t("home.newAdviceAvailableTitle")
+                              : t("home.noAdviceYet")}
+                          </Text>
+                          <Text
+                            className={`text-base text-yellow-300 mt-1 ${getFontClassName(
+                              "regular"
+                            )}`}
+                            style={{
+                              fontFamily: getFontClassName("regular"),
+                              textAlign: I18nManager.isRTL ? "right" : "left",
+                            }}
+                          >
+                            {dailyFreeRequests <
+                            (user.maxFreeDailyInsights || 3)
+                              ? t("home.freeAdviceRemainingHome", {
+                                  count:
+                                    (user.maxFreeDailyInsights || 3) -
+                                    dailyFreeRequests,
+                                })
+                              : t("home.checkYourAdvice")}{" "}
+                            {/* If no advice left, prompt to check existing */}
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                    <Image
+                      source={
+                        I18nManager.isRTL ? icons.arrowLeft : icons.arrowRight
+                      } // Adjust arrow direction
+                      className={`w-5 h-5 tint-white ${
+                        I18nManager.isRTL ? "mr-2" : "ml-2"
+                      }`}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
+                )}
               {/* Receipt View Modal */}
               <Modal
                 animationType="slide"
@@ -1532,7 +1631,7 @@ const Home = () => {
                 user &&
                 !user.isPremium &&
                 applicationSettings && (
-                  <View className=" bg-transparent rounded-xl  mx-4">
+                  <View className=" bg-transparent rounded-xl  mx-4 shadow-lg shadow-green-500">
                     {/* <Text className="text-lg font-pbold text-gray-800 mb-2">
                       Your Monthly Usage
                     </Text>
@@ -1640,93 +1739,6 @@ const Home = () => {
                   </View>
                 )}
 
-              {/* --- START NEW: Today's Financial Advises Card --- */}
-              {/* Ensure user and applicationSettings are loaded before displaying */}
-              {receiptStats.totalCount > 0 &&
-                user &&
-                !globalLoading &&
-                applicationSettings && (
-                  <TouchableOpacity
-                    onPress={() => router.push("/financial-insights")} // Changed from /settings/financial-insights based on your previous code
-                    className={`bg-[#2A9D8F] rounded-md p-1 mx-0 mb-3 border-t border[#4E17B3] flex-row items-center justify-between ${
-                      I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
-                    }`}
-                    style={{ minHeight: 80 }} // Ensure minimum height for consistent appearance
-                  >
-                    <Image
-                      source={icons.sparkles} // Assuming icons.sparkles exists
-                      className={`w-8 h-8 tint-white ml-4 ${
-                        I18nManager.isRTL ? "ml-4" : "mr-4"
-                      }`}
-                      resizeMode="contain"
-                    />
-                    <View className="flex-1">
-                      {/* REMOVE THE DEBUG CONSOLE.LOG HERE if you haven't already */}
-                      {/* {console.log("Home Advice Card Debug:", { ... })} */}
-
-                      {user.isPremium ? (
-                        <Text
-                          className={`text-lg text-white ${getFontClassName(
-                            "bold"
-                          )}`}
-                          style={{
-                            fontFamily: getFontClassName("bold"),
-                            textAlign: I18nManager.isRTL ? "right" : "left",
-                          }}
-                        >
-                          {t("home.unlimitedAdviceTitle")}
-                        </Text>
-                      ) : (
-                        <>
-                          <Text
-                            className={`text-lg text-white ${getFontClassName(
-                              "bold"
-                            )}`}
-                            style={{
-                              fontFamily: getFontClassName("bold"),
-                              textAlign: I18nManager.isRTL ? "right" : "left",
-                            }}
-                          >
-                            {/* MODIFIED LINE 1: Use user.maxFreeDailyInsights */}
-                            {dailyFreeRequests <
-                            (user.maxFreeDailyInsights || 3)
-                              ? t("home.newAdviceAvailableTitle")
-                              : t("home.noAdviceYet")}
-                          </Text>
-                          <Text
-                            className={`text-sm text-white/80 mt-1 ${getFontClassName(
-                              "regular"
-                            )}`}
-                            style={{
-                              fontFamily: getFontClassName("regular"),
-                              textAlign: I18nManager.isRTL ? "right" : "left",
-                            }}
-                          >
-                            {/* MODIFIED LINE 2: Use user.maxFreeDailyInsights */}
-                            {dailyFreeRequests <
-                            (user.maxFreeDailyInsights || 3)
-                              ? t("home.freeAdviceRemainingHome", {
-                                  count:
-                                    (user.maxFreeDailyInsights || 3) -
-                                    dailyFreeRequests,
-                                })
-                              : t("home.checkYourAdvice")}{" "}
-                            {/* If no advice left, prompt to check existing */}
-                          </Text>
-                        </>
-                      )}
-                    </View>
-                    <Image
-                      source={
-                        I18nManager.isRTL ? icons.arrowLeft : icons.arrowRight
-                      } // Adjust arrow direction
-                      className={`w-5 h-5 tint-white ${
-                        I18nManager.isRTL ? "mr-2" : "ml-2"
-                      }`}
-                      resizeMode="contain"
-                    />
-                  </TouchableOpacity>
-                )}
               {/* === END NEW: Combined Monthly Usage Tracker Card === */}
               {/* Receipt Summary */}
               {receiptStats.totalCount > 0 && (
