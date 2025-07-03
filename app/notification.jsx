@@ -329,60 +329,92 @@ const NotificationPage = () => {
 
   const handleNotificationPress = useCallback(
     async (notificationId, associatedReceiptId, associatedBudgetId) => {
-      LayoutAnimation.easeInEaseOut();
       const wasExpanded = expandedId === notificationId;
 
-      setExpandedId(wasExpanded ? null : notificationId);
-
       if (!wasExpanded) {
-        // Only fetch if we are expanding
-        setLoadingDetailsId(notificationId); // NEW: Set loading state for this specific notification
+        // We are expanding this notification
+        // Determine if we need to fetch new details (i.e., it's the "first time")
+        const needsReceiptFetch =
+          associatedReceiptId && !receiptDetails[associatedReceiptId];
+        const needsBudgetFetch =
+          associatedBudgetId && !budgetDetails[associatedBudgetId];
+        const needsDelay = needsReceiptFetch || needsBudgetFetch; // Only delay if we actually need to fetch something
 
-        try {
-          if (associatedReceiptId && !receiptDetails[associatedReceiptId]) {
-            try {
-              const receipt = await fetchReceipt(associatedReceiptId);
-              if (receipt) {
-                setReceiptDetails((prev) => ({
-                  ...prev,
-                  [associatedReceiptId]: receipt,
-                }));
-              } else {
-                console.warn("Receipt not found for ID:", associatedReceiptId);
-              }
-            } catch (err) {
-              console.error("Error fetching receipt details:", err);
-            }
-          }
+        setLoadingDetailsId(notificationId); // Set loading state for this specific item immediately
 
-          const notificationItem = notifications.find(
-            (n) => n.$id === notificationId
-          );
-          if (
-            associatedBudgetId &&
-            !budgetDetails[associatedBudgetId] &&
-            notificationItem?.title !==
-              t("notifications.budgetDeletedNotificationTitle")
-          ) {
-            try {
-              const budget = await fetchBudget(associatedBudgetId);
-              if (budget) {
-                setBudgetDetails((prev) => ({
-                  ...prev,
-                  [associatedBudgetId]: budget,
-                }));
-              } else {
-                console.warn("Budget not found for ID:", associatedBudgetId);
+        const expandAndFetch = async () => {
+          LayoutAnimation.easeInEaseOut(); // Trigger animation
+          setExpandedId(notificationId); // Expand the item
+
+          try {
+            // Fetch receipt details if needed
+            if (needsReceiptFetch) {
+              // Use the pre-calculated flag
+              try {
+                const receipt = await fetchReceipt(associatedReceiptId);
+                if (receipt) {
+                  setReceiptDetails((prev) => ({
+                    ...prev,
+                    [associatedReceiptId]: receipt,
+                  }));
+                } else {
+                  console.warn(
+                    "Receipt not found for ID:",
+                    associatedReceiptId
+                  );
+                }
+              } catch (err) {
+                console.error("Error fetching receipt details:", err);
               }
-            } catch (err) {
-              console.error("Error fetching budget details:", err);
             }
+
+            // Fetch budget details if needed
+            if (needsBudgetFetch) {
+              // Use the pre-calculated flag
+              const notificationItem = notifications.find(
+                (n) => n.$id === notificationId
+              );
+              // Ensure we don't try to fetch a budget that was deleted
+              if (
+                notificationItem?.title !==
+                t("notifications.budgetDeletedNotificationTitle")
+              ) {
+                try {
+                  const budget = await fetchBudget(associatedBudgetId);
+                  if (budget) {
+                    setBudgetDetails((prev) => ({
+                      ...prev,
+                      [associatedBudgetId]: budget,
+                    }));
+                  } else {
+                    console.warn(
+                      "Budget not found for ID:",
+                      associatedBudgetId
+                    );
+                  }
+                } catch (err) {
+                  console.error("Error fetching budget details:", err);
+                }
+              }
+            }
+          } finally {
+            setLoadingDetailsId(null); // Clear loading state after all fetches (success or failure)
           }
-        } finally {
-          setLoadingDetailsId(null); // NEW: Clear loading state after fetches complete (or fail)
+        };
+
+        if (needsDelay) {
+          setTimeout(expandAndFetch, 500); // Use the 400ms delay if fetching
+        } else {
+          expandAndFetch(); // No delay if data is already cached
         }
+      } else {
+        // We are collapsing this notification
+        LayoutAnimation.easeInEaseOut(); // Trigger animation for collapsing
+        setExpandedId(null); // Collapse the item
+        setLoadingDetailsId(null); // Ensure loading state is cleared if it somehow was set for a collapsing item
       }
 
+      // Mark notification as read (this can happen independently of detail fetching/expansion)
       const notificationToMark = notifications.find(
         (n) => n.$id === notificationId
       );
@@ -411,7 +443,7 @@ const NotificationPage = () => {
       user?.$id,
       updateUnreadCount,
       t,
-      setLoadingDetailsId, // NEW: Add setLoadingDetailsId to dependencies
+      setLoadingDetailsId,
     ]
   );
 
@@ -458,6 +490,9 @@ const NotificationPage = () => {
       const canViewAssociatedDetails =
         (item.receipt_id || item.budget_id) &&
         item.title !== t("notifications.budgetDeletedNotificationTitle");
+
+      const isFinancialAdvice = item.type === "financial_advice"; // NEW: Flag for financial advice type
+
       return (
         <View className="bg-white mx-4 mb-2 rounded-lg overflow-hidden border-t border-[#9F54B6]">
           <TouchableOpacity

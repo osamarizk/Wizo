@@ -44,6 +44,7 @@ import {
   createNotification,
   getFutureDate,
   updateUserDownloadCount,
+  getAppwriteErrorMessageKey,
 } from "../../lib/appwrite";
 import { router, useLocalSearchParams, useNavigation } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -63,8 +64,8 @@ import { getFontClassName } from "../../utils/fontUtils";
 
 const screenWidth = Dimensions.get("window").width;
 const gradientColors = [
-  "#D03957", // Red
   "#264653", // Dark Blue
+  "#D03957", // Red
   "#F4A261", // Orange
   "#2A9D8F", // Teal
   "#F9C74F", //Yellow
@@ -345,12 +346,15 @@ const Home = () => {
           if (typeof items === "string") {
             try {
               items = JSON.parse(items);
-            } catch (e) {
-              console.error(
-                "Error parsing receipt items for overall spending calculation:",
-                e,
-                receipt.items
-              );
+            } catch (error) {
+              const errorKey = getAppwriteErrorMessageKey(error);
+              let errorMessage = t(errorKey);
+
+              if (errorKey === "appwriteErrors.genericAppwriteError") {
+                errorMessage = t(errorKey, { message: error.message });
+              }
+
+              Alert.alert(t("common.errorTitle"), errorMessage);
               items = []; // Fallback to empty array on parse error
             }
           }
@@ -443,11 +447,15 @@ const Home = () => {
           let history = [];
           try {
             history = JSON.parse(historyString);
-          } catch (e) {
-            console.error(
-              "Error parsing user points history for Home Page:",
-              e
-            );
+          } catch (error) {
+            const errorKey = getAppwriteErrorMessageKey(error);
+            let errorMessage = t(errorKey);
+
+            if (errorKey === "appwriteErrors.genericAppwriteError") {
+              errorMessage = t(errorKey, { message: error.message });
+            }
+
+            Alert.alert(t("common.errorTitle"), errorMessage);
           }
 
           const totalPoints = history.reduce(
@@ -465,11 +473,14 @@ const Home = () => {
         setUserBadges(earnedBadges); // Assuming setUserBadges is a state setter
         setIsSearchFilterExpanded(false); // Assuming setIsSearchFilterExpanded is a state setter
       } catch (error) {
-        console.error("Error fetching data in Home.jsx:", error);
-        Alert.alert(
-          t("common.dataLoadErrorTitle"), // Translated
-          t("common.dataLoadErrorMessage") // Translated
-        );
+        const errorKey = getAppwriteErrorMessageKey(error);
+        let errorMessage = t(errorKey);
+
+        if (errorKey === "appwriteErrors.genericAppwriteError") {
+          errorMessage = t(errorKey, { message: error.message });
+        }
+
+        Alert.alert(t("common.errorTitle"), errorMessage);
       } finally {
         await loadDailyRequestState();
         setIsLoading(false); // Assuming setIsLoading is a state setter
@@ -535,7 +546,14 @@ const Home = () => {
 
       setFilteredReceipts(results);
     } catch (error) {
-      console.error("Error during search:", error);
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
     } finally {
       setIsSearching(false); // <--- Set loading to false when search completes (success or error)
     }
@@ -565,7 +583,14 @@ const Home = () => {
       // console.log("fetchedCategories",fetchedCategories)
       setCategories(fetchedCategories);
     } catch (error) {
-      console.error("Failed to fetch categories", error);
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
     }
   };
 
@@ -588,8 +613,14 @@ const Home = () => {
         console.log("Home: User is not admin, skipping data upload.");
       }
     } catch (error) {
-      console.error("Home: Error uploading initial data:", error);
-      // Handle the error appropriately in your app (e.g., show an alert)
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
     }
   };
 
@@ -620,7 +651,14 @@ const Home = () => {
           setUserBudget(null); // No budget found
         }
       } catch (error) {
-        console.error("Error fetching budget:", error);
+        const errorKey = getAppwriteErrorMessageKey(error);
+        let errorMessage = t(errorKey);
+
+        if (errorKey === "appwriteErrors.genericAppwriteError") {
+          errorMessage = t(errorKey, { message: error.message });
+        }
+
+        Alert.alert(t("common.errorTitle"), errorMessage);
         setUserBudget(null);
       }
     }
@@ -919,11 +957,14 @@ const Home = () => {
         );
       }
     } catch (error) {
-      console.error("Error fetching receipt image:", error);
-      Alert.alert(
-        t("common.error"),
-        t("receipts.failedToLoadReceiptImage", { error: error.message })
-      ); // Translated
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
       setShowReceiptDetailsModal(false); // Ensure modal doesn't open on error
       setDisplayedReceiptImageUri(null); // Clear image URI on error
     } finally {
@@ -993,11 +1034,15 @@ const Home = () => {
         });
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
         updateUnreadCount(updatedUnreadCount);
-      } catch (notificationError) {
-        console.warn(
-          "Failed to create download limit notification:",
-          notificationError
-        );
+      } catch (error) {
+        const errorKey = getAppwriteErrorMessageKey(error);
+        let errorMessage = t(errorKey);
+
+        if (errorKey === "appwriteErrors.genericAppwriteError") {
+          errorMessage = t(errorKey, { message: error.message });
+        }
+
+        Alert.alert(t("common.errorTitle"), errorMessage);
       }
       setIsDownloading(false); // Ensure loading state is reset
       return; // Stop the download process
@@ -1050,11 +1095,15 @@ const Home = () => {
           "Global user state updated with new download count:",
           freshUser.currentMonthDownloadCount
         );
-      } catch (incrementError) {
-        console.warn(
-          "Failed to increment user download count:",
-          incrementError
-        );
+      } catch (error) {
+        const errorKey = getAppwriteErrorMessageKey(error);
+        let errorMessage = t(errorKey);
+
+        if (errorKey === "appwriteErrors.genericAppwriteError") {
+          errorMessage = t(errorKey, { message: error.message });
+        }
+
+        Alert.alert(t("common.errorTitle"), errorMessage);
         // Log the error but don't stop the main flow, as the download succeeded.
       }
 
@@ -1077,19 +1126,26 @@ const Home = () => {
         });
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
         setUnreadCount(updatedUnreadCount);
-      } catch (notificationError) {
-        console.warn(
-          "Failed to create 'download success' notification:",
-          notificationError
-        );
+      } catch (error) {
+        const errorKey = getAppwriteErrorMessageKey(error);
+        let errorMessage = t(errorKey);
+
+        if (errorKey === "appwriteErrors.genericAppwriteError") {
+          errorMessage = t(errorKey, { message: error.message });
+        }
+
+        Alert.alert(t("common.errorTitle"), errorMessage);
       }
       // Alert.alert("Success", "Receipt image downloaded and shared!");
     } catch (error) {
-      console.error("Error in handleDowanLoadReceipt:", error);
-      Alert.alert(
-        t("common.error"),
-        t("receipts.failedToDownloadReceipt", { error: error.message })
-      );
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
     } finally {
       setIsDownloading(false); // <--- Set loading to false when download finishes (success or error)
     }
@@ -1143,18 +1199,25 @@ const Home = () => {
                   user.$id
                 );
                 updateUnreadCount(updatedUnreadCount);
-              } catch (notificationError) {
-                console.warn(
-                  "Failed to create 'delete receipt' notification:",
-                  notificationError
-                );
+              } catch (error) {
+                const errorKey = getAppwriteErrorMessageKey(error);
+                let errorMessage = t(errorKey);
+
+                if (errorKey === "appwriteErrors.genericAppwriteError") {
+                  errorMessage = t(errorKey, { message: error.message });
+                }
+
+                Alert.alert(t("common.errorTitle"), errorMessage);
               }
             } catch (error) {
-              console.error("Error deleting receipt:", error);
-              Alert.alert(
-                t("common.error"),
-                t("receipts.failedToDeleteReceipt", { error: error.message })
-              ); // Translated
+              const errorKey = getAppwriteErrorMessageKey(error);
+              let errorMessage = t(errorKey);
+
+              if (errorKey === "appwriteErrors.genericAppwriteError") {
+                errorMessage = t(errorKey, { message: error.message });
+              }
+
+              Alert.alert(t("common.errorTitle"), errorMessage);
             } finally {
               setIsDeleting(false);
               setSelectedReceipt(null); // Clear selected receipt
@@ -1193,11 +1256,15 @@ const Home = () => {
       // and the modal is closed. This is handled by the onClose prop of EditReceiptModal
       // in Home.jsx, which you previously updated to call onRefresh().
       onRefresh(); // Keep this here to ensure the Home screen re-fetches all data, including the notification count.
-    } catch (notificationError) {
-      console.warn(
-        "Failed to create edit receipt notification:",
-        notificationError
-      );
+    } catch (error) {
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
     }
   };
 
@@ -1360,51 +1427,56 @@ const Home = () => {
                   </TouchableOpacity>
                 </View>
               </View>
-              {/* Logo */}
+
+              {/* Welcome Section (Only show if no receipts) */}
               {receiptStats.totalCount === 0 && (
                 <View className="flex-1 justify-center items-center px-4 mt-5">
                   <Image
                     source={images.logoo7}
                     resizeMode="contain"
                     className="w-[230px] h-[105px] "
-                    // style={{ width: width * 0.9, height: height * 0.35 }}
                   />
-                  <View className="p-4  rounded-lg  mb-6">
+                  <View className="p-4 rounded-lg mb-6">
                     <Text
-                      className="text-lg  text-black mb-4"
+                      // MODIFIED: Added conditional text alignment
+                      className={`text-lg text-black mb-4 ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`}
                       style={{ fontFamily: getFontClassName("extrabold") }}
                     >
-                      {t("home.welcome")} {user?.username || "Guest"}!
+                      {t("home.welcome")} {user?.username || t("common.guest")}!
                     </Text>
                     <Text
-                      className="text-base text-gray-700 mb-3"
+                      // MODIFIED: Added conditional text alignment
+                      className={`text-base text-gray-700 mb-3 ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`}
                       style={{ fontFamily: getFontClassName("regular") }}
                     >
-                      🔥 Wizo is your personal finance companion that turns your
-                      everyday receipts into powerful insights. Snap a photo,
-                      and Wizo instantly extracts key data — like merchants,
-                      totals, and items — so you can track your spending, stay
-                      within budget, and understand where your money really
-                      goes.
+                      {t("home.wizoDescriptionPart1")}
                     </Text>
 
-                    <Text className="text-base font-pregular text-gray-700 mb-3">
-                      🔥 But Wizo doesn’t stop with helping users — it also
-                      helps businesses make smarter decisions. With
-                      user-consented, anonymized spending data, Wizo offers
-                      valuable market insights to brands and retailers. It's a
-                      win-win: users gain control over their finances, while
-                      businesses get better tools to serve their customers.
+                    <Text
+                      // MODIFIED: Added conditional text alignment
+                      className={`text-base text-gray-700 mb-3 ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`}
+                      style={{ fontFamily: getFontClassName("regular") }}
+                    >
+                      {t("home.wizoDescriptionPart2")}
                     </Text>
-                    <Text className="text-base font-pregular text-gray-700 mb-3">
-                      🔥 Effortlessly track expenses, gain insights into your
-                      spending habits, and achieve your financial goals with
-                      ease!
+                    <Text
+                      // MODIFIED: Added conditional text alignment
+                      className={`text-base text-gray-700 mb-3 ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`}
+                      style={{ fontFamily: getFontClassName("regular") }}
+                    >
+                      {t("home.wizoDescriptionPart3")}
                     </Text>
                   </View>
                 </View>
               )}
-
               {/* --- START NEW: Today's Financial Advises Card --- */}
               {/* Ensure user and applicationSettings are loaded before displaying */}
               {receiptStats.totalCount > 0 &&

@@ -42,6 +42,7 @@ import {
   createNotification,
   countUnreadNotifications,
   getFutureDate,
+  getAppwriteErrorMessageKey,
 } from "../../lib/appwrite";
 
 // Import the new modal components (ensure paths are correct relative to Budget.jsx)
@@ -204,11 +205,14 @@ const Budget = () => {
       console.log("Categories Map contents:", map);
       return map;
     } catch (error) {
-      console.error(
-        "fetchAllCategories: Error fetching all categories:",
-        error
-      );
-      Alert.alert("Error", "Failed to load categories.");
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
       return {};
     }
   }, [user?.$id]);
@@ -311,12 +315,15 @@ const Budget = () => {
         if (typeof items === "string") {
           try {
             items = JSON.parse(items);
-          } catch (e) {
-            console.error(
-              "Error parsing receipt items JSON:",
-              e,
-              receipt.items
-            );
+          } catch (error) {
+            const errorKey = getAppwriteErrorMessageKey(error);
+            let errorMessage = t(errorKey);
+
+            if (errorKey === "appwriteErrors.genericAppwriteError") {
+              errorMessage = t(errorKey, { message: error.message });
+            }
+
+            Alert.alert(t("common.errorTitle"), errorMessage);
             items = [];
           }
         }
@@ -386,13 +393,14 @@ const Budget = () => {
       setMonthlySpendingSummary(summary);
       console.log("monthlySpendingSummary:.", monthlySpendingSummary);
     } catch (error) {
-      console.error("fetchBudgetData: !!! ERROR during data fetch !!!", error);
-      Alert.alert(
-        t("common.errorTitle"),
-        t("budget.budgetSaveFailed", {
-          error: error.message || t("common.unknownError"),
-        })
-      );
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
     } finally {
       console.log(
         "fetchBudgetData: Setting isLoadingData to FALSE in finally block."
@@ -594,13 +602,14 @@ const Budget = () => {
 
                 await onRefresh(); // Refresh the list after deletion
               } catch (error) {
-                console.error("Error deleting budget:", error);
-                Alert.alert(
-                  t("common.errorTitle"),
-                  t("budget.budgetDeleteFailed", {
-                    error: error.message || t("common.unknownError"),
-                  })
-                );
+                const errorKey = getAppwriteErrorMessageKey(error);
+                let errorMessage = t(errorKey);
+
+                if (errorKey === "appwriteErrors.genericAppwriteError") {
+                  errorMessage = t(errorKey, { message: error.message });
+                }
+
+                Alert.alert(t("common.errorTitle"), errorMessage);
                 try {
                   await createNotification({
                     user_id: user.$id,
@@ -615,11 +624,15 @@ const Budget = () => {
                     user.$id
                   );
                   updateUnreadCount(updatedUnreadCount);
-                } catch (notificationError) {
-                  console.warn(
-                    "Failed to create budget deletion failure notification:",
-                    notificationError
-                  );
+                } catch (error) {
+                  const errorKey = getAppwriteErrorMessageKey(error);
+                  let errorMessage = t(errorKey);
+
+                  if (errorKey === "appwriteErrors.genericAppwriteError") {
+                    errorMessage = t(errorKey, { message: error.message });
+                  }
+
+                  Alert.alert(t("common.errorTitle"), errorMessage);
                 }
               }
             },

@@ -20,6 +20,7 @@ import {
   fetchUserReceipts,
   getAllCategories,
   getMonthlyReceiptSummary,
+  getAppwriteErrorMessageKey,
 } from "../../lib/appwrite";
 import { format, subMonths, isSameMonth, isSameYear } from "date-fns"; // Import isSameMonth, isSameYear
 import { ar as arLocale } from "date-fns/locale";
@@ -254,8 +255,15 @@ const Spending = () => {
             itemMap[itemName].timesBought += itemQuantity; // Count purchases by quantity
             itemMap[itemName].purchaseDates.push(receiptDate);
           });
-        } catch (e) {
-          console.error("Error parsing items for receipt:", receipt.$id, e);
+        } catch (error) {
+          const errorKey = getAppwriteErrorMessageKey(error);
+          let errorMessage = t(errorKey);
+
+          if (errorKey === "appwriteErrors.genericAppwriteError") {
+            errorMessage = t(errorKey, { message: error.message });
+          }
+
+          Alert.alert(t("common.errorTitle"), errorMessage);
         }
       });
 
@@ -269,7 +277,14 @@ const Spending = () => {
       }));
       setItemBreakdown(processedItemBreakdown);
     } catch (error) {
-      console.error("Error fetching spending data:", error);
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
     } finally {
       if (isMounted.current) {
         setIsLoading(false);

@@ -17,9 +17,10 @@ import { useFocusEffect, router } from "expo-router"; // Import useFocusEffect a
 import GradientBackground from "../../components/GradientBackground"; // Adjust path as needed
 import { useGlobalContext } from "../../context/GlobalProvider"; // Adjust path as needed
 import {
-  getReceiptStats, // Your existing function for monthly stats and totalCount (overall receipts)
-  fetchUserReceipts, // Your existing function to fetch user receipts, used here for overall spending calculation and export
-  deleteUserAccount, // Your existing function for account deletion (assuming it's in your appwrite.js)
+  getReceiptStats,
+  fetchUserReceipts,
+  deleteUserAccount,
+  getAppwriteErrorMessageKey,
 } from "../../lib/appwrite"; // Adjust this path as needed to your appwrite functions file
 import * as FileSystem from "expo-file-system"; // For file export
 import * as Sharing from "expo-sharing"; // For sharing files
@@ -89,12 +90,15 @@ const ManageData = () => {
         if (typeof items === "string") {
           try {
             items = JSON.parse(items);
-          } catch (e) {
-            console.error(
-              "Error parsing receipt items for overall spending calculation:",
-              e,
-              receipt.items
-            );
+          } catch (error) {
+            const errorKey = getAppwriteErrorMessageKey(error);
+            let errorMessage = t(errorKey);
+
+            if (errorKey === "appwriteErrors.genericAppwriteError") {
+              errorMessage = t(errorKey, { message: error.message });
+            }
+
+            Alert.alert(t("common.errorTitle"), errorMessage);
             items = [];
           }
         }
@@ -119,14 +123,14 @@ const ManageData = () => {
           : t("common.notApplicable"), // Assuming 'N/A' is translated as 'Not Applicable'
       });
     } catch (error) {
-      console.error("Failed to fetch data summary:", error);
-      // Translated Alert.alert
-      Alert.alert(t("common.error"), t("manageData.couldNotLoadSummary"));
-      setDataSummary({
-        totalReceipts: 0,
-        totalSpendingOverall: 0,
-        lastUploadDate: t("common.notApplicable"),
-      });
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -187,8 +191,15 @@ const ManageData = () => {
                   return `${itemName} (${itemPrice} ${currencySymbol})`;
                 })
                 .join("; ");
-            } catch (e) {
-              console.error("Error parsing items for CSV export:", e, r.items);
+            } catch (error) {
+              const errorKey = getAppwriteErrorMessageKey(error);
+              let errorMessage = t(errorKey);
+
+              if (errorKey === "appwriteErrors.genericAppwriteError") {
+                errorMessage = t(errorKey, { message: error.message });
+              }
+
+              Alert.alert(t("common.errorTitle"), errorMessage);
               itemsString = String(r.items);
             }
           } else if (Array.isArray(r.items)) {
@@ -246,14 +257,14 @@ const ManageData = () => {
         );
       }
     } catch (error) {
-      console.error("Failed to export data:", error);
-      // Translated Alert.alert
-      Alert.alert(
-        t("manageData.exportErrorTitle"),
-        t("manageData.exportErrorMessage", {
-          error: error.message || t("common.unknownError"),
-        })
-      );
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
     } finally {
       setIsExporting(false);
     }
@@ -283,14 +294,14 @@ const ManageData = () => {
                 t("manageData.accountDeletedMessage")
               );
             } catch (error) {
-              console.error("Failed to delete account:", error);
-              // Translated Alert.alert
-              Alert.alert(
-                t("common.error"),
-                t("manageData.deleteAccountErrorMessage", {
-                  error: error.message || t("common.unknownError"),
-                })
-              );
+              const errorKey = getAppwriteErrorMessageKey(error);
+              let errorMessage = t(errorKey);
+
+              if (errorKey === "appwriteErrors.genericAppwriteError") {
+                errorMessage = t(errorKey, { message: error.message });
+              }
+
+              Alert.alert(t("common.errorTitle"), errorMessage);
             } finally {
               setIsDeletingAccount(false);
             }

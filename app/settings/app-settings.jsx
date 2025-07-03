@@ -17,7 +17,10 @@ import { useNavigation, router } from "expo-router";
 import GradientBackground from "../../components/GradientBackground";
 import icons from "../../constants/icons";
 import { useGlobalContext } from "../../context/GlobalProvider";
-import { saveUserPreferences } from "../../lib/appwrite";
+import {
+  saveUserPreferences,
+  getAppwriteErrorMessageKey,
+} from "../../lib/appwrite";
 import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../../utils/fontUtils";
 import i18n from "../../utils/i18n";
@@ -131,14 +134,14 @@ const ApplicationSettings = () => {
       // Translated Alert.alert
       Alert.alert(t("common.success"), t("settings.settingsSavedSuccess"));
     } catch (error) {
-      console.error("Failed to save settings:", error);
-      // Translated Alert.alert
-      Alert.alert(
-        t("common.error"),
-        t("settings.failedToSaveSettings", {
-          error: error.message || t("common.unknownError"),
-        })
-      );
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
     } finally {
       setIsLoadingSave(false);
     }

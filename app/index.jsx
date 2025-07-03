@@ -1,8 +1,15 @@
-import { View, Text, ScrollView, Image, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+  I18nManager,
+} from "react-native"; // NEW: Import I18nManager
 import React from "react";
 
 import { SafeAreaView } from "react-native-safe-area-context";
-import CustomButton from "../components/CustomButton";
+import CustomButton from "../components/CustomButton"; // Keep if still used elsewhere, otherwise can be removed.
 import { StatusBar } from "expo-status-bar";
 import { Redirect, router } from "expo-router";
 import images from "../constants/images";
@@ -10,17 +17,23 @@ import { useGlobalContext } from "../context/GlobalProvider";
 import { Dimensions } from "react-native";
 import GradientBackground from "../components/GradientBackground";
 
-import i18n from "../utils/i18n";
+// import i18n from "../utils/i18n"; // No longer needed directly here, use useTranslation
+import { useTranslation } from "react-i18next"; // NEW: Import useTranslation
+import { getFontClassName } from "../utils/fontUtils"; // NEW: Import font utility
+
 const Index = () => {
   const { width, height } = Dimensions.get("window");
   const { loading, isLogged } = useGlobalContext();
+  const { t } = useTranslation(); // NEW: Initialize useTranslation
+
   if (!loading && isLogged) return <Redirect href="/home" />;
 
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1">
-        <ScrollView>
-          <View className=" justify-center items-center px-4 py-3  ">
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+          {/* Ensure scroll view grows to fit content */}
+          <View className="justify-center items-center px-4 py-3 ">
             <Image
               source={images.logoo7}
               resizeMode="contain"
@@ -34,57 +47,49 @@ const Index = () => {
               className="mb-1"
             />
 
-            <View className="flex-1">
-              {/* <Text className="text-xl text-gray-700 font-plight text-center ">
-                Receipts are tedious to manage are often lost and hard to track
-                {"\n"}
-              </Text> */}
-              <Text className="text-xl text-gray-700 font-plight text-center ">
-                {i18n.t("onboarding.heroText")}
+            <View className="flex-1 w-full px-4">
+              {/* NEW: Added w-full and px-4 for consistent padding */}
+              <Text
+                className={` p-1 text-2xl text-gray-700 text-center ${getFontClassName(
+                  "light"
+                )}`} // NEW: Apply font class
+                style={{
+                  fontFamily: getFontClassName("bold"),
+                  textAlign: I18nManager.isRTL ? "right" : "left",
+                }} // NEW: RTL text align
+              >
+                {t("onboarding.heroText")}
                 {"\n"}
               </Text>
-              {/* <Text className="text-sm text-secondary font-pregular text-center -mt-7 ">--------------------------------------------------{"\n "}</Text> */}
-              {/* <Text className="text-gray-700  text-sm    mb-3   ">
-                🔥 Capture and upload your receipt with ease.{"\n"}
-                {"\n"}🔥 Let AI handle the storing and processing for you.{"\n"}
-                {"\n"}🔥 Say goodbay to hassle of manual record-keeping{"\n"}
-                {"\n"}🔥 No Personal informations is shared ever.
-              </Text> */}
-
-              <Text className="text-gray-700 text-sm mb-3 ">
-                {/* ORIGINAL: 🔥 Capture and upload your receipt with ease.{"\n"} */}
-                {i18n.t("onboarding.feature1")}
+              <Text
+                className={`text-gray-700 text-base mb-3 ${getFontClassName(
+                  "regular"
+                )}`} // NEW: Apply font class
+                style={{
+                  fontFamily: getFontClassName("semibold"),
+                  textAlign: I18nManager.isRTL ? "right" : "left",
+                }} // NEW: RTL text align
+              >
+                {t("onboarding.feature1")}
                 {"\n"}
-                {/* ORIGINAL: {"\n"}🔥 Let AI handle the storing and processing for you.{"\n"} */}
                 {"\n"}
-                {i18n.t("onboarding.feature2")}
+                {t("onboarding.feature2")}
                 {"\n"}
-                {/* ORIGINAL: {"\n"}🔥 Say goodbay to hassle of manual record-keeping{"\n"} */}
                 {"\n"}
-                {i18n.t("onboarding.feature3")}
+                {t("onboarding.feature3")}
                 {"\n"}
-                {/* ORIGINAL: {"\n"}🔥 No Personal informations is shared ever. */}
                 {"\n"}
-                {i18n.t("onboarding.feature4")}
+                {t("onboarding.feature4")}
               </Text>
             </View>
 
-            {/* <Image
-              source={images.gr}
-              style={{ width: width * 0.9, height: height * 0.35 }}
-              className=" bottom-80 left-2"
-              resizeMode="contain"
-              opacity={0.92}
-            /> */}
-            {/* <Text className="text-secondary text-2xl font-pbold text-center mt-1">O7 Empower the best solution</Text> */}
-
-            {/* <CustomButton
-              title="Continue with mail"
-              handlePress={() => {
-                router.push("/sign-in");
-              }}
-              containerStyle="w-full mt-4"
-            /> */}
+            {/* Slogan Text (if you decide to uncomment it) */}
+            {/* <Text
+              className={`text-secondary text-2xl text-center mt-1 ${getFontClassName("bold")}`}
+              style={{ fontFamily: getFontClassName("bold"), textAlign: I18nManager.isRTL ? 'right' : 'left' }}
+            >
+              {t("onboarding.slogan")}
+            </Text> */}
 
             <TouchableOpacity
               onPress={() => {
@@ -92,13 +97,17 @@ const Index = () => {
               }}
               className="mt-2 w-full bg-secondary rounded-md p-3 items-center justify-center" // Adjust className for your desired style
             >
-              <Text className="text-white font-pmedium text-base">
-                Continue with mail
+              <Text
+                className={`text-white text-base ${getFontClassName("bold")}`} // NEW: Apply font class
+                style={{ fontFamily: getFontClassName("bold") }}
+              >
+                {t("onboarding.continueWithMail")}
               </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
-        {/* <StatusBar backgroundColor="#161622" style="dark" /> */}
+        <StatusBar backgroundColor="#161622" style="dark" />
+        {/* Keep StatusBar outside ScrollView for better behavior */}
       </SafeAreaView>
     </GradientBackground>
   );

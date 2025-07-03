@@ -26,9 +26,10 @@ import {
   getWalletTransactions,
   updateWalletTransaction,
   deleteWalletTransaction,
-  createNotification, // <--- IMPORTANT: Ensure createNotification is imported
-  countUnreadNotifications, // <--- IMPORTANT: Ensure countUnreadNotifications is imported
+  createNotification,
+  countUnreadNotifications,
   getFutureDate,
+  getAppwriteErrorMessageKey,
 } from "../../lib/appwrite";
 import { format, isSameMonth, isSameYear } from "date-fns";
 import { ar as arLocale } from "date-fns/locale";
@@ -163,7 +164,14 @@ const Wallet = () => {
 
       console.log("fetchWalletData: Data fetched and set successfully.");
     } catch (error) {
-      console.error("fetchWalletData: Failed to fetch wallet data:", error);
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
       if (isMounted.current)
         Alert.alert("Error", "Failed to load wallet data.");
     } finally {
@@ -282,11 +290,15 @@ const Wallet = () => {
         // Update the unread notification count in the global context
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
         updateUnreadCount(updatedUnreadCount);
-      } catch (notificationError) {
-        console.warn(
-          "Failed to create wallet transaction notification:",
-          notificationError
-        );
+      } catch (error) {
+        const errorKey = getAppwriteErrorMessageKey(error);
+        let errorMessage = t(errorKey);
+
+        if (errorKey === "appwriteErrors.genericAppwriteError") {
+          errorMessage = t(errorKey, { message: error.message });
+        }
+
+        Alert.alert(t("common.errorTitle"), errorMessage);
       }
 
       console.log("handleSaveTransaction: Re-fetching all wallet data...");
@@ -294,11 +306,14 @@ const Wallet = () => {
 
       closeModal();
     } catch (error) {
-      console.error("handleSaveTransaction: Transaction save failed:", error);
-      Alert.alert(
-        "Failed",
-        error.message || "Could not save transaction. Please try again."
-      );
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
+
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
       // Create notification for transaction save/update failure
       try {
         await createNotification({
@@ -313,11 +328,15 @@ const Wallet = () => {
         // Update the unread notification count in the global context
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
         updateUnreadCount(updatedUnreadCount);
-      } catch (notificationError) {
-        console.warn(
-          "Failed to create wallet transaction failure notification:",
-          notificationError
-        );
+      } catch (error) {
+        const errorKey = getAppwriteErrorMessageKey(error);
+        let errorMessage = t(errorKey);
+
+        if (errorKey === "appwriteErrors.genericAppwriteError") {
+          errorMessage = t(errorKey, { message: error.message });
+        }
+
+        Alert.alert(t("common.errorTitle"), errorMessage);
       }
     } finally {
       setIsProcessingTransaction(false);
@@ -392,18 +411,28 @@ const Wallet = () => {
             // Update the unread notification count in the global context
             const updatedUnreadCount = await countUnreadNotifications(user.$id);
             updateUnreadCount(updatedUnreadCount);
-          } catch (notificationError) {
-            console.warn(
-              "Failed to create delete notification:",
-              notificationError
-            );
+          } catch (error) {
+            const errorKey = getAppwriteErrorMessageKey(error);
+            let errorMessage = t(errorKey);
+
+            if (errorKey === "appwriteErrors.genericAppwriteError") {
+              errorMessage = t(errorKey, { message: error.message });
+            }
+
+            Alert.alert(t("common.errorTitle"), errorMessage);
           }
         }
 
         await fetchWalletData();
       } catch (error) {
-        console.error("handleDeleteConfirm: Deletion failed:", error);
-        Alert.alert("Error", error.message || "Failed to delete transaction.");
+        const errorKey = getAppwriteErrorMessageKey(error);
+        let errorMessage = t(errorKey);
+
+        if (errorKey === "appwriteErrors.genericAppwriteError") {
+          errorMessage = t(errorKey, { message: error.message });
+        }
+
+        Alert.alert(t("common.errorTitle"), errorMessage);
         // Create notification for deletion failure
         try {
           await createNotification({
@@ -418,11 +447,15 @@ const Wallet = () => {
           // Update the unread notification count in the global context
           const updatedUnreadCount = await countUnreadNotifications(user.$id);
           updateUnreadCount(updatedUnreadCount);
-        } catch (notificationError) {
-          console.warn(
-            "Failed to create deletion failure notification:",
-            notificationError
-          );
+        } catch (error) {
+          const errorKey = getAppwriteErrorMessageKey(error);
+          let errorMessage = t(errorKey);
+
+          if (errorKey === "appwriteErrors.genericAppwriteError") {
+            errorMessage = t(errorKey, { message: error.message });
+          }
+
+          Alert.alert(t("common.errorTitle"), errorMessage);
         }
       } finally {
         setIsProcessingTransaction(false);

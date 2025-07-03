@@ -8,13 +8,20 @@ import {
   ActivityIndicator,
   Image,
   Platform,
+  I18nManager, // Import I18nManager
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, router } from "expo-router";
 import GradientBackground from "../components/GradientBackground";
 import icons from "../constants/icons";
 import { useGlobalContext } from "../context/GlobalProvider";
-import { updateUserPremiumStatus } from "../lib/appwrite";
+import {
+  updateUserPremiumStatus,
+  getAppwriteErrorMessageKey,
+} from "../lib/appwrite"; // Import getAppwriteErrorMessageKey
+
+import { useTranslation } from "react-i18next"; // Import useTranslation
+import { getFontClassName } from "../utils/fontUtils"; // Import getFontClassName
 
 // --- START: REAL EXPO IAP IMPORTS & PRODUCT IDs ---
 // In a REAL Expo project, you would uncomment this:
@@ -31,26 +38,44 @@ const PRODUCT_IDS = Platform.select({
 });
 // --- END: REAL EXPO IAP IMPORTS & PRODUCT IDs ---
 
-const PremiumBenefits = [
-  "Unlimited Receipt Uploads",
-  "Advanced Spending Analytics",
-  "Export Data to Excel/PDF",
-  "Priority Customer Support",
-  "No Ads (if applicable)",
-  "Custom Budget Categories",
+// Benefits array will now use translation keys
+const PremiumBenefitsKeys = [
+  "financialAdviceUnlimited",
+  "unlimitedReceiptUploads",
+  "advancedSpendingAnalytics",
+  "exportData",
+  "priorityCustomerSupport",
+  "noAds",
+  "customBudgetCategories",
   // Add more compelling benefits here!
 ];
 
 const UpgradePremium = () => {
   const navigation = useNavigation();
+  const { t } = useTranslation(); // Initialize useTranslation
   const { user, setUser, checkSessionAndFetchUser, globalLoading } =
     useGlobalContext();
   const [isSubscribing, setIsSubscribing] = useState(false);
-  const [localizedPrice, setLocalizedPrice] = useState("Loading Price...");
+  const [localizedPrice, setLocalizedPrice] = useState(
+    t("upgradePremium.loadingPrice")
+  ); // Use translation
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 
   // Ref to hold the purchase listener, allowing it to be cleaned up
   const purchaseListener = useRef(null);
+
+  // Helper for Alert.alert with translation and error key
+  const showAlert = (titleKey, messageKey, error = null) => {
+    const errorKey = error ? getAppwriteErrorMessageKey(error) : null;
+    let message = t(messageKey);
+
+    if (errorKey === "appwriteErrors.genericAppwriteError" && error) {
+      message = t(errorKey, { message: error.message });
+    } else if (errorKey) {
+      message = t(errorKey);
+    }
+    Alert.alert(t(titleKey), message);
+  };
 
   // Function to fetch product details and set up IAP listeners
   const initializeIAP = useCallback(async () => {
@@ -63,52 +88,52 @@ const UpgradePremium = () => {
       // --- REAL EXPO IAP: Add purchase listener ---
       // This listener will fire when a purchase completes, fails, or is updated
       // purchaseListener.current = InAppPurchases.addPurchaseListener(async ({ responseCode, results, errorCode }) => {
-      //     if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-      //         for (const purchase of results) {
-      //             if (!purchase.acknowledged) { // Only process unacknowledged purchases
-      //                 console.log("Purchase received (needs validation):", purchase);
-      //                 // Call your backend for server-side validation and acknowledge
-      //                 await handleServerSideValidationAndAcknowledgement(purchase);
-      //             }
-      //         }
-      //     } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
-      //         Alert.alert("Purchase Canceled", "You have canceled the purchase.");
-      //         setIsSubscribing(false);
-      //     } else if (responseCode === InAppPurchases.IAPResponseCode.DEFERRED) {
-      //         Alert.alert("Purchase Pending", "Your purchase is pending. Please check back later.");
-      //         setIsSubscribing(false);
-      //     } else {
-      //         console.error("IAP Response Error Code:", errorCode);
-      //         Alert.alert("Purchase Failed", "An error occurred during the purchase process. Please try again.");
-      //         setIsSubscribing(false);
-      //     }
+      //    if (responseCode === InAppPurchases.IAPResponseCode.OK) {
+      //        for (const purchase of results) {
+      //            if (!purchase.acknowledged) { // Only process unacknowledged purchases
+      //                console.log("Purchase received (needs validation):", purchase);
+      //                await handleServerSideValidationAndAcknowledgement(purchase);
+      //            }
+      //        }
+      //    } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
+      //        showAlert("common.error", "appwriteErrors.purchaseCanceled");
+      //        setIsSubscribing(false);
+      //    } else if (responseCode === InAppPurchases.IAPResponseCode.DEFERRED) {
+      //        showAlert("common.error", "appwriteErrors.purchasePending");
+      //        setIsSubscribing(false);
+      //    } else {
+      //        console.error("IAP Response Error Code:", errorCode);
+      //        showAlert("common.error", "appwriteErrors.purchaseFailedGeneric");
+      //        setIsSubscribing(false);
+      //    }
       // });
 
       // --- REAL EXPO IAP: Fetch product details ---
       // const { results } = await InAppPurchases.getProductsAsync(PRODUCT_IDS);
       // if (results.length > 0) {
-      //     setLocalizedPrice(results[0].localizedPrice);
-      //     console.log("Fetched localized price:", results[0].localizedPrice);
+      //    setLocalizedPrice(results[0].localizedPrice);
+      //    console.log("Fetched localized price:", results[0].localizedPrice);
       // } else {
-      //     console.warn("No products found for IDs:", PRODUCT_IDS);
-      //     setLocalizedPrice("Price not available");
+      //    console.warn("No products found for IDs:", PRODUCT_IDS);
+      //    setLocalizedPrice(t("upgradePremium.priceNotAvailable")); // Use translation
       // }
 
       // --- SIMULATION for Canvas environment ---
-      setLocalizedPrice("EGP 99.99/month");
+      setLocalizedPrice("EGP 99.99/month"); // Keep hardcoded for simulation price
       console.log("Simulated IAP initialization complete.");
       // --- END SIMULATION ---
     } catch (error) {
       console.error("IAP initialization error:", error);
-      Alert.alert(
-        "Error",
-        "Could not connect to the store. Please try again later."
-      );
-      setLocalizedPrice("Price not available");
+      showAlert(
+        "common.error",
+        "appwriteErrors.iapInitializationFailed",
+        error
+      ); // Use showAlert
+      setLocalizedPrice(t("upgradePremium.priceNotAvailable")); // Use translation
     } finally {
       setIsLoadingProducts(false);
     }
-  }, []);
+  }, [t]); // Add t to dependencies
 
   // Effect to run IAP initialization and cleanup
   useEffect(() => {
@@ -124,18 +149,8 @@ const UpgradePremium = () => {
 
   // Handle incoming purchases (from listener)
   const handleServerSideValidationAndAcknowledgement = async (purchase) => {
-    // This function would be called by the `addPurchaseListener` in a REAL app.
-    // It's the BRIDGE to your Appwrite Function for validation.
     try {
       console.log("Sending purchase for server-side validation:", purchase);
-
-      // In a REAL app, this is where you'd call your Appwrite Function:
-      // const validationResponse = await YOUR_APPWRITE_FUNCTION_CALL_FOR_VALIDATION({
-      //     platform: Platform.OS,
-      //     productId: purchase.productId,
-      //     purchaseTokenOrReceipt: Platform.OS === 'ios' ? purchase.receipt : purchase.purchaseToken,
-      //     userId: user.$id,
-      // });
 
       // Simulate Appwrite Function call and successful validation
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -154,28 +169,24 @@ const UpgradePremium = () => {
         // Re-fetch global user data to update UI throughout the app
         await checkSessionAndFetchUser();
 
-        Alert.alert(
-          "Success!",
-          "Congratulations! You are now a Premium member. Enjoy unlimited features!"
-        );
+        showAlert(
+          "upgradePremium.congratulationsTitle",
+          "upgradePremium.congratulationsMessage"
+        ); // Use showAlert
         router.replace("/settings/app-settings");
       } else {
-        Alert.alert(
-          "Subscription Failed",
-          "Purchase validation failed. Please contact support."
-        );
+        showAlert("common.error", "appwriteErrors.purchaseValidationFailed"); // Use showAlert
       }
     } catch (error) {
       console.error(
         "Server-side validation and acknowledgement failed:",
         error
       );
-      Alert.alert(
-        "Subscription Failed",
-        `Validation error: ${error.message || "Please try again."}`
-      );
-      // Important: Handle this error; user might have paid but not received premium.
-      // You might need a retry mechanism or a way for users to restore purchases.
+      showAlert(
+        "common.error",
+        "appwriteErrors.purchaseValidationFailed",
+        error
+      ); // Use showAlert
     } finally {
       setIsSubscribing(false); // Stop loading spinner
     }
@@ -184,13 +195,13 @@ const UpgradePremium = () => {
   // Check if user is already premium when they land on this page
   useEffect(() => {
     if (user?.isPremium) {
-      Alert.alert(
-        "Already Premium",
-        "You already have access to premium features!"
-      );
+      showAlert(
+        "upgradePremium.alreadyPremiumTitle",
+        "upgradePremium.alreadyPremiumMessage"
+      ); // Use showAlert
       router.replace("/settings/app-settings"); // Navigate back
     }
-  }, [user, navigation]); // Dependency array to re-run when user changes
+  }, [user, navigation, t]); // Add t to dependencies
 
   const handleSubscribeButtonPress = async () => {
     setIsSubscribing(true);
@@ -214,10 +225,11 @@ const UpgradePremium = () => {
       // --- END SIMULATED PURCHASE ---
     } catch (error) {
       console.error("Purchase initiation failed:", error);
-      Alert.alert(
-        "Purchase Failed",
-        `Could not start the purchase: ${error.message || "Please try again."}`
-      );
+      showAlert(
+        "common.error",
+        "appwriteErrors.purchaseInitiationFailed",
+        error
+      ); // Use showAlert
       setIsSubscribing(false);
     }
   };
@@ -228,7 +240,12 @@ const UpgradePremium = () => {
       <GradientBackground>
         <SafeAreaView className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#4E17B3" />
-          <Text className="mt-2 text-gray-500">Loading premium details...</Text>
+          <Text
+            className="mt-2 text-gray-500"
+            style={{ fontFamily: getFontClassName("regular") }} // Apply font
+          >
+            {t("upgradePremium.loadingDetails")} {/* Use translation */}
+          </Text>
         </SafeAreaView>
       </GradientBackground>
     );
@@ -237,23 +254,46 @@ const UpgradePremium = () => {
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1">
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="p-4">
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: 15,
+            paddingTop: 15,
+            paddingBottom: 10,
+          }}
+        >
           {/* Header */}
-          <View className="flex-row items-center justify-between mb-8 mt-4">
+          <View
+            className={`flex-row items-center justify-between mb-8 mt-4 ${
+              I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // RTL alignment
+            }`}
+          >
             <TouchableOpacity
               onPress={() => navigation.goBack()}
               className="p-2"
             >
-              <Text className="text-blue-600 text-lg font-pmedium">Back</Text>
+              <Text
+                className="text-blue-600 text-lg"
+                style={{ fontFamily: getFontClassName("medium") }} // Apply font
+              >
+                {t("common.back")} {/* Use translation */}
+              </Text>
             </TouchableOpacity>
-            <Text className="text-2xl font-pbold text-black">Go Premium!</Text>
+            <Text
+              className="text-2xl text-black"
+              style={{ fontFamily: getFontClassName("bold") }} // Apply font
+            >
+              {t("upgradePremium.goPremiumTitle")} {/* Use translation */}
+            </Text>
             <View className="w-10" />
           </View>
 
           {/* Premium Benefits Section */}
           <View className="bg-white rounded-xl p-6 mb-6 shadow-md border border-purple-200">
-            <Text className="text-xl font-pbold text-purple-800 mb-4 text-center">
-              Unlock Exclusive Features
+            <Text
+              className={`text-2xl text-purple-800 mb-4 text-center `}
+              style={{ fontFamily: getFontClassName("bold") }} // Apply font
+            >
+              {t("upgradePremium.unlockFeaturesTitle")} {/* Use translation */}
             </Text>
             <Image
               source={icons.star}
@@ -261,30 +301,53 @@ const UpgradePremium = () => {
               resizeMode="contain"
             />
 
-            {PremiumBenefits.map((benefit, index) => (
-              <View key={index} className="flex-row items-center mb-3">
-                <Image
-                  source={icons.check}
-                  className="w-5 h-5 tint-green-500 mr-3"
-                  resizeMode="contain"
-                />
-                <Text className="text-lg font-pregular text-gray-700 flex-1">
-                  {benefit}
-                </Text>
-              </View>
-            ))}
+            {PremiumBenefitsKeys.map(
+              (
+                key,
+                index // Iterate over keys
+              ) => (
+                <View
+                  key={index}
+                  className={`flex-row items-center mb-3 ${
+                    I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // RTL alignment
+                  }`}
+                >
+                  <Image
+                    source={icons.check}
+                    className={`w-5 h-5 tint-green-500 ml-3 mr-3 ${
+                      I18nManager.isRTL ? "ml-3" : "mr-3" // Adjust margin for RTL
+                    }`}
+                    resizeMode="contain"
+                  />
+                  <Text
+                    className={`text-lg text-gray-700 flex-1 ${
+                      I18nManager.isRTL ? "text-right" : "text-left" // RTL alignment
+                    }`}
+                    style={{ fontFamily: getFontClassName("bold") }} // Apply font
+                  >
+                    {t(`upgradePremium.${key}`)} {/* Use translation */}
+                  </Text>
+                </View>
+              )
+            )}
           </View>
 
           {/* Pricing Call to Action */}
           <View className="bg-white rounded-xl p-6 mb-6 shadow-md border border-purple-200">
-            <Text className="text-2xl font-pbold text-center text-black mb-2">
+            <Text
+              className="text-2xl text-black mb-2 text-center"
+              style={{ fontFamily: getFontClassName("bold") }} // Apply font
+            >
               {localizedPrice}
             </Text>
-            <Text className="text-base font-pregular text-gray-600 text-center mb-4">
-              Cancel anytime.
+            <Text
+              className="text-base text-gray-600 text-center mb-4"
+              style={{ fontFamily: getFontClassName("regular") }} // Apply font
+            >
+              {t("upgradePremium.cancelAnytime")} {/* Use translation */}
             </Text>
             <TouchableOpacity
-              onPress={handleSubscribeButtonPress} // Use the new handler
+              onPress={handleSubscribeButtonPress}
               className={`flex-row items-center justify-center p-4 rounded-md ${
                 isSubscribing ? "bg-purple-300" : "bg-purple-600"
               }`}
@@ -294,17 +357,25 @@ const UpgradePremium = () => {
                 <ActivityIndicator
                   size="small"
                   color="#FFFFFF"
-                  className="mr-2"
+                  className={`${I18nManager.isRTL ? "ml-2" : "mr-2"}`} // Adjust margin for RTL
                 />
               ) : (
                 <Image
                   source={icons.star}
-                  className="w-6 h-6 tint-white mr-2"
+                  className={`w-6 h-6 tint-white ml-2 mr-2 ${
+                    I18nManager.isRTL ? "ml-2" : "mr-2" // Adjust margin for RTL
+                  }`}
                   resizeMode="contain"
                 />
               )}
-              <Text className="text-white font-psemibold text-lg">
-                {isSubscribing ? "Subscribing..." : "Subscribe Now"}
+              <Text
+                className="text-white text-lg"
+                style={{ fontFamily: getFontClassName("bold") }} // Apply font
+              >
+                {isSubscribing
+                  ? t("upgradePremium.subscribingButton")
+                  : t("upgradePremium.subscribeNowButton")}{" "}
+                {/* Use translation */}
               </Text>
             </TouchableOpacity>
           </View>

@@ -17,6 +17,7 @@ import {
   resetPassword,
   resetPasswordWithOTP,
   updatePasswordField,
+  getAppwriteErrorMessageKey,
 } from "../../lib/appwrite";
 import { useGlobalContext } from "../../context/GlobalProvider";
 
@@ -62,8 +63,18 @@ const Resetpwd = () => {
         console.log("Reset response:", result);
       }
     } catch (error) {
-      Alert.alert("Error", error.message || "Failed to reset password");
-      console.log("Reset error:", error);
+      const errorKey = getAppwriteErrorMessageKey(error); // Get the translation key
+      let errorMessage = t(errorKey);
+
+      // If it's a generic Appwrite error, include the original message
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(
+        t("common.errorTitle"), // Use generic error title
+        errorMessage // Display the translated, user-friendly message
+      );
     } finally {
       setisSubmitting(false);
     }

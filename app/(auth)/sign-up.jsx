@@ -1,3 +1,5 @@
+// app/sign-up/index.jsx
+
 import {
   View,
   Text,
@@ -5,27 +7,35 @@ import {
   Image,
   Alert,
   TouchableOpacity,
+  I18nManager,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
-import images from "../../constants/images"; // Assuming images.logoo7 exists
-import FormFiled from "../../components/FormField"; // Your custom FormField component
-import CustomButton from "../../components/CustomButton"; // Your custom CustomButton component
+import images from "../../constants/images";
+import FormFiled from "../../components/FormField";
+import CustomButton from "../../components/CustomButton";
 import { Link, router } from "expo-router";
 import { useGlobalContext } from "../../context/GlobalProvider";
-import { createUser } from "../../lib/appwrite"; // Your Appwrite createUser function
-import GradientBackground from "../../components/GradientBackground"; // Your GradientBackground component
-import Checkbox from "expo-checkbox"; // Import Checkbox from expo-checkbox (install if you haven't: expo install expo-checkbox)
+import { createUser, getAppwriteErrorMessageKey } from "../../lib/appwrite";
+import GradientBackground from "../../components/GradientBackground";
+import Checkbox from "expo-checkbox";
+
+import { useTranslation } from "react-i18next";
+import { getFontClassName } from "../../utils/fontUtils";
 
 const SignUp = () => {
+  const { t } = useTranslation();
+
   const [form, setForm] = useState({
-    username: "", // Added username to form state
+    username: "",
     email: "",
     password: "",
-    confirmPassword: "", // New field for password confirmation
+    confirmPassword: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [agreeToTerms, setAgreeToTerms] = useState(false); // State for terms agreement
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
 
   const { setUser, setIsLogged } = useGlobalContext();
 
@@ -36,52 +46,53 @@ const SignUp = () => {
       !form.password ||
       !form.confirmPassword
     ) {
-      Alert.alert("Error", "Please fill all fields.");
+      Alert.alert(t("common.errorTitle"), t("auth.fillAllFieldsError"));
       return;
     }
 
-    // 1- Basic Email Validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(form.email)) {
-      Alert.alert("Error", "Please enter a valid email address.");
+      Alert.alert(t("common.errorTitle"), t("auth.invalidEmailError"));
       return;
     }
 
-    // 2- Password Match Validation
     if (form.password !== form.confirmPassword) {
-      Alert.alert("Error", "Passwords do not match.");
+      Alert.alert(t("common.errorTitle"), t("auth.passwordsMismatchError"));
       return;
     }
 
-    // 3- Basic Password Strength Validation (add more complex regex as needed)
     if (form.password.length < 8) {
-      Alert.alert("Error", "Password must be at least 8 characters long.");
+      Alert.alert(t("common.errorTitle"), t("auth.passwordLengthError"));
       return;
     }
-    // Example: Add more rules like requiring a number, special char, etc.
-    // if (!/[0-9]/.test(form.password)) { Alert.alert("Error", "Password must contain a number."); return; }
 
-    // 4- Terms Acceptance Validation
     if (!agreeToTerms) {
-      Alert.alert(
-        "Error",
-        "You must agree to the Terms of Service and Privacy Policy."
-      );
+      Alert.alert(t("common.errorTitle"), t("auth.agreeTermsError"));
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // Call createUser with updated arguments (no 'pwd' parameter anymore)
       const result = await createUser(form.email, form.password, form.username);
 
-      setUser(result); // Set the returned user profile document to global state
+      setUser(result);
       setIsLogged(true);
 
-      router.replace("/home"); // Navigate to home after successful signup
+      router.replace("/home");
     } catch (error) {
-      console.error("Sign Up Error:", error); // Log the actual error
-      Alert.alert("Sign Up Error", error.message);
+      // console.error("Sign Up Error:", error);
+      const errorKey = getAppwriteErrorMessageKey(error); // Get the translation key
+      let errorMessage = t(errorKey);
+
+      // If it's a generic Appwrite error, include the original message
+      if (errorKey === "appwriteErrors.genericAppwriteError") {
+        errorMessage = t(errorKey, { message: error.message });
+      }
+
+      Alert.alert(
+        t("common.errorTitle"), // Use generic error title
+        errorMessage // Display the translated, user-friendly message
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -90,101 +101,143 @@ const SignUp = () => {
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1">
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-          <View className=" flex justify-center items-center px-4 py-6 ">
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingTop: 15,
+            paddingBottom: 10,
+          }}
+        >
+          <View className="flex-1 items-center px-4 ">
             <Image
-              source={images.logoo7} // Your app logo
+              source={images.logoo7}
               resizeMode="contain"
               className="w-[230px] h-[105px] "
             />
 
-            {/* <Text className="text-base text-gray-700 font-pextrabold text-center mt-4">
-              Register for O7 Account
-            </Text> */}
+            {/* <Text
+                className={`text-xl text-gray-700 text-center mt-4 ${getFontClassName("extrabold")}`}
+                style={{ fontFamily: getFontClassName("extrabold"), textAlign: I18nManager.isRTL ? 'right' : 'left' }}
+              >
+                {t("auth.registerAccount")}
+              </Text> */}
 
-            {/* Username Field */}
+            {/* Form Fields */}
             <FormFiled
-              title="User Name"
+              title={t("auth.username")}
               value={form.username}
               handleChangeText={(e) => setForm({ ...form, username: e })}
-              otherStyles="mt-5"
-              placeholder="Your unique username"
+              otherStyles="mt-3"
+              placeholder={t("auth.enterUsernamePlaceholder")}
             />
 
-            {/* Email Field */}
             <FormFiled
-              title="Email Address"
+              title={t("auth.emailAddress")}
               value={form.email}
               handleChangeText={(e) => setForm({ ...form, email: e })}
-              otherStyles="mt-5"
+              otherStyles="mt-3"
               keyboardType="email-address"
-              placeholder="your@example.com"
+              placeholder={t("auth.enterEmailPlaceholder")}
             />
 
-            {/* Password Field */}
             <FormFiled
-              title="Password"
+              title={t("auth.password")}
               value={form.password}
               handleChangeText={(e) => setForm({ ...form, password: e })}
-              otherStyles="mt-5"
-              secureTextEntry // Hides password characters
-              placeholder="Min. 8 characters"
+              otherStyles="mt-3"
+              secureTextEntry
+              placeholder={t("auth.enterPasswordPlaceholderShort")}
             />
 
-            {/* Confirm Password Field */}
             <FormFiled
-              title="Confirm Password"
+              title={t("auth.confirmPassword")}
               value={form.confirmPassword}
               handleChangeText={(e) => setForm({ ...form, confirmPassword: e })}
-              otherStyles="mt-5"
-              secureTextEntry // Hides password characters
-              placeholder="Re-enter your password"
+              otherStyles="mt-3"
+              secureTextEntry
+              placeholder={t("auth.reenterPasswordPlaceholder")}
             />
 
             {/* Terms and Privacy Checkbox */}
-            <View className="flex-row items-center mt-5 w-full px-1">
+            <View
+              className={`flex-row items-center mt-5 w-full px-1 ${
+                I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
+              }`}
+            >
               <Checkbox
                 value={agreeToTerms}
                 onValueChange={setAgreeToTerms}
-                color={agreeToTerms ? "#008000" : "#2A9D8F"} // Purple when checked
-                className="w-5 h-5 rounded"
+                color={agreeToTerms ? "#008000" : "#264653"}
+                className={`w-5 h-5 rounded ml-2 mr-2 ${
+                  I18nManager.isRTL ? "ml-2" : "mr-2"
+                }`}
               />
-              <Text className="text-sm text-gray-700 font-pregular ml-2 flex-1">
-                I agree to the app's{" "}
+              <Text
+                className={`text-base text-gray-700 flex-1 ${getFontClassName(
+                  "semibold"
+                )}`}
+                style={{
+                  fontFamily: getFontClassName("semibold"),
+                  textAlign: I18nManager.isRTL ? "right" : "left",
+                }}
+              >
+                {t("auth.agreeToTermsPrefix")}
                 <Link
                   href="/privacy-policy"
-                  className="text-purple-600 font-psemibold underline"
+                  className={`text-purple-600 underline ${getFontClassName(
+                    "semibold"
+                  )}`}
+                  style={{ fontFamily: getFontClassName("semibold") }}
                 >
-                  Privacy Policy
+                  {t("common.privacyPolicy")}
                 </Link>{" "}
-                and{" "}
+                {t("common.and")}{" "}
                 <Link
                   href="/terms-of-service"
-                  className="text-purple-600 font-psemibold underline"
+                  className={`text-purple-600 underline ${getFontClassName(
+                    "semibold"
+                  )}`}
+                  style={{ fontFamily: getFontClassName("semibold") }}
                 >
-                  Terms of Service
+                  {t("common.termsOfService")}
                 </Link>
-                .
+                {t("auth.agreeToTermsSuffix")}
               </Text>
             </View>
 
             <CustomButton
-              title="Sign Up"
+              title={t("auth.signUpButton")}
               handlePress={submit}
-              containerStyle=" mt-7 w-full"
+              containerStyle="mt-7 w-full"
               isLoading={isSubmitting}
             />
 
             {/* Already have an account link */}
-            <View className="justify-center pt-3 flex-row gap-2">
-              <Text className="text-lg text-black font-pregular">
-                Have an Account already?
+            <View
+              className={`justify-center pt-3 flex-row gap-2 ${
+                I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
+              }`}
+            >
+              <Text
+                className={`text-lg text-black ${getFontClassName("regular")}`}
+                style={{
+                  fontFamily: getFontClassName("regular"),
+                  textAlign: I18nManager.isRTL ? "right" : "left",
+                }}
+              >
+                {t("auth.haveAccountQuestion")}
               </Text>
               <Link
                 href="/sign-in"
-                className="text-lg font-psemibold text-red-700"
+                className={`text-lg text-red-700 ${getFontClassName(
+                  "semibold"
+                )}`}
+                style={{
+                  fontFamily: getFontClassName("semibold"),
+                  textAlign: I18nManager.isRTL ? "right" : "left",
+                }}
               >
-                Sign In
+                {t("auth.signInLink")}
               </Link>
             </View>
           </View>

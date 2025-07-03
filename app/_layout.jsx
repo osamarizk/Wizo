@@ -104,6 +104,12 @@ const RootLayout = () => {
             name="budget-insights"
             options={{ headerShown: false }}
           />
+          {/* upgrade-premium */}
+
+          <Stack.Screen
+            name="upgrade-premium"
+            options={{ headerShown: false }}
+          />
           <Stack.Screen name="account" options={{ headerShown: false }} />
           <Stack.Screen
             name="financial-insights"

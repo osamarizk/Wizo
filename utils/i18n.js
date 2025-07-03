@@ -8,6 +8,60 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   en: {
     translation: {
+      onboarding: {
+        heroText:
+          "Receipts are tedious to manage, often lost and hard to track.",
+        feature1: "🔥 Capture and upload your receipt with ease.",
+        feature2: "🔥 Let AI handle the storing and processing for you.",
+        feature3: "🔥 Say goodbye to the hassle of manual record-keeping.",
+        feature4: "🔥 No personal information is shared ever.",
+        slogan: "O7 Empower the best solution",
+        continueWithMail: "Continue with mail",
+      },
+      auth: {
+        accessAccount: "Access Your Account",
+        emailAddress: "Email Address",
+        enterEmailPlaceholder: "your@example.com",
+        password: "Password",
+        enterPasswordPlaceholder: "Enter your password",
+        forgotPassword: "Forgot password?",
+        signInButton: "Sign In",
+        noAccountQuestion: "Don't have an Account?",
+        signUpLink: "Sign Up",
+        fillAllFieldsError: "Please fill in all fields.",
+        invalidEmailError: "Please enter a valid email address.",
+        loginFailedMessage: "An unexpected error occurred during login.",
+        passwordResetSuccessTitle: "Password Reset",
+        passwordResetSuccessMessage:
+          "A password reset link has been sent to your email address. Please check your inbox (and spam folder).",
+        passwordResetFailedMessage: "Failed to send password reset email.",
+        otpSentSuccessMessage: "OTP sent to your email.",
+        resetPasswordTitle: "Reset Password",
+        enterEmailInstruction: "Enter your email address",
+        sendEmailButton: "Send Email",
+        cancelButton: "Cancel",
+        registerAccount: "Register for O7 Account",
+        username: "User Name",
+        enterUsernamePlaceholder: "Your unique username",
+        emailAddress: "Email Address", // Already exists, but ensure it's here
+        enterEmailPlaceholder: "your@example.com", // Already exists, but ensure it's here
+        password: "Password", // Already exists, but ensure it's here
+        enterPasswordPlaceholderShort: "Min. 8 characters", // For password field
+        confirmPassword: "Confirm Password",
+        reenterPasswordPlaceholder: "Re-enter your password",
+        agreeToTermsPrefix: "I agree to the app's ",
+        agreeToTermsSuffix: ".",
+        signUpButton: "Sign Up",
+        haveAccountQuestion: "Have an Account already?",
+        signInLink: "Sign In",
+        fillAllFieldsError: "Please fill all fields.",
+        invalidEmailError: "Please enter a valid email address.",
+        passwordsMismatchError: "Passwords do not match.",
+        passwordLengthError: "Password must be at least 8 characters long.",
+        agreeTermsError:
+          "You must agree to the Terms of Service and Privacy Policy.",
+        signUpErrorTitle: "Sign Up Error",
+      },
       common: {
         hello: "Hello",
         save: "Save",
@@ -136,6 +190,33 @@ const resources = {
         notifications: "Notifications",
         close: "Close",
         infoTitle: "Info",
+        errorTitle: "Error",
+        successTitle: "Success",
+        infoTitle: "Info",
+        invalidEmailTitle: "Invalid Email",
+        loginFailedTitle: "Login Failed",
+        unexpectedError: "An unexpected error occurred.",
+        errorTitle: "Error",
+        invalidEmailTitle: "Invalid Email",
+        unknownError: "An unexpected error occurred.",
+        privacyPolicy: "Privacy Policy",
+        termsOfService: "Terms of Service",
+        and: "and",
+        unknownError: "An unexpected error occurred. Please try again.",
+        invalidAmount: "Invalid Amount",
+        missingType: "Missing Type",
+        authenticationError: "Authentication Error",
+        success: "Success",
+        userOrSettingsNotLoaded:
+          "User or application settings not loaded. Please try again.",
+        unknownCategory: "Unknown Category",
+        later: "Later",
+        upgradeNow: "Upgrade Now",
+        unlimited: "Unlimited",
+        loading: "Loading...",
+        back: "Back",
+        success: "Success!",
+        error: "Error",
       },
       aiMessages: {
         // Update this line to match the exact message from your AI API
@@ -401,6 +482,13 @@ const resources = {
         checkYourAdvice: "Check Your Daily Advice",
         upgradeToUnlimited: "Upgrade for Unlimited Advice",
         noAdviceYet: "Tap to get your first insight today!",
+        welcome: "Welcome",
+        wizoDescriptionPart1:
+          "🔥 Wizo is your personal finance companion that turns your everyday receipts into powerful insights. Snap a photo, and Wizo instantly extracts key data — like merchants, totals, and items — so you can track your spending, stay within budget, and understand where your money really goes.",
+        wizoDescriptionPart2:
+          "🔥 But Wizo doesn’t stop with helping users — it also helps businesses make smarter decisions. With user-consented, anonymized spending data, Wizo offers valuable market insights to brands and retailers. It's a win-win: users gain control over their finances, while businesses get better tools to serve their customers.",
+        wizoDescriptionPart3:
+          "🔥 Effortlessly track expenses, gain insights into your spending habits, and achieve your financial goals with ease!",
       },
       notifications: {
         receiptViewed: "Receipt Viewed",
@@ -479,6 +567,9 @@ const resources = {
         receiptEditedNotificationTitle: "Receipt Edited",
         receiptEditedNotificationMessage:
           "The receipt for {{merchantName}} has been updated.",
+        financialAdviceNotificationTitle: "Financial Advice", // Assuming this is the title for financial advice notifications
+        financialAdviceDetails: "Advice Details:",
+        loadingAdvice: "Loading financial advice...",
       },
       settings: {
         applicationSettingsTitle: "Application Settings",
@@ -520,6 +611,9 @@ const resources = {
         notLoggedInSaveError: "You must be logged in to save settings.",
         settingsSavedSuccess: "Settings saved successfully!",
         failedToSaveSettings: "Failed to save settings. Please try again.",
+        languageChangeRestartTitle: "Language Change",
+        languageChangeRestartMessage:
+          "For full language application, please restart the app.",
       },
       receipts: {
         // New namespace from Home.jsx needs
@@ -1052,6 +1146,128 @@ const resources = {
         contentBlockedMessage:
           "تعذر إنشاء النصيحة المالية بسبب سياسة المحتوى. يرجى المحاولة مرة أخرى أو ببيانات مختلفة. نهدف إلى تقديم نصائح آمنة ومفيدة!",
       },
+      appwriteErrors: {
+        networkRequestFailed:
+          "Network request failed. Please check your internet connection.",
+        userExists:
+          "A user with this email already exists. Please sign in or use a different email.",
+        invalidCredentials: "Invalid email or password. Please try again.",
+        userNotFound: "User not found. Please check your email or sign up.",
+        sessionNotFound: "Your session has expired. Please log in again.",
+        accountCreationFailed: "Account creation failed. Please try again.",
+        signInFailed: "Failed to sign in. Please check your credentials.",
+        passwordResetFailed:
+          "Failed to send password reset email. Please try again later.",
+        otpSendFailed: "Failed to send OTP. Please try again.",
+        invalidOtp: "Invalid or expired OTP. Please try again.",
+        documentNotFound: "The requested data could not be found.",
+        permissionDenied: "You do not have permission to perform this action.",
+        receiptSaveFailed: "Failed to save receipt. Please try again.",
+        receiptEditFailed: "Failed to edit receipt. Please try again.",
+        receiptUploadFailed:
+          "Failed to upload receipt image. Please try again.",
+        receiptDownloadUrlFailed: "Failed to get receipt image download URL.",
+        userUpdateFailed:
+          "Failed to update your profile data. Please try again.",
+        budgetSaveFailed: "Failed to save budget. Please try again.",
+        budgetFetchFailed: "Failed to fetch budget details.",
+        notificationCreateFailed: "Failed to create notification.",
+        notificationMarkReadFailed: "Failed to mark notification as read.",
+        appSettingsFetchFailed:
+          "Failed to load application settings. Using default values.",
+        genericAppwriteError: "An Appwrite error occurred: {{message}}",
+        invalidDocumentId: "Invalid document ID provided.",
+        dataParsingError: "Failed to process data due to an invalid format.",
+        receiptDeleteFailed: "Failed to delete receipt. Please try again.",
+        budgetInitializationFailed: "Failed to check budget status.",
+        categoryFetchFailed: "Failed to fetch categories.",
+        pointsFetchFailed: "Failed to fetch user points.",
+        badgesFetchFailed: "Failed to fetch user badges.",
+        initialDataUploadFailed:
+          "Failed to upload initial data. Please contact support.",
+        dataParsingError: "Failed to process data due to an invalid format.",
+        exportDataFailed: "Failed to export data. Please try again.",
+        accountDeleteFailed: "Failed to delete account. Please try again.",
+        exportSharingUnavailable: "Sharing is not available on this device.",
+        walletDataLoadFailed: "Failed to load wallet data. Please try again.",
+        walletTransactionSaveFailed:
+          "Failed to save your wallet transaction. Please try again.",
+        walletTransactionUpdateFailed:
+          "Failed to update your wallet transaction. Please try again.",
+        walletTransactionDeleteFailed:
+          "Failed to delete your wallet transaction. Please try again.",
+
+        receiptsFetchFailed:
+          "Failed to fetch receipts for the specified period.",
+        budgetInitializationFailed:
+          "Failed to check budget initialization status.",
+        categoryFetchFailed: "Failed to fetch categories. Please try again.",
+        dataParsingError: "Failed to process data due to an invalid format.",
+        exportDataFailed: "Failed to export data. Please try again.",
+        accountDeleteFailed: "Failed to delete account. Please try again.",
+        exportSharingUnavailable: "Sharing is not available on this device.",
+        walletDataLoadFailed: "Failed to load wallet data. Please try again.",
+        walletTransactionSaveFailed:
+          "Failed to save your wallet transaction. Please try again.",
+        walletTransactionUpdateFailed:
+          "Failed to update your wallet transaction. Please try again.",
+        walletTransactionDeleteFailed:
+          "Failed to delete your wallet transaction. Please try again.",
+        receiptsFetchFailed:
+          "Failed to fetch receipts for the specified period.",
+        budgetInitializationFailed:
+          "Failed to check budget initialization status.",
+        categoryFetchFailed: "Failed to fetch categories. Please try again.",
+        userPreferencesSaveFailed:
+          "Failed to save user preferences. Please try again.",
+        sessionCheckFailed:
+          "Failed to verify session or fetch user data. Please try logging in again.",
+        documentNotFound: "The requested item was not found.",
+        invalidParameters: "Invalid data provided.",
+        unauthorized: "You are not authorized to perform this action.",
+        forbidden: "Access denied. You do not have permission.",
+        notFound: "The requested resource was not found.",
+        conflict:
+          "A conflict occurred. The item may already exist or there's a data mismatch.",
+        tooManyRequests: "Too many requests. Please try again shortly.",
+        internalServerError:
+          "An internal server error occurred. Please try again later.",
+        unknownError: "An unexpected error occurred. Please try again.",
+        iapInitializationFailed:
+          "Could not connect to the store. Please try again later.",
+        purchaseCanceled: "You have canceled the purchase.",
+        purchasePending: "Your purchase is pending. Please check back later.",
+        purchaseFailedGeneric:
+          "An error occurred during the purchase process. Please try again.",
+        purchaseValidationFailed:
+          "Purchase validation failed. Please contact support.",
+        purchaseInitiationFailed:
+          "Could not start the purchase. Please try again.",
+        userPremiumUpdateFailed:
+          "Failed to update your premium status. Please contact support.",
+      },
+      upgradePremium: {
+        loadingDetails: "Loading premium details...",
+        goPremiumTitle: "Go Premium!",
+        unlockFeaturesTitle: "Unlock Exclusive Features",
+        unlimitedReceiptUploads: "Unlimited Receipt Uploads",
+        advancedSpendingAnalytics: "Advanced Spending Analytics",
+        exportData: "Export Data to Excel/PDF",
+        priorityCustomerSupport: "Priority Customer Support",
+        noAds: "No Ads (if applicable)",
+        customBudgetCategories: "Custom Budget Categories",
+        loadingPrice: "Loading Price...",
+        priceNotAvailable: "Price not available",
+        cancelAnytime: "Cancel anytime.",
+        subscribingButton: "Subscribing...",
+        subscribeNowButton: "Subscribe Now",
+        alreadyPremiumTitle: "Already Premium",
+        alreadyPremiumMessage: "You already have access to premium features!",
+        congratulationsTitle: "Success!",
+        congratulationsMessage:
+          "Congratulations! You are now a Premium member. Enjoy unlimited features!",
+        financialAdviceUnlimited: "Get Financial Advice Without Limitation",
+      },
     },
   },
   ar: {
@@ -1180,6 +1396,84 @@ const resources = {
         notifications: "الإشعارات",
         close: "إغلاق",
         infoTitle: "معلومات",
+        errorTitle: "خطأ",
+        successTitle: "نجاح",
+        infoTitle: "معلومات",
+        invalidEmailTitle: "بريد إلكتروني غير صالح",
+        loginFailedTitle: "فشل تسجيل الدخول",
+        unexpectedError: "حدث خطأ غير متوقع.",
+        errorTitle: "خطأ",
+        invalidEmailTitle: "بريد إلكتروني غير صالح",
+        unknownError: "حدث خطأ غير متوقع.",
+        privacyPolicy: "سياسة الخصوصية",
+        termsOfService: "شروط الخدمة",
+        and: "و",
+        unknownError: "حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى.",
+        invalidAmount: "مبلغ غير صالح",
+        missingType: "النوع مفقود",
+        authenticationError: "خطأ في المصادقة",
+        success: "نجاح",
+        userOrSettingsNotLoaded:
+          "لم يتم تحميل المستخدم أو إعدادات التطبيق. الرجاء المحاولة مرة أخرى.",
+        unknownCategory: "فئة غير معروفة",
+        later: "لاحقاً",
+        upgradeNow: "الترقية الآن",
+        unlimited: "غير محدود",
+        loading: "جاري التحميل...",
+        back: "رجوع",
+        success: "نجاح!",
+        error: "خطأ",
+      },
+      onboarding: {
+        heroText: "إدارة الإيصالات مملة وغالبًا ما تُفقد ويصعب تتبعها.",
+        feature1: "🔥 التقط وحمل إيصالاتك بسهولة.",
+        feature2: "🔥 دع الذكاء الاصطناعي يتولى التخزين والمعالجة لك.",
+        feature3: "🔥 وداعاً لمتاعب حفظ السجلات اليدوية.",
+        feature4: "🔥 لا تتم مشاركة أي معلومات شخصية أبدًا.",
+        slogan: "O7 يمكّن أفضل الحلول",
+        continueWithMail: "المتابعة بالبريد الإلكتروني",
+      },
+      auth: {
+        accessAccount: "الوصول إلى حسابك",
+        emailAddress: " البريد الإلكتروني",
+        enterEmailPlaceholder: "your@example.com",
+        password: "كلمة المرور",
+        enterPasswordPlaceholder: "أدخل كلمة المرور الخاصة بك",
+        forgotPassword: "هل نسيت كلمة المرور؟",
+        signInButton: "تسجيل الدخول",
+        noAccountQuestion: "ليس لديك حساب؟",
+        signUpLink: "التسجيل",
+        fillAllFieldsError: "الرجاء تعبئة جميع الحقول.",
+        invalidEmailError: "الرجاء إدخال عنوان بريد إلكتروني صالح.",
+        loginFailedMessage: "حدث خطأ غير متوقع أثناء تسجيل الدخول.",
+        passwordResetSuccessTitle: "إعادة تعيين كلمة المرور",
+        passwordResetSuccessMessage:
+          "تم إرسال رابط إعادة تعيين كلمة المرور إلى عنوان بريدك الإلكتروني. يرجى التحقق من صندوق الوارد الخاص بك (ومجلد البريد العشوائي).",
+        passwordResetFailedMessage: "فشل إرسال بريد إعادة تعيين كلمة المرور.",
+        otpSentSuccessMessage: "تم إرسال رمز التحقق إلى بريدك الإلكتروني.",
+        resetPasswordTitle: "إعادة تعيين كلمة المرور",
+        enterEmailInstruction: "أدخل عنوان بريدك الإلكتروني",
+        sendEmailButton: "إرسال البريد الإلكتروني",
+        cancelButton: "إلغاء",
+        registerAccount: "التسجيل في حساب O7",
+        username: "اسم المستخدم",
+        enterUsernamePlaceholder: "اسم المستخدم الفريد الخاص بك",
+        emailAddress: "عنوان البريد الإلكتروني",
+        enterEmailPlaceholder: "your@example.com",
+        password: "كلمة المرور",
+        enterPasswordPlaceholderShort: "8 أحرف كحد أدنى",
+        confirmPassword: "تأكيد كلمة المرور",
+        reenterPasswordPlaceholder: "أعد إدخال كلمة المرور الخاصة بك",
+        agreeToTermsPrefix: "أوافق على ",
+        agreeToTermsSuffix: " للتطبيق.",
+        signUpButton: "التسجيل",
+        haveAccountQuestion: "هل لديك حساب بالفعل؟",
+        signInLink: "تسجيل الدخول",
+        fillAllFieldsError: "الرجاء تعبئة جميع الحقول.",
+        invalidEmailError: "الرجاء إدخال عنوان بريد إلكتروني صالح.",
+        passwordsMismatchError: "كلمات المرور غير متطابقة.",
+        passwordLengthError: "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.",
+        agreeTermsError: "يجب أن توافق على شروط الخدمة وسياسة الخصوصية.",
       },
       aiMessages: {
         // Update this line with the correct Arabic translation for the exact English message
@@ -1440,6 +1734,13 @@ const resources = {
         checkYourAdvice: "تحقق من نصيحتك اليومية",
         upgradeToUnlimited: "الترقية للحصول على نصائح غير محدودة",
         noAdviceYet: "   أحصل على أول نصيحة مالية اليوم",
+        welcome: "أهلاً بك",
+        wizoDescriptionPart1:
+          "🔥 ويزو هو رفيقك المالي الشخصي الذي يحول إيصالاتك اليومية إلى رؤى قوية. التقط صورة، ويستخرج ويزو على الفور البيانات الرئيسية — مثل التجار، والمبالغ الإجمالية، والعناصر — حتى تتمكن من تتبع إنفاقك، والبقاء ضمن الميزانية، وفهم أين تذهب أموالك حقًا.",
+        wizoDescriptionPart2:
+          "🔥 لكن ويزو لا يتوقف عند مساعدة المستخدمين — بل يساعد الشركات أيضًا على اتخاذ قرارات أكثر ذكاءً. من خلال بيانات الإنفاق المجهولة والموافق عليها من المستخدمين، يقدم ويزو رؤى سوقية قيمة للعلامات التجارية وتجار التجزئة. إنه فوز للجميع: يكتسب المستخدمون السيطرة على أموالهم، بينما تحصل الشركات على أدوات أفضل لخدمة عملائها.",
+        wizoDescriptionPart3:
+          "🔥 تتبع النفقات بسهولة، واكتسب رؤى حول عادات إنفاقك، وحقق أهدافك المالية بكل سهولة!",
       },
       notifications: {
         receiptViewed: "تم عرض الإيصال",
@@ -1516,6 +1817,9 @@ const resources = {
         receiptEditedNotificationTitle: "تم تعديل الإيصال",
         receiptEditedNotificationMessage:
           "تم تحديث الإيصال الخاص بـ {{merchantName}}.",
+        financialAdviceNotificationTitle: "نصيحة مالية",
+        financialAdviceDetails: "تفاصيل النصيحة:",
+        loadingAdvice: "جاري تحميل النصيحة المالية...",
       },
       settings: {
         applicationSettingsTitle: "إعدادات التطبيق",
@@ -2091,6 +2395,129 @@ const resources = {
         upgradeToPremiumShort: "الترقية إلى بريميوم",
         frequentMerchantVisits: "زيارات المتجر المتكررة:",
         frequentItemPurchases: "مشتريات العناصر المتكررة:",
+      },
+      appwriteErrors: {
+        networkRequestFailed:
+          "فشل طلب الشبكة. الرجاء التحقق من اتصالك بالإنترنت.",
+        userExists:
+          "يوجد مستخدم بهذا البريد الإلكتروني بالفعل. الرجاء تسجيل الدخول أو استخدام بريد إلكتروني آخر.",
+        invalidCredentials:
+          "بريد إلكتروني أو كلمة مرور غير صحيحة. الرجاء المحاولة مرة أخرى.",
+        userNotFound:
+          "المستخدم غير موجود. الرجاء التحقق من بريدك الإلكتروني أو التسجيل.",
+        sessionNotFound: "انتهت صلاحية جلستك. الرجاء تسجيل الدخول مرة أخرى.",
+        accountCreationFailed: "فشل إنشاء الحساب. الرجاء المحاولة مرة أخرى.",
+        signInFailed:
+          "فشل تسجيل الدخول. الرجاء التحقق من بيانات الاعتماد الخاصة بك.",
+        passwordResetFailed:
+          "فشل إرسال بريد إعادة تعيين كلمة المرور. الرجاء المحاولة لاحقًا.",
+        otpSendFailed: "فشل إرسال رمز التحقق (OTP). الرجاء المحاولة مرة أخرى.",
+        invalidOtp:
+          "رمز التحقق (OTP) غير صالح أو منتهي الصلاحية. الرجاء المحاولة مرة أخرى.",
+        documentNotFound: "تعذر العثور على البيانات المطلوبة.",
+        permissionDenied: "ليس لديك إذن لتنفيذ هذا الإجراء.",
+        receiptSaveFailed: "فشل حفظ الإيصال. الرجاء المحاولة مرة أخرى.",
+        receiptEditFailed: "فشل تعديل الإيصال. الرجاء المحاولة مرة أخرى.",
+        receiptUploadFailed:
+          "فشل تحميل صورة الإيصال. الرجاء المحاولة مرة أخرى.",
+        receiptDownloadUrlFailed: "فشل الحصول على رابط تنزيل صورة الإيصال.",
+        userUpdateFailed:
+          "فشل تحديث بيانات ملفك الشخصي. الرجاء المحاولة مرة أخرى.",
+        budgetSaveFailed: "فشل حفظ الميزانية. الرجاء المحاولة مرة أخرى.",
+        budgetFetchFailed: "فشل جلب تفاصيل الميزانية.",
+        notificationCreateFailed: "فشل إنشاء الإشعار.",
+        notificationMarkReadFailed: "فشل وضع علامة مقروء على الإشعار.",
+        appSettingsFetchFailed:
+          "فشل تحميل إعدادات التطبيق. سيتم استخدام القيم الافتراضية.",
+        genericAppwriteError: "حدث خطأ في Appwrite: {{message}}",
+        invalidDocumentId: "معرف المستند غير صالح.",
+        dataParsingError: "فشل معالجة البيانات بسبب تنسيق غير صالح.",
+        receiptDeleteFailed: "فشل حذف الإيصال. الرجاء المحاولة مرة أخرى.",
+        budgetInitializationFailed: "فشل التحقق من حالة الميزانية.",
+        categoryFetchFailed: "فشل جلب الفئات.",
+        pointsFetchFailed: "فشل جلب نقاط المستخدم.",
+        badgesFetchFailed: "فشل جلب شارات المستخدم.",
+        initialDataUploadFailed:
+          "فشل تحميل البيانات الأولية. الرجاء الاتصال بالدعم.",
+        dataParsingError: "فشل معالجة البيانات بسبب تنسيق غير صالح.",
+        exportDataFailed: "فشل تصدير البيانات. الرجاء المحاولة مرة أخرى.",
+        accountDeleteFailed: "فشل حذف الحساب. الرجاء المحاولة مرة أخرى.",
+        exportSharingUnavailable: "المشاركة غير متاحة على هذا الجهاز.",
+        walletDataLoadFailed:
+          "فشل تحميل بيانات المحفظة. الرجاء المحاولة مرة أخرى.",
+        walletTransactionSaveFailed:
+          "فشل حفظ معاملة محفظتك. الرجاء المحاولة مرة أخرى.",
+        walletTransactionUpdateFailed:
+          "فشل تحديث معاملة محفظتك. الرجاء المحاولة مرة أخرى.",
+        walletTransactionDeleteFailed:
+          "فشل حذف معاملة محفظتك. الرجاء المحاولة مرة أخرى.",
+        receiptsFetchFailed: "فشل جلب الإيصالات للفترة المحددة.",
+        budgetInitializationFailed: "فشل التحقق من حالة تهيئة الميزانية.",
+        categoryFetchFailed: "فشل جلب الفئات. الرجاء المحاولة مرة أخرى.",
+        dataParsingError: "فشل معالجة البيانات بسبب تنسيق غير صالح.",
+        exportDataFailed: "فشل تصدير البيانات. الرجاء المحاولة مرة أخرى.",
+        accountDeleteFailed: "فشل حذف الحساب. الرجاء المحاولة مرة أخرى.",
+        exportSharingUnavailable: "المشاركة غير متاحة على هذا الجهاز.",
+        walletDataLoadFailed:
+          "فشل تحميل بيانات المحفظة. الرجاء المحاولة مرة أخرى.",
+        walletTransactionSaveFailed:
+          "فشل حفظ معاملة محفظتك. الرجاء المحاولة مرة أخرى.",
+        walletTransactionUpdateFailed:
+          "فشل تحديث معاملة محفظتك. الرجاء المحاولة مرة أخرى.",
+        walletTransactionDeleteFailed:
+          "فشل حذف معاملة محفظتك. الرجاء المحاولة مرة أخرى.",
+        receiptsFetchFailed: "فشل جلب الإيصالات للفترة المحددة.",
+        budgetInitializationFailed: "فشل التحقق من حالة تهيئة الميزانية.",
+        categoryFetchFailed: "فشل جلب الفئات. الرجاء المحاولة مرة أخرى.",
+        userPreferencesSaveFailed:
+          "فشل حفظ تفضيلات المستخدم. الرجاء المحاولة مرة أخرى.",
+        sessionCheckFailed:
+          "فشل التحقق من الجلسة أو جلب بيانات المستخدم. الرجاء المحاولة تسجيل الدخول مرة أخرى.",
+        documentNotFound: "العنصر المطلوب لم يتم العثور عليه.",
+        invalidParameters: "تم تقديم بيانات غير صالحة.",
+        unauthorized: "أنت غير مصرح لك بتنفيذ هذا الإجراء.",
+        forbidden: "تم رفض الوصول. ليس لديك إذن.",
+        notFound: "المورد المطلوب لم يتم العثور عليه.",
+        conflict:
+          "حدث تعارض. قد يكون العنصر موجودًا بالفعل أو هناك عدم تطابق في البيانات.",
+        tooManyRequests: "عدد كبير جداً من الطلبات. الرجاء المحاولة بعد قليل.",
+        internalServerError: "حدث خطأ داخلي في الخادم. الرجاء المحاولة لاحقاً.",
+        unknownError: "حدث خطأ غير متوقع. الرجاء المحاولة مرة أخرى.",
+        iapInitializationFailed:
+          "تعذر الاتصال بالمتجر. الرجاء المحاولة لاحقاً.",
+        purchaseCanceled: "لقد ألغيت عملية الشراء.",
+        purchasePending: "عملية الشراء معلقة. يرجى التحقق لاحقاً.",
+        purchaseFailedGeneric:
+          "حدث خطأ أثناء عملية الشراء. الرجاء المحاولة مرة أخرى.",
+        purchaseValidationFailed:
+          "فشل التحقق من الشراء. الرجاء الاتصال بالدعم.",
+        purchaseInitiationFailed:
+          "تعذر بدء عملية الشراء. الرجاء المحاولة مرة أخرى.",
+        userPremiumUpdateFailed:
+          "فشل تحديث حالة اشتراكك المميز. الرجاء الاتصال بالدعم.",
+      },
+
+      upgradePremium: {
+        loadingDetails: "جاري تحميل تفاصيل الاشتراك المميز...",
+        goPremiumTitle: "احصل على الاشتراك المميز!",
+        unlockFeaturesTitle: "افتح الميزات الحصرية",
+        unlimitedReceiptUploads: "تحميل إيصالات غير محدود",
+        advancedSpendingAnalytics: "تحليلات إنفاق متقدمة",
+        exportData: "تصدير البيانات إلى Excel/PDF",
+        priorityCustomerSupport: "دعم عملاء ذو أولوية",
+        noAds: "لا إعلانات (إن وجدت)",
+        customBudgetCategories: "فئات ميزانية مخصصة",
+        loadingPrice: "جاري تحميل السعر...",
+        priceNotAvailable: "السعر غير متاح",
+        cancelAnytime: "إلغاء في أي وقت.",
+        subscribingButton: "جاري الاشتراك...",
+        subscribeNowButton: "اشترك الآن",
+        alreadyPremiumTitle: "أنت بالفعل مشترك مميز",
+        alreadyPremiumMessage: "لديك بالفعل وصول إلى الميزات المميزة!",
+        congratulationsTitle: "تهانينا!",
+        congratulationsMessage:
+          "تهانينا! أنت الآن عضو مميز. استمتع بالميزات غير المحدودة!",
+        financialAdviceUnlimited: "احصل على استشارات مالية بلا حدود",
       },
     },
   },
