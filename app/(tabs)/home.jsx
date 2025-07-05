@@ -13,6 +13,7 @@ import {
   Alert,
   Platform,
   I18nManager,
+  TextInput,
 } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -257,6 +258,18 @@ const Home = () => {
       if (user?.$id && !globalLoading) {
         fetchData();
       }
+      // Reset search/filter states when leaving the screen
+      return () => {
+        setSearchQuery("");
+        setSearchStartDate(null);
+        setSearchEndDate(null);
+        setSelectedSearchCategory(null); // Keep for consistency
+        setSelectedSearchSubcategory(null); // Keep for consistency
+        setFilteredReceipts([]);
+        setIsSearching(false);
+        setShowSearchFilterModal(false); // <-- Ensure this is here
+        setMarkedDates({});
+      };
     }, [user, fetchData, globalLoading])
   );
 
@@ -432,12 +445,15 @@ const Home = () => {
         setChartData(chartData);
         setCategorySpendingData(chartData); // Assuming categorySpendingData is a state variable
 
+        const fetchedCategories = await getAllCategories();
+        setCategories(fetchedCategories);
+
         // Using the renamed variable for budget initialization status
         const hasReceipts = allReceipts.length > 0; // Check if there are any receipts
         setShowBudgetPrompt(!isBudgetInitializedStatus && hasReceipts); // set budget prompt here (assuming setShowBudgetPrompt is a state setter)
 
         fetchBudget(); // Assuming fetchBudget is a function defined elsewhere in your component
-        fetchCategories(); // Assuming fetchCategories is a function defined elsewhere in your component
+        // Assuming fetchCategories is a function defined elsewhere in your component
 
         // NEW: Fetch user points and badges
         const userPointsDocs = await getUserPoints(user.$id);
@@ -577,22 +593,22 @@ const Home = () => {
     setIsSearching(false); // <--- Ensure loading state is false on clear
   }, []);
 
-  const fetchCategories = async () => {
-    try {
-      const fetchedCategories = await getAllCategories();
-      // console.log("fetchedCategories",fetchedCategories)
-      setCategories(fetchedCategories);
-    } catch (error) {
-      const errorKey = getAppwriteErrorMessageKey(error);
-      let errorMessage = t(errorKey);
+  // const fetchCategories = async () => {
+  //   try {
+  //     const fetchedCategories = await getAllCategories();
+  //     // console.log("fetchedCategories",fetchedCategories)
+  //     setCategories(fetchedCategories);
+  //   } catch (error) {
+  //     const errorKey = getAppwriteErrorMessageKey(error);
+  //     let errorMessage = t(errorKey);
 
-      if (errorKey === "appwriteErrors.genericAppwriteError") {
-        errorMessage = t(errorKey, { message: error.message });
-      }
+  //     if (errorKey === "appwriteErrors.genericAppwriteError") {
+  //       errorMessage = t(errorKey, { message: error.message });
+  //     }
 
-      Alert.alert(t("common.errorTitle"), errorMessage);
-    }
-  };
+  //     Alert.alert(t("common.errorTitle"), errorMessage);
+  //   }
+  // };
 
   const getCategoryName = (categoryId) => {
     const category = categories.find((cat) => cat.$id === categoryId);
@@ -680,6 +696,13 @@ const Home = () => {
     );
   }
 
+  const receiptsToDisplay =
+    searchQuery || searchStartDate || searchEndDate // Simplified condition
+      ? filteredReceipts // If any filter is active, show filtered results
+      : latestReceipts; // Otherwise, show the latest 5 receipts
+
+  // Check if any search or filter criteria are active
+  const hasActiveFilters = searchQuery || searchStartDate || searchEndDate; // Simplified condition
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
   };
@@ -1477,6 +1500,174 @@ const Home = () => {
                   </View>
                 </View>
               )}
+
+              {/* Collapsible Search Filter Section */}
+              {receiptStats.totalCount > 0 && (
+                <View className="p-2 mb-1 border-t border-[#9F54B6]">
+                  <View className="flex-row justify-between items-center">
+                    {/* Search & Filter Title with dynamic fonts and alignment */}
+                    <Text
+                      className={`text-lg text-black  ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`}
+                      style={{ fontFamily: getFontClassName("semibold") }}
+                    >
+                      {t("home.searchFilterTitle")}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        const isCurrentlyExpanded = isSearchFilterExpanded;
+                        setIsSearchFilterExpanded(!isCurrentlyExpanded); // Toggle the expansion state
+
+                        if (isCurrentlyExpanded) {
+                          // If the filter was expanded and is now being closed
+                          performSearch(); // Apply the currently set filters
+                          clearSearch(); // THEN, clear the filter inputs
+                        }
+                      }}
+                      className="p-2"
+                    >
+                      <Image
+                        source={
+                          icons.action // Keep existing icon for now as per your code
+                        }
+                        className="w-8 h-8 tint-gray-600"
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                  </View>
+
+                  {isSearchFilterExpanded && (
+                    <View>
+                      {/* This View wraps the SearchFilter content to add some top margin */}
+                      <SearchFilter
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                        selectedSearchCategory={selectedSearchCategory}
+                        setSelectedSearchCategory={setSelectedSearchCategory}
+                        selectedSearchSubcategory={selectedSearchSubcategory}
+                        setSelectedSearchSubcategory={
+                          setSelectedSearchSubcategory
+                        }
+                        searchStartDate={searchStartDate}
+                        setSearchStartDate={setSearchStartDate}
+                        searchEndDate={searchEndDate}
+                        setSearchEndDate={setSearchEndDate}
+                        showCalendarModal={showCalendarModal}
+                        setShowCalendarModal={setShowCalendarModal}
+                        markedDates={markedDates}
+                        setMarkedDates={setMarkedDates}
+                        categories={categories}
+                        performSearch={performSearch}
+                        clearSearch={clearSearch}
+                        setIsSearchFilterExpanded={setIsSearchFilterExpanded} // Pass new prop for internal collapse
+                      />
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {isSearching ? (
+                <View className="flex-1 justify-center items-center py-8 ">
+                  <ActivityIndicator size="large" color="#9F54B6" />
+                  <Text
+                    className="text-gray-600 mt-2 "
+                    style={{ fontFamily: getFontClassName("regular") }}
+                  >
+                    {t("common.searching")}
+                  </Text>
+                </View>
+              ) : isSearchActive ? (
+                filteredReceipts.length > 0 ? (
+                  // Replaced .map() with FlashList for performance, as per earlier full snippet
+                  <FlashList
+                    data={filteredReceipts}
+                    keyExtractor={(item) => item.$id}
+                    estimatedItemSize={100}
+                    renderItem={({ item }) => (
+                      <View
+                        key={item.$id}
+                        className="flex-row items-center justify-between mb-8 border-b border-[#9F54B6] last:border-none"
+                      >
+                        {/* Apply gap-2 here and remove mr-2 from the inner image View */}
+                        <View className="flex-row items-center flex-1 gap-2">
+                          <View className="rounded-md p-2">
+                            <Image
+                              source={icons.bill}
+                              resizeMode="contain"
+                              className="w-7 h-7 tint-primary"
+                            />
+                          </View>
+                          <View className="flex-1">
+                            <Text
+                              className={`text-lg text-gray-800  ${
+                                I18nManager.isRTL ? "text-right" : "text-left"
+                              }`}
+                              style={{
+                                fontFamily: getFontClassName("semibold"),
+                              }}
+                              numberOfLines={1}
+                              ellipsizeMode="tail"
+                            >
+                              {item.merchant || t("home.unknownMerchant")}
+                            </Text>
+                            {item.datetime && (
+                              <Text
+                                className={`text-sm text-gray-600  ${
+                                  I18nManager.isRTL ? "text-right" : "text-left"
+                                }`}
+                                style={{
+                                  fontFamily: getFontClassName("regular"),
+                                }}
+                              >
+                                {formatLocalizedDate(item.datetime)}{" "}
+                                {/* Using formatLocalizedDate */}
+                                {" | "}
+                                {item.total
+                                  ? `${t("common.currency_symbol_short")} ${
+                                      i18n.language.startsWith("ar")
+                                        ? convertToArabicNumerals(
+                                            parseFloat(item.total).toFixed(2)
+                                          )
+                                        : parseFloat(item.total).toFixed(2)
+                                    }`
+                                  : ""}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setSelectedReceipt(item);
+                            setShowReceiptOptionsModal(true);
+                            setIsDeleting(false);
+                            setIsDownloading(false);
+                          }}
+                          className="p-2"
+                        >
+                          <Image
+                            source={icons.dots}
+                            className="w-6 h-6 tint-gray-600"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    contentContainerStyle={{ paddingBottom: 0 }}
+                  />
+                ) : (
+                  <View className="py-4 items-center">
+                    <Text
+                      className="text-black italic mb-3 text-center "
+                      style={{ fontFamily: getFontClassName("regular") }}
+                    >
+                      {t("home.noSearchResults")}
+                    </Text>
+                  </View>
+                )
+              ) : (
+                <></>
+              )}
+
               {/* --- START NEW: Today's Financial Advises Card --- */}
               {/* Ensure user and applicationSettings are loaded before displaying */}
               {receiptStats.totalCount > 0 &&
@@ -1565,7 +1756,7 @@ const Home = () => {
                 )}
               {/* Receipt View Modal */}
               <Modal
-                animationType="slide"
+                animationType="fade"
                 transparent={true}
                 visible={showReceiptDetailsModal}
                 onRequestClose={() => {
@@ -2245,71 +2436,6 @@ const Home = () => {
                 </View>
               )}
 
-              {/* Collapsible Search Filter Section */}
-              {receiptStats.totalCount > 0 && (
-                <View className="p-2 mb-1 border-t border-[#9F54B6]">
-                  <View className="flex-row justify-between items-center">
-                    {/* Search & Filter Title with dynamic fonts and alignment */}
-                    <Text
-                      className={`text-lg text-black  ${
-                        I18nManager.isRTL ? "text-right" : "text-left"
-                      }`}
-                      style={{ fontFamily: getFontClassName("semibold") }}
-                    >
-                      {t("home.searchFilterTitle")}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => {
-                        const isCurrentlyExpanded = isSearchFilterExpanded;
-                        setIsSearchFilterExpanded(!isCurrentlyExpanded); // Toggle the expansion state
-
-                        if (isCurrentlyExpanded) {
-                          // If the filter was expanded and is now being closed
-                          performSearch(); // Apply the currently set filters
-                          clearSearch(); // THEN, clear the filter inputs
-                        }
-                      }}
-                      className="p-2"
-                    >
-                      <Image
-                        source={
-                          icons.action // Keep existing icon for now as per your code
-                        }
-                        className="w-8 h-8 tint-gray-600"
-                        resizeMode="contain"
-                      />
-                    </TouchableOpacity>
-                  </View>
-
-                  {isSearchFilterExpanded && (
-                    <View>
-                      {/* This View wraps the SearchFilter content to add some top margin */}
-                      <SearchFilter
-                        searchQuery={searchQuery}
-                        setSearchQuery={setSearchQuery}
-                        selectedSearchCategory={selectedSearchCategory}
-                        setSelectedSearchCategory={setSelectedSearchCategory}
-                        selectedSearchSubcategory={selectedSearchSubcategory}
-                        setSelectedSearchSubcategory={
-                          setSelectedSearchSubcategory
-                        }
-                        searchStartDate={searchStartDate}
-                        setSearchStartDate={setSearchStartDate}
-                        searchEndDate={searchEndDate}
-                        setSearchEndDate={setSearchEndDate}
-                        showCalendarModal={showCalendarModal}
-                        setShowCalendarModal={setShowCalendarModal}
-                        markedDates={markedDates}
-                        setMarkedDates={setMarkedDates}
-                        categories={categories}
-                        performSearch={performSearch}
-                        clearSearch={clearSearch}
-                        setIsSearchFilterExpanded={setIsSearchFilterExpanded} // Pass new prop for internal collapse
-                      />
-                    </View>
-                  )}
-                </View>
-              )}
               {/* Consolidated Receipts Display Section */}
               {receiptStats.totalCount > 0 && (
                 <View className="p-4 border rounded-md border-[#9F54B6] mb-4 border-x-0 ">
@@ -2317,119 +2443,12 @@ const Home = () => {
                     className={`text-lg text-black mb-2 ${
                       I18nManager.isRTL ? "text-right" : "text-left"
                     }`}
-                    style={{ fontFamily: getFontClassName("semibold") }}
+                    style={{ fontFamily: getFontClassName("bold") }}
                   >
-                    {isSearchActive
-                      ? t("home.searchResults")
-                      : t("home.latestUploadedReceipts")}
+                    {t("home.latestUploadedReceipts")}
                   </Text>
 
-                  {isSearching ? (
-                    <View className="flex-1 justify-center items-center py-8">
-                      <ActivityIndicator size="large" color="#9F54B6" />
-                      <Text
-                        className="text-gray-600 mt-2 "
-                        style={{ fontFamily: getFontClassName("regular") }}
-                      >
-                        {t("common.searching")}
-                      </Text>
-                    </View>
-                  ) : isSearchActive ? (
-                    filteredReceipts.length > 0 ? (
-                      // Replaced .map() with FlashList for performance, as per earlier full snippet
-                      <FlashList
-                        data={filteredReceipts}
-                        keyExtractor={(item) => item.$id}
-                        estimatedItemSize={100}
-                        renderItem={({ item }) => (
-                          <View
-                            key={item.$id}
-                            className="flex-row items-center justify-between py-2 border-b border-gray-200 last:border-none"
-                          >
-                            {/* Apply gap-2 here and remove mr-2 from the inner image View */}
-                            <View className="flex-row items-center flex-1 gap-2">
-                              {" "}
-                              <View className="rounded-md p-2">
-                                {" "}
-                                <Image
-                                  source={icons.bill}
-                                  resizeMode="contain"
-                                  className="w-7 h-7 tint-primary"
-                                />
-                              </View>
-                              <View className="flex-1">
-                                <Text
-                                  className={`text-lg text-gray-800  ${
-                                    I18nManager.isRTL
-                                      ? "text-right"
-                                      : "text-left"
-                                  }`}
-                                  style={{
-                                    fontFamily: getFontClassName("semibold"),
-                                  }}
-                                  numberOfLines={1}
-                                  ellipsizeMode="tail"
-                                >
-                                  {item.merchant || t("home.unknownMerchant")}
-                                </Text>
-                                {item.datetime && (
-                                  <Text
-                                    className={`text-sm text-gray-600  ${
-                                      I18nManager.isRTL
-                                        ? "text-right"
-                                        : "text-left"
-                                    }`}
-                                    style={{
-                                      fontFamily: getFontClassName("regular"),
-                                    }}
-                                  >
-                                    {formatLocalizedDate(item.datetime)}{" "}
-                                    {/* Using formatLocalizedDate */}
-                                    {" | "}
-                                    {item.total
-                                      ? `${t("common.currency_symbol_short")} ${
-                                          i18n.language.startsWith("ar")
-                                            ? convertToArabicNumerals(
-                                                parseFloat(item.total).toFixed(
-                                                  2
-                                                )
-                                              )
-                                            : parseFloat(item.total).toFixed(2)
-                                        }`
-                                      : ""}
-                                  </Text>
-                                )}
-                              </View>
-                            </View>
-                            <TouchableOpacity
-                              onPress={() => {
-                                setSelectedReceipt(item);
-                                setShowReceiptOptionsModal(true);
-                                setIsDeleting(false);
-                                setIsDownloading(false);
-                              }}
-                              className="p-2"
-                            >
-                              <Image
-                                source={icons.dots}
-                                className="w-6 h-6 tint-gray-600"
-                              />
-                            </TouchableOpacity>
-                          </View>
-                        )}
-                        contentContainerStyle={{ paddingBottom: 0 }}
-                      />
-                    ) : (
-                      <View className="py-4 items-center">
-                        <Text
-                          className="text-black italic mb-3 text-center "
-                          style={{ fontFamily: getFontClassName("regular") }}
-                        >
-                          {t("home.noSearchResults")}
-                        </Text>
-                      </View>
-                    )
-                  ) : latestReceipts.length > 0 ? (
+                  {latestReceipts.length > 0 ? (
                     // Replaced .map() with FlashList for performance
                     <FlashList
                       data={latestReceipts}

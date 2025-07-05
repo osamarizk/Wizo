@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,13 +9,16 @@ import {
   Dimensions,
   Image,
   TextInput,
+  I18nManager, // <-- ADDED THIS
+  Alert, // <-- ADDED THIS for consistent alerts
 } from "react-native";
 import { Dropdown } from "react-native-element-dropdown";
 import { Calendar } from "react-native-calendars";
 import { format } from "date-fns";
-import FormField from "./FormField";
 import CustomButton from "./CustomButton";
-import icons from "../constants/icons"; // Ensure icons are correctly imported
+import icons from "../constants/icons";
+import { useTranslation } from "react-i18next";
+import { getFontClassName } from "../utils/fontUtils"; // <-- ADDED THIS
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -38,9 +41,58 @@ const SearchFilter = ({
   performSearch,
   clearSearch,
   setIsSearchFilterExpanded,
+  setShowSearchFilterModal, // Kept as in your provided code
 }) => {
+  const { t } = useTranslation(); // Hook for translation
   const [isStartDateSelection, setIsStartDateSelection] = useState(true);
   const [subcategories, setSubcategories] = useState([]);
+
+  // Helper to convert to Arabic numerals (needed for date formatting if RTL)
+  const convertToArabicNumerals = (num) => {
+    const numString = String(num);
+    if (typeof numString !== "string") return String(numString);
+    const arabicNumeralsMap = {
+      0: "٠",
+      1: "١",
+      2: "٢",
+      3: "٣",
+      4: "٤",
+      5: "٥",
+      6: "٦",
+      7: "٧",
+      8: "٨",
+      9: "٩",
+    };
+    return numString.replace(
+      /\d/g,
+      (digit) => arabicNumeralsMap[digit] || digit
+    );
+  };
+
+  // Helper function to format date and convert numerals if needed
+  const formatLocalizedDate = useCallback(
+    (dateValue, formatStringKey = "common.dateFormatShort") => {
+      if (
+        !dateValue ||
+        (typeof dateValue === "string" && dateValue === "N/A")
+      ) {
+        return t("common.not_available_short");
+      }
+
+      const dateObject = new Date(dateValue);
+      if (isNaN(dateObject.getTime())) {
+        return t("common.not_available_short");
+      }
+
+      const formattedDate = format(dateObject, t(formatStringKey));
+
+      if (I18nManager.isRTL) {
+        return convertToArabicNumerals(formattedDate);
+      }
+      return formattedDate;
+    },
+    [t]
+  );
 
   // Effect to update subcategories when selected category changes
   useEffect(() => {
@@ -81,7 +133,7 @@ const SearchFilter = ({
     } else {
       // Ensure end date is not before start date
       if (searchStartDate && selectedDate < searchStartDate) {
-        alert("End date cannot be before start date.");
+        Alert.alert(t("common.error"), t("home.endDateBeforeStartDateError")); // Translated alert
         return;
       }
       setSearchEndDate(selectedDate);
@@ -110,26 +162,38 @@ const SearchFilter = ({
   // The user will explicitly collapse it with the 'Close Filter' button.
   const handleApplyFilters = () => {
     performSearch();
+    // This prop is passed from Home.jsx to close the modal
+    if (setShowSearchFilterModal) {
+      setShowSearchFilterModal(false);
+    }
   };
 
   const handleClearFilters = () => {
     clearSearch();
-    setIsSearchFilterExpanded(false);
+    setIsSearchFilterExpanded(false); // This prop is still passed, so keep it here
+    // This prop is passed from Home.jsx to close the modal
+    if (setShowSearchFilterModal) {
+      setShowSearchFilterModal(false);
+    }
   };
 
   return (
-    <View className="pt-1">
+    <View className="mt-2  shadow-lg shadow-green-800">
       {/* Merchant Search */}
       <TextInput
-        className="flex-1 text-black-100 font-bold text-base  rounded-md border border-[##4E17B3] w-full h-12 mb-3 px-4"
+        className={`flex-1 text-black-100 font-bold text-base rounded-md border border-[##4E17B3] w-full h-12 mb-3 px-4 ${
+          I18nManager.isRTL ? "text-right" : "text-left" // RTL alignment
+        }`}
+        style={{ fontFamily: getFontClassName("bold") }} // Font style applied
         value={searchQuery}
-        placeholder="Merchant Name"
-        // placeholderTextColor="#a1a1a"
+        placeholder={t("home.merchantName")} // Translated placeholder
+        placeholderTextColor="#a1a1a" // Kept as in your code
         onChangeText={(text) => setSearchQuery(text)}
         keyboardType="default"
       />
 
       {/* Category Dropdown */}
+      {/* Kept commented as in your provided code */}
       {/* <View className="mb-4">
         <Text className="text-gray-700 font-pmedium text-base mb-2">
           Category
@@ -156,6 +220,7 @@ const SearchFilter = ({
       </View> */}
 
       {/* Subcategory Dropdown (conditionally rendered) */}
+      {/* Kept commented as in your provided code */}
       {/* {selectedSearchCategory && subcategories.length > 0 && (
         <View className="mb-4">
           <Text className="text-gray-700 font-pmedium text-base mb-2">
@@ -186,7 +251,11 @@ const SearchFilter = ({
       )} */}
 
       {/* Date Range Selection */}
-      <View className="flex-row justify-between mb-4">
+      <View
+        className={`flex-row justify-between mb-4 ${
+          I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // RTL layout
+        }`}
+      >
         <View className="w-[48%]">
           <TouchableOpacity
             onPress={() => openCalendar(true)}
@@ -194,12 +263,20 @@ const SearchFilter = ({
           >
             <Image
               source={icons.calendar}
-              className="w-5 h-5 mr-2"
+              className={`w-5 h-5 ${I18nManager.isRTL ? "ml-2" : "mr-2"}`} // RTL spacing
               resizeMode="contain"
               tintColor="#4E17B3"
             />
-            <Text className="text-base text-gray-800 font-pregular">
-              {searchStartDate ? format(searchStartDate, "yyyy-MM-dd") : "From"}
+            <Text
+              className={`text-base text-gray-800 font-pregular flex-1 ${
+                I18nManager.isRTL ? "text-right" : "text-left" // RTL alignment
+              }`}
+              style={{ fontFamily: getFontClassName("regular") }} // Font style applied
+            >
+              {searchStartDate
+                ? formatLocalizedDate(searchStartDate, "common.dateFormatShort")
+                : t("home.fromDate")}{" "}
+              {/* Translated */}
             </Text>
           </TouchableOpacity>
         </View>
@@ -211,12 +288,20 @@ const SearchFilter = ({
           >
             <Image
               source={icons.calendar}
-              className="w-5 h-5 mr-2"
+              className={`w-5 h-5 ${I18nManager.isRTL ? "ml-2" : "mr-2"}`} // RTL spacing
               resizeMode="contain"
               tintColor="#4E17B3"
             />
-            <Text className="text-base text-gray-800 font-pregular text-center">
-              {searchEndDate ? format(searchEndDate, "yyyy-MM-dd") : "To"}
+            <Text
+              className={`text-base text-gray-800 font-pregular flex-1 ${
+                I18nManager.isRTL ? "text-right" : "text-left" // RTL alignment
+              }`}
+              style={{ fontFamily: getFontClassName("regular") }} // Font style applied
+            >
+              {searchEndDate
+                ? formatLocalizedDate(searchEndDate, "common.dateFormatShort")
+                : t("home.toDate")}{" "}
+              {/* Translated */}
             </Text>
           </TouchableOpacity>
         </View>
@@ -224,12 +309,14 @@ const SearchFilter = ({
 
       {/* Search and Clear Buttons */}
       <View className="flex-row justify-between">
+        {/* Kept commented as in your provided code */}
         {/* <CustomButton
           title="Apply Filters"
           handlePress={handleApplyFilters}
           containerStyles="w-[48%] bg-secondary-200"
           textStyles="text-white font-pbold"
         /> */}
+        {/* Kept commented as in your provided code */}
         {/* <CustomButton
           title="Clear Filters"
           handlePress={handleClearFilters}
@@ -237,17 +324,21 @@ const SearchFilter = ({
           textStyles="text-gray-700 font-pbold"
         /> */}
 
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={handleClearFilters}
-          className="mt-1 w-full bg-[#D03957] rounded-md p-3 items-center justify-center" // Adjust className for your desired style
+          className="mt-1 w-full bg-[#D03957] rounded-md p-3 items-center justify-center"
         >
-          <Text className="text-white font-pmedium text-base">
-            Clear Filter
+          <Text
+            className="text-white font-pmedium text-base"
+            style={{ fontFamily: getFontClassName("medium") }} // Font style applied
+          >
+            {t("home.clearFiltersButton")} 
           </Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
 
       {/* Add a "Close Filter" button for explicit collapsing */}
+      {/* Kept commented as in your provided code */}
       {/* <CustomButton
         title="Close Filter"
         handlePress={() => setIsSearchFilterExpanded(false)}
@@ -276,9 +367,15 @@ const SearchFilter = ({
                 (isStartDateSelection ? searchStartDate : searchEndDate) ||
                 new Date()
               }
+              theme={{
+                todayTextColor: "#2A9D8F", // Consistent color
+                arrowColor: "#2A9D8F", // Consistent color
+                selectedDayBackgroundColor: "#2A9D8F", // Consistent color
+                selectedDayTextColor: "#ffffff",
+              }}
             />
             <CustomButton
-              title="Close Calendar"
+              title={t("home.closeCalendar")} // Translated
               handlePress={() => setShowCalendarModal(false)}
               containerStyles="mt-4 bg-red-500"
               textStyles="text-white font-pbold"
@@ -307,12 +404,14 @@ const styles = StyleSheet.create({
   placeholderStyle: {
     fontSize: 16,
     color: "#A1A1AA",
-    fontFamily: "Poppins-Regular",
+    fontFamily: "Poppins-Regular", // Font style applied
+    textAlign: I18nManager.isRTL ? "right" : "left", // RTL alignment
   },
   selectedTextStyle: {
     fontSize: 16,
     color: "#333",
-    fontFamily: "Poppins-Regular",
+    fontFamily: "Poppins-Regular", // Font style applied
+    textAlign: I18nManager.isRTL ? "right" : "left", // RTL alignment
   },
   iconStyle: {
     width: 20,
@@ -321,7 +420,8 @@ const styles = StyleSheet.create({
   inputSearchStyle: {
     height: 40,
     fontSize: 16,
-    fontFamily: "Poppins-Regular",
+    fontFamily: "Poppins-Regular", // Font style applied
+    textAlign: I18nManager.isRTL ? "right" : "left", // RTL alignment
   },
   // Existing styles for the internal Calendar Modal
   centeredView: {
@@ -331,9 +431,9 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalView: {
-    margin: 20,
+    margin: 30,
     backgroundColor: "white",
-    borderRadius: 20,
+    borderRadius: 30,
     padding: 35,
     alignItems: "center",
     shadowColor: "#000",
