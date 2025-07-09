@@ -131,6 +131,7 @@ const Budget = () => {
     checkBudgetInitialization,
     updateUnreadCount,
     applicationSettings,
+    preferredCurrencySymbol,
   } = useGlobalContext();
   const navigation = useNavigation();
 
@@ -557,7 +558,7 @@ const Budget = () => {
                   const categoryNameForNotif = getCategoryName(
                     budgetDetailsForNotification.category_id
                   );
-                  const currencySymbol = t("common.currency_symbol_short");
+                  const currencySymbol = {preferredCurrencySymbol};
 
                   await createNotification({
                     user_id: user.$id,
@@ -983,7 +984,7 @@ const Budget = () => {
           )}
 
           {monthlySpendingSummary.length > 0 && (
-            <View className="bg-transparent p-4 border-t border-[#9F54B6]">
+            <View className="bg-primary p-4 border-t border-[#9F54B6]">
               <Text
                 className={`text-base text-black mb-2 ${
                   I18nManager.isRTL ? "text-right" : "text-left" // Align title
@@ -1032,7 +1033,7 @@ const Budget = () => {
                     {i18n.language.startsWith("ar")
                       ? convertToArabicNumerals(item.spent.toFixed(2))
                       : item.spent.toFixed(2)}{" "}
-                    {t("common.currency_symbol_short")}
+                    {preferredCurrencySymbol}
                     {item.budgetedAmount > 0 && (
                       <Text
                         className={
@@ -1046,7 +1047,7 @@ const Budget = () => {
                               item.budgetedAmount.toFixed(2)
                             )
                           : item.budgetedAmount.toFixed(2)}{" "}
-                        {t("common.currency_symbol_short")}
+                        {preferredCurrencySymbol}
                       </Text>
                     )}
                   </Text>
@@ -1076,7 +1077,7 @@ const Budget = () => {
                                   Math.abs(item.remaining).toFixed(2)
                                 )
                               : Math.abs(item.remaining).toFixed(2),
-                            currencySymbol: t("common.currency_symbol_short"),
+                            currencySymbol: preferredCurrencySymbol,
                           })
                         : t("budget.remainingAmount", {
                             amount: i18n.language.startsWith("ar")
@@ -1084,7 +1085,7 @@ const Budget = () => {
                                   item.remaining.toFixed(2)
                                 )
                               : item.remaining.toFixed(2),
-                            currencySymbol: t("common.currency_symbol_short"),
+                            currencySymbol: preferredCurrencySymbol,
                           })}
                     </Text>
                   )}
@@ -1094,9 +1095,9 @@ const Budget = () => {
           )}
 
           {userBudgets.length > 0 ? (
-            <View className="p-2 mb-4 rounded-xl border-t border-purple-400">
+            <View className="p-4 mb-1  rounded-xl border-t border-purple-400">
               <Text
-                className={`text-base text-black mb-4 ${
+                className={`text-lg text-black mb-4 ${
                   I18nManager.isRTL ? "text-right" : "text-left" // Align title
                 }`} // Removed font-pbold
                 style={{ fontFamily: getFontClassName("bold") }} // Apply font
@@ -1137,7 +1138,7 @@ const Budget = () => {
                               parseFloat(budget.budgetAmount).toFixed(2)
                             )
                           : parseFloat(budget.budgetAmount).toFixed(2)}{" "}
-                        {t("common.currency_symbol_short")}
+                        {preferredCurrencySymbol}
                       </Text>
                       <Text
                         className={`text-xs text-gray-600 mt-1 ${

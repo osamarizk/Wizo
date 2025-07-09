@@ -15,6 +15,7 @@ import { ar as arLocale } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../utils/fontUtils"; // Assumed to return direct font family name
 import i18n from "../utils/i18n";
+import { useGlobalContext } from "../context/GlobalProvider";
 
 const convertToArabicNumerals = (num) => {
   const numString = String(num || 0);
@@ -38,7 +39,12 @@ const screenWidth = Dimensions.get("window").width;
 
 const SpendingTrendsChart = ({ monthlySummary, isLoading }) => {
   const { t } = useTranslation();
+  const { preferredCurrencySymbol } = useGlobalContext();
 
+  console.log(
+    "SpendingTrendsChart: preferredCurrencySymbol:",
+    preferredCurrencySymbol
+  );
   console.log(
     "SpendingTrendsChart: monthlySummary prop received:",
     monthlySummary
@@ -107,9 +113,6 @@ const SpendingTrendsChart = ({ monthlySummary, isLoading }) => {
     color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, // Labels (dots) and grid lines color
     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`, // X and Y axis label color
 
-    // --- CRITICAL FIX FOR FONT AND NUMERALS IN CHART LABELS ---
-    // React-native-chart-kit uses 'fontFamily' directly for label styles
-    // Ensure getFontClassName returns the actual font family name (e.g., 'Cairo-Regular')
     propsForLabels: {
       fontFamily: getFontClassName("extrabold"), // Apply Cairo/Poppins Regular here
       fontSize: 12, // Adjust font size as needed
@@ -118,12 +121,15 @@ const SpendingTrendsChart = ({ monthlySummary, isLoading }) => {
     // Format Y-axis labels with currency symbol and Arabic numerals
     formatYLabel: (yValue) => {
       const formattedValue = (yValue || 0).toFixed(0); // Ensure yValue is number, default to 0. toFixed(0) for whole numbers.
-      return i18n.language.startsWith("ar")
-        ? `${convertToArabicNumerals(formattedValue)} ${t(
-            "common.currency_symbol_short"
-          )}`
-        : `${formattedValue} ${t("common.currency_symbol_short")}`;
+      const output = i18n.language.startsWith("ar")
+        ? convertToArabicNumerals(formattedValue) // <-- FIXED: ONLY return the formatted number
+        : formattedValue;
+
+      console.log(`formatYLabel: yValue=${yValue}, output=${output}`); // Keep this log for now to confirm it's called
+
+      return output;
     },
+
     // Format X-axis labels (month names) -- handled by formatMonthName in labels array
     formatXLabel: (xValue) => {
       return xValue; // xValue is already formatted by `formatMonthName` (e.g., "Jan", "يناير")
@@ -132,11 +138,8 @@ const SpendingTrendsChart = ({ monthlySummary, isLoading }) => {
     style: {
       borderRadius: 18,
 
-      // Adjust padding for RTL. react-native-chart-kit handles some mirroring,
-      // but explicit padding can ensure labels don't get cut off.
-      // Increased right padding for RTL to make space for Arabic numbers on Y-axis.
-      paddingRight: I18nManager.isRTL ? 50 : 16, // More space on right for Arabic labels if they get squished
-      paddingLeft: I18nManager.isRTL ? 16 : 50, // More space on left for LTR labels (Y-axis)
+      paddingRight: i18n.language.startsWith("ar") ? 50 : 16, // More space on right for Arabic labels if they get squished
+      paddingLeft: i18n.language.startsWith("ar") ? 16 : 50, // More space on left for LTR labels (Y-axis)
       paddingBottom: 0, // No extra padding at the bottom from the chart-kit itself
     },
     propsForDots: {
@@ -151,9 +154,13 @@ const SpendingTrendsChart = ({ monthlySummary, isLoading }) => {
     fillShadowGradient: "#9F54B6",
     fillShadowGradientOpacity: 0.5,
 
-    yAxisLabel: "", // Removed currency symbol from yAxisLabel as it's handled in formatYLabel
-    xAxisLabel: "", // X-axis labels are handled by `labels` directly
+    yAxisLabel: "",
+    yAxisSuffix: "",
+    xAxisLabel: t("common.month"), // X-axis labels are handled by `labels` directly
   };
+
+  console.log("SpendingTrendsChart: Final chartData:", chartData);
+  console.log("SpendingTrendsChart: Final chartConfig:", chartConfig);
 
   if (relevantMonthlyData.length === 0) {
     return (
@@ -198,6 +205,20 @@ const SpendingTrendsChart = ({ monthlySummary, isLoading }) => {
       >
         {t("home.spendingTrendsDescription")}
       </Text>
+      <View
+        className={`w-full  pr-4 pl-4`} // Align based on RTL/LTR
+      >
+        <Text
+          className={`text-sm text-gray-700 `}
+          style={{
+            fontFamily: getFontClassName("bold"),
+            textAlign: i18n.language.startsWith("ar") ? "right" : "left",
+          }}
+        >
+          {t("common.amount")}: {preferredCurrencySymbol}{" "}
+          {/* Example: "Amount: $" or "المبلغ: ج.م" */}
+        </Text>
+      </View>
       <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
         <LineChart
           data={chartData}
@@ -219,8 +240,9 @@ const styles = StyleSheet.create({
     // If issues persist, consider removing alignSelf here and managing alignment via parent View.
     // alignSelf: I18nManager.isRTL ? "items-end" : "items-start", // Changed to flex-start for LTR, which chart-kit often aligns with
 
-    marginVertical: 10,
-    borderRadius: 4,
+    marginVertical: 12,
+    marginHorizontal: 1,
+    borderRadius: 1,
     fontFamily: getFontClassName("semibold"),
     fontSize: 12,
   },

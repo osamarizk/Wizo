@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { format, getDay, getHours, isSameMonth, isSameYear } from "date-fns";
 import { ar as arLocale } from "date-fns/locale";
-
+import { useGlobalContext } from "../context/GlobalProvider";
 import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../utils/fontUtils"; // Assumed to return direct font family name
 import i18n from "../utils/i18n";
@@ -49,6 +49,7 @@ const HeatmapGrid = ({
   handleCellPress,
   isFullScreen = false,
   displayedHours,
+  preferredCurrencySymbol,
 }) => {
   const { t } = useTranslation(); // Initialize translation hook
   const daysOfWeek = [
@@ -119,7 +120,7 @@ const HeatmapGrid = ({
               {
                 width: cellSize + totalHorizontalMarginPerCell,
                 fontSize: hourLabelFontSize,
-                fontFamily: getFontClassName("bold"), // Apply font
+                fontFamily: getFontClassName("extrabold"), // Apply font
                 textAlign: "center", // Keep center for hours
               },
             ]}
@@ -159,8 +160,8 @@ const HeatmapGrid = ({
                   height: cellSize + totalHorizontalMarginPerCell,
                   width: dayLabelColWidth,
                   fontSize: dayLabelFontSize,
-                  fontFamily: getFontClassName("bold"), // Apply font
-                  textAlign: I18nManager.isRTL ? "right" : "left", // Align day labels
+                  fontFamily: getFontClassName("extrabold"), // Apply font
+                  textAlign: "center", // Align day labels
                 },
               ]}
             >
@@ -208,13 +209,14 @@ const HeatmapGrid = ({
                           {
                             fontSize: cellTextFontSize,
                             color: textColor,
-                            fontFamily: getFontClassName("bold"), // Apply font
+                            fontFamily: getFontClassName("extrabold"), // Apply font
                           },
                         ]}
                       >
                         {i18n.language.startsWith("ar")
                           ? convertToArabicNumerals(cellSpending.toFixed(0))
-                          : cellSpending.toFixed(0)}
+                          : cellSpending.toFixed(0)}{" "}
+                        ({preferredCurrencySymbol})
                       </Text>
                     )}
                   </TouchableOpacity>
@@ -228,8 +230,13 @@ const HeatmapGrid = ({
   );
 };
 
-const SpendingHeatmap = ({ allReceipts, isLoading }) => {
+const SpendingHeatmap = ({
+  allReceipts,
+  isLoading,
+  preferredCurrencySymbol,
+}) => {
   const { t } = useTranslation();
+
   const [heatmapData, setHeatmapData] = useState({});
   const [maxSpending, setMaxSpending] = useState(0);
   const [displayedHours, setDisplayedHours] = useState([]);
@@ -411,6 +418,7 @@ const SpendingHeatmap = ({ allReceipts, isLoading }) => {
             handleCellPress={handleCellPress}
             isFullScreen={false}
             displayedHours={displayedHours}
+            preferredCurrencySymbol={preferredCurrencySymbol}
           />
           <Text
             className={`text-blue-600 mt-2 ${
@@ -461,7 +469,7 @@ const SpendingHeatmap = ({ allReceipts, isLoading }) => {
             {selectedHeatmapCell && selectedHeatmapCell.totalSpending > 0 ? (
               <>
                 <Text
-                  className={`text-lg mb-2 ${
+                  className={`text-base mb-2 ${
                     I18nManager.isRTL ? "text-right" : "text-left"
                   }`} // Removed font-psemibold
                   style={{ fontFamily: getFontClassName("semibold") }} // Applied font
@@ -472,10 +480,10 @@ const SpendingHeatmap = ({ allReceipts, isLoading }) => {
                         selectedHeatmapCell.totalSpending.toFixed(2)
                       )
                     : selectedHeatmapCell.totalSpending.toFixed(2)}{" "}
-                  {t("common.currency_symbol_short")}
+                  {preferredCurrencySymbol}
                 </Text>
                 <Text
-                  className={`text-lg mb-2 ${
+                  className={`text-base mb-2 ${
                     I18nManager.isRTL ? "text-right" : "text-left"
                   }`} // Removed font-psemibold
                   style={{ fontFamily: getFontClassName("semibold") }} // Applied font
@@ -488,7 +496,7 @@ const SpendingHeatmap = ({ allReceipts, isLoading }) => {
                     : selectedHeatmapCell.receipts.length}
                 </Text>
                 <Text
-                  className={`text-md mt-4 mb-2 ${
+                  className={`text-lg mt-4 mb-2 ${
                     I18nManager.isRTL ? "text-right" : "text-left"
                   }`} // Removed font-pbold
                   style={{ fontFamily: getFontClassName("bold") }} // Applied font
@@ -509,16 +517,16 @@ const SpendingHeatmap = ({ allReceipts, isLoading }) => {
                       ]} // Adjust direction
                     >
                       <Text
-                        className={`text-gray-700 ${
+                        className={`text-blue-500 text-base ${
                           I18nManager.isRTL ? "text-right" : "text-left"
                         }`} // Removed font-pregular
-                        style={{ fontFamily: getFontClassName("regular") }} // Applied font
+                        style={{ fontFamily: getFontClassName("semibold") }} // Applied font
                       >
                         {receipt.merchant} -{" "}
                         {i18n.language.startsWith("ar")
                           ? convertToArabicNumerals(receipt.total.toFixed(2))
                           : receipt.total.toFixed(2)}{" "}
-                        {t("common.currency_symbol_short")} (
+                        {preferredCurrencySymbol} {" | "}(
                         {format(new Date(receipt.datetime), "HH:mm", {
                           locale: i18n.language.startsWith("ar")
                             ? arLocale
@@ -533,7 +541,7 @@ const SpendingHeatmap = ({ allReceipts, isLoading }) => {
             ) : (
               <Text
                 className="text-gray-500 italic text-center" // Removed font-pmedium
-                style={{ fontFamily: getFontClassName("medium") }} // Applied font
+                style={{ fontFamily: getFontClassName("bold") }} // Applied font
               >
                 {t("heatmap.noSpendingForSlot")} {/* Translated */}
               </Text>
@@ -601,6 +609,7 @@ const SpendingHeatmap = ({ allReceipts, isLoading }) => {
               handleCellPress={handleCellPress}
               isFullScreen={true}
               displayedHours={displayedHours}
+              preferredCurrencySymbol={preferredCurrencySymbol}
             />
           </ScrollView>
         </SafeAreaView>
@@ -682,7 +691,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 20,
     padding: 35,
-    alignItems: "center",
+    alignItems: I18nManager.isRTL ? "flex-end" : "flex-start",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,

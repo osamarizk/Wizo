@@ -15,7 +15,7 @@ import {
   I18nManager, // Import I18nManager for RTL checks
 } from "react-native";
 import icons from "../constants/icons";
-
+import { useGlobalContext } from "../context/GlobalProvider";
 // Ensure you have `editReceipt` imported from your appwrite library
 import { editReceipt } from "../lib/appwrite";
 
@@ -60,7 +60,7 @@ const EditReceiptModal = ({
   onSaveSuccess,
 }) => {
   const { t } = useTranslation(); // Initialize translation hook
-
+  const { preferredCurrencySymbol } = useGlobalContext();
   const [merchant, setMerchant] = useState("");
   const [total, setTotal] = useState("");
   const [items, setItems] = useState([]); // To display items read-only
@@ -305,13 +305,13 @@ const EditReceiptModal = ({
                       style={{ fontFamily: getFontClassName("semibold") }}
                     >
                       {item.price
-                        ? `${t("common.currency_symbol_short")} ${
+                        ? `${preferredCurrencySymbol} ${
                             i18n.language.startsWith("ar")
                               ? convertToArabicNumerals(
                                   parseFloat(item.price).toFixed(2)
                                 )
                               : parseFloat(item.price).toFixed(2)
-                          }`
+                          } ${preferredCurrencySymbol}`
                         : t("common.notAvailableShort")}
                     </Text>
                   </View>

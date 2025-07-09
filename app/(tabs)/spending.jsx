@@ -84,7 +84,11 @@ const gradientColors = [
 
 const Spending = () => {
   const { t } = useTranslation();
-  const { user, isLoading: globalLoading } = useGlobalContext();
+  const {
+    user,
+    isLoading: globalLoading,
+    preferredCurrencySymbol,
+  } = useGlobalContext();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [allReceipts, setAllReceipts] = useState([]);
@@ -455,7 +459,7 @@ const Spending = () => {
     <GradientBackground>
       <SafeAreaView className=" flex-1">
         <ScrollView
-          className="w-full h-full p-4"
+          className="w-full h-full p-2"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -657,7 +661,7 @@ const Spending = () => {
                             currentMonthSpending.toFixed(2)
                           )
                         : currentMonthSpending.toFixed(2)}{" "}
-                      {t("common.currency_symbol_short")}
+                      {preferredCurrencySymbol}
                     </Text>
                   </View>
                   <View className="items-center">
@@ -681,7 +685,7 @@ const Spending = () => {
                             previousMonthSpending.toFixed(2)
                           )
                         : previousMonthSpending.toFixed(2)}{" "}
-                      {t("common.currency_symbol_short")}
+                      {preferredCurrencySymbol}
                     </Text>
                   </View>
                 </View>
@@ -770,7 +774,7 @@ const Spending = () => {
                             averageReceiptValue.toFixed(2)
                           )
                         : averageReceiptValue.toFixed(2)}{" "}
-                      {t("common.currency_symbol_short")}
+                      {preferredCurrencySymbol}
                     </Text>
                   </View>
                 ) : (
@@ -793,6 +797,7 @@ const Spending = () => {
               <SpendingHeatmap
                 allReceipts={allReceipts}
                 isLoading={isLoading}
+                preferredCurrencySymbol={preferredCurrencySymbol} 
               />
 
               {/* Merchant Analysis Table */}
@@ -886,7 +891,9 @@ const Spending = () => {
                     }`} // Flipped for RTL currency
                     style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
                   >
-                    {t("spending.totalAmountShort")} {/* Translated */}
+                    {`${t(
+                      "spending.totalAmountShort"
+                    )} ( ${preferredCurrencySymbol} )`}
                   </Text>
                   <Text
                     className={`w-1/6 text-black text-sm ${
@@ -902,7 +909,7 @@ const Spending = () => {
                     }`} // Flipped for RTL view button
                     style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
                   >
-                    {t("spending.view")} {/* Translated */}
+                    {t("spending.view")}
                   </Text>
                 </View>
 
@@ -934,7 +941,7 @@ const Spending = () => {
                         {i18n.language.startsWith("ar")
                           ? convertToArabicNumerals(data.totalAmount.toFixed(2))
                           : data.totalAmount.toFixed(2)}{" "}
-                        {t("common.currency_symbol_short")}
+                        {preferredCurrencySymbol}
                       </Text>
                       <Text
                         className={`w-1/6 text-gray-800 text-sm ${
@@ -1032,7 +1039,7 @@ const Spending = () => {
                       }`}
                     >
                       <Text
-                        className={`flex-1 text-gray-800 text-sm ${
+                        className={`flex-1 text-gray-800 text-sm text-center ${
                           I18nManager.isRTL ? "text-right" : "text-left"
                         }`} // Align item name
                         style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
@@ -1040,7 +1047,7 @@ const Spending = () => {
                         {data.item}
                       </Text>
                       <Text
-                        className={`w-1/4 text-gray-800 text-sm ${
+                        className={`w-1/4 text-gray-800 text-sm text-center ${
                           I18nManager.isRTL ? "text-left" : "text-right"
                         }`} // Align total spend
                         style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
@@ -1048,12 +1055,10 @@ const Spending = () => {
                         {i18n.language.startsWith("ar")
                           ? convertToArabicNumerals(data.totalSpend.toFixed(2))
                           : data.totalSpend.toFixed(2)}{" "}
-                        {t("common.currency_symbol_short")}
+                        {preferredCurrencySymbol}
                       </Text>
                       <Text
-                        className={`w-1/6 text-gray-800 text-sm ${
-                          I18nManager.isRTL ? "text-left" : "text-right"
-                        }`} // Align times bought
+                        className={`w-1/6 text-gray-800 text-sm text-center`} // Align times bought
                         style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
                       >
                         {i18n.language.startsWith("ar")

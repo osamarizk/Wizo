@@ -18,7 +18,8 @@ import { format } from "date-fns";
 import CustomButton from "./CustomButton";
 import icons from "../constants/icons";
 import { useTranslation } from "react-i18next";
-import { getFontClassName } from "../utils/fontUtils"; // <-- ADDED THIS
+import { getFontClassName } from "../utils/fontUtils";
+import i18n from "../utils/i18n";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -181,10 +182,11 @@ const SearchFilter = ({
     <View className="mt-2  shadow-lg shadow-green-800">
       {/* Merchant Search */}
       <TextInput
-        className={`flex-1 text-black-100 font-bold text-base rounded-md border border-[##4E17B3] w-full h-12 mb-3 px-4 ${
-          I18nManager.isRTL ? "text-right" : "text-left" // RTL alignment
-        }`}
-        style={{ fontFamily: getFontClassName("bold") }} // Font style applied
+        className={`flex-1 text-black-100 font-bold text-base rounded-md border border-[##4E17B3] w-full h-12 mb-3 px-4`}
+        style={{
+          fontFamily: getFontClassName("bold"),
+          textAlign: i18n.language.startsWith("ar") ? "right" : "left",
+        }} // Font style applied
         value={searchQuery}
         placeholder={t("home.merchantName")} // Translated placeholder
         placeholderTextColor="#a1a1a" // Kept as in your code
@@ -263,7 +265,9 @@ const SearchFilter = ({
           >
             <Image
               source={icons.calendar}
-              className={`w-5 h-5 ${I18nManager.isRTL ? "ml-2" : "mr-2"}`} // RTL spacing
+              className={`w-5 h-5 ${
+                i18n.language.startsWith("ar") ? "ml-2" : "mr-2"
+              }`} // RTL spacing
               resizeMode="contain"
               tintColor="#4E17B3"
             />
@@ -288,7 +292,9 @@ const SearchFilter = ({
           >
             <Image
               source={icons.calendar}
-              className={`w-5 h-5 ${I18nManager.isRTL ? "ml-2" : "mr-2"}`} // RTL spacing
+              className={`w-5 h-5 ${
+                i18n.language.startsWith("ar") ? "ml-2" : "mr-2"
+              }`} // RTL spacing
               resizeMode="contain"
               tintColor="#4E17B3"
             />

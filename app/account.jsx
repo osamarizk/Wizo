@@ -199,7 +199,7 @@ const Account = () => {
               </Text>
               {/* Optional: Edit Profile Button */}
               <TouchableOpacity
-                onPress={() => router.push("/profile/edit")} // Assuming an edit profile route
+                onPress={() => router.push("/edit-profile")} // Assuming an edit profile route
                 className={`mt-2 p-2 rounded-md bg-[#2A9D8F] items-center ${
                   I18nManager.isRTL ? "self-end" : "self-start"
                 }`}

@@ -134,8 +134,10 @@ const Home = () => {
     dailyFreeRequests,
     setDailyFreeRequests,
     loadDailyRequestState,
+    preferredCurrencySymbol,
   } = useGlobalContext();
 
+  console.log("preferredCurrencySymbol=>>>", preferredCurrencySymbol);
   // State variables for various data and UI controls
   const [latestReceipts, setLatestReceipts] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -425,20 +427,25 @@ const Home = () => {
             const populationValue = spendingByCategory[categoryName] || 0;
 
             return {
-              // Use the translated category name here
-              name: t(`categories.${categoryTranslationKey}`, {
+              // --- FIXED: Format 'name' to include category and formatted spending with symbol ---
+              name: `${t(`categories.${categoryTranslationKey}`, {
                 defaultValue: categoryName,
-              }), // Translate the category name
-              population: populationValue,
+              })} - ${
+                i18n.language.startsWith("ar")
+                  ? convertToArabicNumerals(populationValue.toFixed(2))
+                  : populationValue.toFixed(2)
+              } ${preferredCurrencySymbol}`, // <-- Formats number THEN symbol
+              // --- END FIXED ---
+              population: populationValue, // <-- CRITICAL: Keep population as a NUMBER
               color: gradientColors[index % gradientColors.length],
-              legendFontColor: "#7F7F7F",
+              legendFontColor: "#0000",
               legendFontSize: 12,
               percent:
                 totalItemsPriceForMonth > 0
                   ? (populationValue / totalItemsPriceForMonth) * 100
                   : 0,
               id: categoryName, // Keep original categoryName for ID
-              value: populationValue,
+              value: populationValue, // Keep raw value for calculations if needed elsewhere
             };
           }
         );
@@ -767,8 +774,7 @@ const Home = () => {
             }`} // Removed font class from className
             style={{ fontFamily: getFontClassName("bold") }} // Applied directly
           >
-            {t("home.total")} ({t("common.currency_symbol_short")}){" "}
-            {/* Translated + Currency Symbol */}
+            {t("home.total")} ({preferredCurrencySymbol})
           </Text>
           <Text
             className={`w-1/4 text-gray-700 text-sm text-right ${
@@ -1503,7 +1509,7 @@ const Home = () => {
 
               {/* Collapsible Search Filter Section */}
               {receiptStats.totalCount > 0 && (
-                <View className="p-2 mb-1 border-t border-[#9F54B6]">
+                <View className="p-2 mb-2 border-b border-t border-[#9F54B6]">
                   <View className="flex-row justify-between items-center">
                     {/* Search & Filter Title with dynamic fonts and alignment */}
                     <Text
@@ -1617,20 +1623,20 @@ const Home = () => {
                                   I18nManager.isRTL ? "text-right" : "text-left"
                                 }`}
                                 style={{
-                                  fontFamily: getFontClassName("regular"),
+                                  fontFamily: getFontClassName("bold"),
                                 }}
                               >
                                 {formatLocalizedDate(item.datetime)}{" "}
                                 {/* Using formatLocalizedDate */}
                                 {" | "}
                                 {item.total
-                                  ? `${t("common.currency_symbol_short")} ${
+                                  ? `${
                                       i18n.language.startsWith("ar")
                                         ? convertToArabicNumerals(
                                             parseFloat(item.total).toFixed(2)
                                           )
                                         : parseFloat(item.total).toFixed(2)
-                                    }`
+                                    } ${preferredCurrencySymbol}`
                                   : ""}
                               </Text>
                             )}
@@ -2069,7 +2075,8 @@ const Home = () => {
                           ? convertToArabicNumerals(
                               receiptStats.monthlySpending.toFixed(2)
                             )
-                          : receiptStats.monthlySpending.toFixed(2)}
+                          : receiptStats.monthlySpending.toFixed(2)}{" "}
+                        {preferredCurrencySymbol}
                       </Text>
                     </Text>
 
@@ -2151,7 +2158,8 @@ const Home = () => {
                         ? convertToArabicNumerals(
                             receiptStats.monthlySpending.toFixed(2)
                           )
-                        : receiptStats.monthlySpending.toFixed(2)}
+                        : receiptStats.monthlySpending.toFixed(2)}{" "}
+                      {preferredCurrencySymbol}
                     </Text>
                   </Text>
 
@@ -2280,8 +2288,7 @@ const Home = () => {
                           : parseFloat(selectedCategory.population).toFixed(
                               2
                             )}{" "}
-                        {t("common.currency_symbol_short")}{" "}
-                        {/* Currency symbol */}
+                        {preferredCurrencySymbol}
                       </Text>
 
                       {/* Merchant Breakdown Title */}
@@ -2302,7 +2309,6 @@ const Home = () => {
                         style={{ fontFamily: getFontClassName("bold") }}
                       >
                         {t("home.merchantSpendingDescription")}{" "}
-                        {/* Translated */}
                       </Text>
 
                       {/* Render Merchant Analysis Table - this function will need to be updated next! */}
@@ -2411,7 +2417,8 @@ const Home = () => {
                           )
                         : receiptStats.highestSpendingCategory.amount.toFixed(
                             2
-                          )}
+                          )}{" "}
+                      {preferredCurrencySymbol}
                     </Text>
                   </View>
                   {/* Percentage text with conditional alignment, dynamic fonts, and numeral conversion */}
@@ -2489,19 +2496,20 @@ const Home = () => {
                                       : "text-left"
                                   }`}
                                   style={{
-                                    fontFamily: getFontClassName("regular"),
+                                    fontFamily: getFontClassName("bold"),
                                   }}
                                 >
                                   {formatLocalizedDate(item.datetime)} {" | "}
                                   {item.total
-                                    ? `${t("common.currency_symbol_short")} ${
+                                    ? ` ${
                                         i18n.language.startsWith("ar")
                                           ? convertToArabicNumerals(
                                               parseFloat(item.total).toFixed(2)
                                             )
                                           : parseFloat(item.total).toFixed(2)
                                       }`
-                                    : ""}
+                                    : ""}{" "}
+                                  {preferredCurrencySymbol}
                                 </Text>
                               )}
                             </View>
@@ -2643,7 +2651,7 @@ const Home = () => {
                         (selectedReceipt.total || 0).toFixed(2)
                       ) // Defensive check & Arabic numerals
                     : (selectedReceipt.total || 0).toFixed(2)}{" "}
-                  {t("common.currency_symbol_short")}
+                  {preferredCurrencySymbol}
                 </Text>
               )}
               {/* View Receipt */}

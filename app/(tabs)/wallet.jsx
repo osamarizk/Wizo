@@ -68,6 +68,7 @@ const Wallet = () => {
     user,
     isLoading: globalLoading,
     updateUnreadCount,
+    preferredCurrencySymbol,
   } = useGlobalContext();
 
   const [walletBalance, setWalletBalance] = useState(0);
@@ -505,7 +506,7 @@ const Wallet = () => {
     <GradientBackground>
       <SafeAreaView className="flex-1">
         <ScrollView
-          className="w-full h-full p-4"
+          className="w-full h-full p-2"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -540,7 +541,7 @@ const Wallet = () => {
               className="text-base text-gray-600 mb-2 text-center" // Removed font-pmedium
               style={{ fontFamily: getFontClassName("medium") }} // Apply font directly
             >
-              {t("wallet.currentBalance")} {/* Translated */}
+              {t("wallet.currentBalance")}
             </Text>
             <Text
               className="text-3xl text-center text-black" // Removed font-pbold
@@ -549,7 +550,7 @@ const Wallet = () => {
               {i18n.language.startsWith("ar")
                 ? convertToArabicNumerals(walletBalance.toFixed(2))
                 : walletBalance.toFixed(2)}{" "}
-              {t("common.currency_symbol_short")}
+              {preferredCurrencySymbol}
             </Text>
           </View>
 
@@ -587,7 +588,7 @@ const Wallet = () => {
                   {i18n.language.startsWith("ar")
                     ? convertToArabicNumerals(monthlyDeposits.toFixed(2))
                     : monthlyDeposits.toFixed(2)}{" "}
-                  {t("common.currency_symbol_short")}
+                  {preferredCurrencySymbol}
                 </Text>
               </View>
               <View className="items-center">
@@ -607,7 +608,7 @@ const Wallet = () => {
                         monthlyExpensesWithdrawals.toFixed(2)
                       )
                     : monthlyExpensesWithdrawals.toFixed(2)}{" "}
-                  {t("common.currency_symbol_short")}
+                  {preferredCurrencySymbol}
                 </Text>
               </View>
             </View>
@@ -625,12 +626,12 @@ const Wallet = () => {
                 : (monthlyDeposits - monthlyExpensesWithdrawals).toFixed(
                     2
                   )}{" "}
-              {t("common.currency_symbol_short")}
+              {preferredCurrencySymbol}
             </Text>
           </View>
 
           {/* Average Cash Expense Card */}
-          <View className="bg-transparent p-4 rounded-lg mb-1 border-t border-[#9F54B6]">
+          <View className="bg-transparent p-2 rounded-lg mb-1 border-t border-[#9F54B6]">
             <Text
               className={`text-lg text-black mb-3 ${
                 I18nManager.isRTL ? "text-right" : "text-left" // Align title
@@ -647,7 +648,7 @@ const Wallet = () => {
                 {i18n.language.startsWith("ar")
                   ? convertToArabicNumerals(averageCashExpense.toFixed(2))
                   : averageCashExpense.toFixed(2)}{" "}
-                {t("common.currency_symbol_short")}
+                {preferredCurrencySymbol}
               </Text>
             ) : (
               <Text
@@ -659,10 +660,10 @@ const Wallet = () => {
             )}
           </View>
           {/* Single "Record Transaction" Button */}
-          <View className="bg-transparent p-4 rounded-lg mb-3 ">
+          <View className="bg-transparent p-2 rounded-lg mb-1 ">
             <TouchableOpacity
               onPress={() => openTransactionModal(null)}
-              className="mb-2 w-full bg-[#D03957] rounded-md p-3 items-center justify-center "
+              className="mb-1 w-full bg-[#D03957] rounded-md p-3 items-center justify-center "
             >
               <Text
                 className="text-white text-lg" // Removed font-psemibold
@@ -674,7 +675,7 @@ const Wallet = () => {
           </View>
 
           {/* Recent Transactions List */}
-          <View className="bg-transparent p-4 rounded-lg border-t border-[#9F54B6]">
+          <View className="bg-transparent p-3 rounded-lg border-t border-[#9F54B6]">
             <Text
               className={`text-lg text-black mb-4 ${
                 I18nManager.isRTL ? "text-right" : "text-left" // Align title
@@ -696,7 +697,7 @@ const Wallet = () => {
               transactions.map((tx) => (
                 <View
                   key={tx.$id}
-                  className={`flex-row justify-between items-center py-3 border-b border-gray-200 last:border-none ${
+                  className={`bg-primary flex-row justify-between items-center py-1 px-1 border-b border-gray-200  ${
                     I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse transaction row for RTL
                   }`}
                 >
@@ -756,7 +757,7 @@ const Wallet = () => {
                             parseFloat(tx.amount).toFixed(2)
                           )
                         : parseFloat(tx.amount).toFixed(2)}{" "}
-                      {t("common.currency_symbol_short")}
+                      {preferredCurrencySymbol}
                     </Text>
                     <TouchableOpacity
                       onPress={() => setSelectedTransactionForEdit(tx)}
@@ -899,8 +900,8 @@ const Wallet = () => {
                     }`} // Removed font-pregular
                     style={{ fontFamily: getFontClassName("regular") }} // Apply font
                     placeholder={t("wallet.amountPlaceholder", {
-                      currencySymbol: t("common.currency_symbol_short"),
-                    })} // Translated placeholder with currency
+                      currencySymbol: preferredCurrencySymbol, // <-- FIXED: Use preferredCurrencySymbol
+                    })}
                     keyboardType="numeric"
                     value={transactionAmount}
                     onChangeText={setTransactionAmount}
@@ -920,8 +921,8 @@ const Wallet = () => {
 
                   <TouchableOpacity
                     onPress={handleSaveTransaction}
-                    className={`p-4 rounded-lg w-full items-center mb-3 ${
-                      isProcessingTransaction ? "bg-gray-400" : "bg-blue-500"
+                    className={`p-3 rounded-lg w-full items-center mb-3 ${
+                      isProcessingTransaction ? "bg-gray-400" : "bg-[#2A9D8F]"
                     }`}
                     disabled={isProcessingTransaction}
                   >
@@ -989,7 +990,7 @@ const Wallet = () => {
                 onPress={() => {
                   openTransactionModal(selectedTransactionForEdit);
                 }}
-                className="p-4 rounded-lg w-full items-center bg-blue-500 mb-2"
+                className="p-2 rounded-lg w-full items-center bg-[#2A9D8F] mb-2"
               >
                 <Text
                   className="text-white text-lg" // Removed font-pbold
@@ -1003,7 +1004,7 @@ const Wallet = () => {
                 onPress={() => {
                   setIsConfirmDeleteModalVisible(true);
                 }}
-                className="p-4 rounded-lg w-full items-center bg-red-500 mb-4"
+                className="p-2 rounded-lg w-full items-center bg-red-500 mb-4"
               >
                 <Text
                   className="text-white text-lg" // Removed font-pbold
@@ -1063,7 +1064,7 @@ const Wallet = () => {
                 onPress={() =>
                   handleDeleteConfirm(selectedTransactionForEdit?.$id)
                 }
-                className={`p-4 rounded-lg w-full items-center mb-3 ${
+                className={`p-2 rounded-lg w-full items-center mb-3 ${
                   isProcessingTransaction ? "bg-gray-400" : "bg-red-500"
                 }`}
                 disabled={isProcessingTransaction}

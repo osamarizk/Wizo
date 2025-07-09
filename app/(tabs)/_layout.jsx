@@ -20,6 +20,7 @@ import { Image } from "react-native";
 import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../../utils/fontUtils";
 import i18n from "../../utils/i18n";
+import { StatusBar } from "expo-status-bar";
 const TabsLayout = () => {
   const { showUploadModal, setShowUploadModal } = useGlobalContext();
   const [activeTab, setActiveTab] = useState("home"); // Keep track of active tab
@@ -76,9 +77,9 @@ const TabsLayout = () => {
                 className={`text-white text-xs ${getFontClassName(
                   "bold"
                 )} text-center`}
-                 style={{ fontFamily: getFontClassName("bold") }}
+                style={{ fontFamily: getFontClassName("bold") }}
               >
-                {t("common.exclamationMark")} 
+                {t("common.exclamationMark")}
               </Text>
             </View>
           )}
@@ -95,7 +96,7 @@ const TabsLayout = () => {
               ios: 14,
               android: 11,
             }),
-            fontFamily:getFontClassName(focused?"semibold":"regular")
+            fontFamily: getFontClassName(focused ? "semibold" : "regular"),
           }}
           numberOfLines={1}
           ellipsizeMode="tail"
@@ -258,7 +259,7 @@ const TabsLayout = () => {
           }}
         /> */}
       </Tabs>
-
+      <StatusBar backgroundColor="#161622" style="light" />
       {/* Upload Modal will be shown when showUploadModal is true */}
 
       {showUploadModal && (

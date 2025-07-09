@@ -87,6 +87,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
     applicationSettings,
     setUser,
     checkSessionAndFetchUser,
+    preferredCurrencySymbol,
   } = useGlobalContext();
 
   // NEW STATE: To control visibility after save click
@@ -117,6 +118,11 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         "Could not process image.": "aiMessages.couldNotProcessImage",
         "No items found.": "aiMessages.noItemsFound",
         "Missing merchant name.": "aiMessages.missingMerchantName",
+        "Failed to extract or detect receipt. Please try again. Details: Empty response from Gemini":
+          "aiMessages.geminiEmptyResponse",
+        "The model is overloaded. Please try again later.":
+          "aiMessages.modelOverloaded",
+
         // Add more mappings here as you discover exact English messages from your AI API
       };
 
@@ -136,7 +142,9 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       );
 
       // If a mapping exists, translate it. Otherwise, return the original English message as a fallback.
-      return translationKey ? t(translationKey) : englishMessage;
+      return translationKey
+        ? t(translationKey)
+        : t("aiMessages.genericAiError", { message: englishMessage });
     },
     [t]
   );
@@ -255,9 +263,21 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       if (!data.isReceipt) {
         const displayMessage = data.message
           ? getTranslatedAiMessage(data.message)
-          : t("receiptProcess.notAReceiptMessage");
+          : t("receiptProcess.notAReceiptMessage"); // Fallback if data.message is null/empty
 
-        Alert.alert(t("receiptProcess.notAReceiptTitle"), displayMessage);
+        // --- FIXED: Dynamically choose alert title based on message content ---
+        let alertTitle;
+        // If the message indicates a technical AI issue (like overload or empty response),
+        // use a more general "AI Processing Error" title.
+        if (data.message && (data.message.includes("overloaded") || data.message.includes("Empty response from Gemini"))) {
+          alertTitle = t("receiptProcess.aiProcessingErrorTitle"); // NEW translation key
+        } else {
+          // Otherwise, it's genuinely "not a receipt" or a general AI message
+          alertTitle = t("receiptProcess.notAReceiptTitle");
+        }
+
+        Alert.alert(alertTitle, displayMessage); // <-- UPDATED Alert.alert call
+        // --- END FIXED ---
         return;
       }
       // --- Item Consolidation Logic (remains unchanged) ---
@@ -359,8 +379,19 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         t("receiptProcess.processedSuccess")
       );
     } catch (error) {
-      Alert.alert("Error", "Failed to extract receipt data.");
-      console.error("Receipt extraction failed:", error);
+      console.error("Receipt extraction failed:", error); // Keep detailed log for debugging
+
+      // --- FIXED: Use getTranslatedAiMessage for more specific AI errors ---
+      let displayMessage;
+      if (error && error.message) {
+        // Attempt to get a specific translation for the AI error message
+        displayMessage = getTranslatedAiMessage(error.message);
+      } else {
+        // Fallback for generic or unknown errors
+        displayMessage = t("receiptProcess.generalProcessingError"); // New translation key needed
+      }
+
+      Alert.alert(t("common.errorTitle"), displayMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -711,6 +742,44 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
   return (
     <View className=" px-2 pt-10 pb-2  max-h-[90vh] bg-[#cccccd]">
+      {!extractedData &&
+        !isProcessing &&
+        !hasSaved && ( // Ensure it only shows when relevant
+          <View
+            className={`absolute z-10 top-4 ${
+              I18nManager.isRTL ? "left-4" : "right-4"
+            }`}
+          >
+            <TouchableOpacity onPress={onCancel}>
+              <View className="items-center">
+                <Image
+                  source={images.cancel}
+                  resizeMode="contain"
+                  className="w-[45px] h-[45px] rounded-full p-1 border-2 border-red-600 opacity-90"
+                />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+      {extractedData && (
+        <View
+          className={`absolute z-10 top-4 ${
+            I18nManager.isRTL ? "left-4" : "right-4"
+          }`}
+        >
+          <TouchableOpacity onPress={onCancel}>
+            <View className="items-center">
+              <Image
+                source={images.cancel}
+                resizeMode="contain"
+                className="w-[45px] h-[45px] rounded-full p-1 border-2 border-red-600 opacity-90"
+              />
+            </View>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <ScrollView
         contentContainerStyle={{
           alignItems: "center",
@@ -725,7 +794,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
               className={`text-xl text-black text-center mb-2 mt-4 ${getFontClassName(
                 "bold"
               )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
-               style={{ fontFamily: getFontClassName("bold") }}
+              style={{ fontFamily: getFontClassName("bold") }}
             >
               {hasSaved && isProcessing
                 ? t("receiptProcess.savingReceipt")
@@ -749,7 +818,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
               <Image
                 source={{ uri: imageUri }}
                 resizeMode="contain"
-                className="w-full aspect-[5/6] mb-1 mt-4 rounded-3xl"
+                className="w-full aspect-[5/6] mb-1 mt-6 rounded-3xl"
               />
 
               <View
@@ -761,7 +830,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                   className={`text-base text-white ${getFontClassName(
                     "semibold"
                   )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
-                   style={{ fontFamily: getFontClassName("semibold") }}
+                  style={{ fontFamily: getFontClassName("semibold") }}
                 >
                   {t("receiptProcess.tapToViewFull")}
                 </Text>
@@ -775,38 +844,19 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                   className={`mt-2 text-black/70 text-center ${getFontClassName(
                     "semibold"
                   )}`}
-                   style={{ fontFamily: getFontClassName("semibold") }}
+                  style={{ fontFamily: getFontClassName("semibold") }}
                 >
                   {t("receiptProcess.processingMessage")}
                 </Text>
               </View>
             ) : (
               <View className="flex-row justify-center items-center gap-6 mt-4 mb-6">
-                {!hasSaved && (
-                  <TouchableOpacity onPress={onCancel}>
-                    <View className="items-center">
-                      <Image
-                        source={images.cancel}
-                        resizeMode="contain"
-                        className="w-[50px] h-[50px] rounded-full p-1 border-2 border-red-400 opacity-90"
-                      />
-                      <Text
-                        className={`mt-1 text-sm text-black/80 ${getFontClassName(
-                          "regular"
-                        )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
-                         style={{ fontFamily: getFontClassName("regular") }}
-                      >
-                        {t("common.cancel")}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity onPress={handleProcessReceipt}>
                   <View className="items-center">
                     <Image
                       source={images.confirm}
                       resizeMode="contain"
-                      className="w-[50px] h-[50px] rounded-full p-1 border-2 border-green-500 opacity-90"
+                      className="w-[57px] h-[57px] rounded-full p-1 border-2 border-green-800 opacity-90"
                     />
                     <Text
                       className={`mt-1 text-sm text-black/80 ${getFontClassName(
@@ -1061,12 +1111,17 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                           className={`text-red-900 text-base ${getFontClassName(
                             "bold"
                           )}`}
-                          style={{ fontFamily: getFontClassName("bold") }}
+                          style={{
+                            fontFamily: getFontClassName("bold"),
+                            textAlign: i18n.language.startsWith("ar")
+                              ? "right"
+                              : "left",
+                          }}
                         >
                           {i18n.language.startsWith("ar")
                             ? convertToArabicNumerals(item.price || 0)
                             : (item.price || 0).toFixed(2)}{" "}
-                          {t("common.currency_symbol_short")}{" "}
+                          {preferredCurrencySymbol}{" "}
                         </Text>
                       </Text>
                     </View>
@@ -1119,7 +1174,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                           extractedData.subtotal.toFixed(2)
                         )
                       : extractedData.subtotal.toFixed(2)}{" "}
-                    {t("common.currency_symbol_short")}
+                    {preferredCurrencySymbol}
                   </Text>
                 )}
               {/* VAT Display */}
@@ -1145,7 +1200,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                     {i18n.language.startsWith("ar")
                       ? convertToArabicNumerals(extractedData.vat.toFixed(2))
                       : extractedData.vat.toFixed(2)}{" "}
-                    {t("common.currency_symbol_short")}
+                    {preferredCurrencySymbol}
                   </Text>
                 )}
             </View>
@@ -1173,7 +1228,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                   {i18n.language.startsWith("ar")
                     ? convertToArabicNumerals(extractedData.total.toFixed(2))
                     : extractedData.total.toFixed(2)}{" "}
-                  {t("common.currency_symbol_short")}
+                  {preferredCurrencySymbol}
                 </Text>
               )}
 

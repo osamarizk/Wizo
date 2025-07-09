@@ -11,19 +11,24 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import images from "../../constants/images";
 import FormFiled from "../../components/FormField";
 import CustomButton from "../../components/CustomButton";
 import { Link, router } from "expo-router";
 import { useGlobalContext } from "../../context/GlobalProvider";
-import { createUser, getAppwriteErrorMessageKey } from "../../lib/appwrite";
+import {
+  createUser,
+  getAppwriteErrorMessageKey,
+  checkSession,
+} from "../../lib/appwrite";
 import GradientBackground from "../../components/GradientBackground";
 import Checkbox from "expo-checkbox";
 
 import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../../utils/fontUtils";
+import CurrencySelector from "../../components/CurrencySelector";
 
 const SignUp = () => {
   const { t } = useTranslation();
@@ -33,18 +38,36 @@ const SignUp = () => {
     email: "",
     password: "",
     confirmPassword: "",
+    preferredCurrency: null,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [preferredCurrency, setPreferredCurrency] = useState(null);
+  const [countryCode, setCountryCode] = useState(null);
 
   const { setUser, setIsLogged } = useGlobalContext();
+
+  useEffect(() => {
+    const fetchCountry = async () => {
+      try {
+        const userSession = await checkSession(); // Your Appwrite session check
+        if (userSession && userSession.countryName) {
+          setCountryCode(userSession.countryName); // Set initial country code
+        }
+      } catch (error) {
+        console.error("Failed to fetch country from session:", error);
+      }
+    };
+    fetchCountry();
+  }, []);
 
   const submit = async () => {
     if (
       !form.username ||
       !form.email ||
       !form.password ||
-      !form.confirmPassword
+      !form.confirmPassword ||
+      !form.preferredCurrency
     ) {
       Alert.alert(t("common.errorTitle"), t("auth.fillAllFieldsError"));
       return;
@@ -71,12 +94,35 @@ const SignUp = () => {
       return;
     }
 
+    console.log("prefered currency===>>>", form.preferredCurrency);
+
     setIsSubmitting(true);
     try {
-      const result = await createUser(form.email, form.password, form.username);
+      const result = await createUser(
+        form.email,
+        form.password,
+        form.username,
+        form.preferredCurrency
+      );
 
       setUser(result);
       setIsLogged(true);
+
+      // if (form.preferredCurrency) {
+      //   // Ensure it's not null before saving
+      //   await account.updatePrefs({
+      //     preferredCurrency: form.preferredCurrency, // <-- FIXED: Use form.preferredCurrency
+      //   });
+      // } else {
+      //   // Optional: Handle case where preferredCurrency might still be null
+      //   // (e.g., if you don't make it a mandatory field and user skips selection)
+      //   console.warn(
+      //     "No preferred currency selected, user preferences might not be updated."
+      //   );
+      //   // You could set a default here if needed:
+      //   // const defaultCurrency = countryCodeToCurrencyMap[countryCode?.toUpperCase()]?.code || countryCodeToCurrencyMap.DEFAULT.code;
+      //   // await account.updatePrefs({ preferredCurrency: defaultCurrency });
+      // }
 
       router.replace("/home");
     } catch (error) {
@@ -112,7 +158,7 @@ const SignUp = () => {
             <Image
               source={images.logoo7}
               resizeMode="contain"
-              className="w-[230px] h-[105px] "
+              className="w-[230px] h-[90px] "
             />
 
             {/* <Text
@@ -127,7 +173,7 @@ const SignUp = () => {
               title={t("auth.username")}
               value={form.username}
               handleChangeText={(e) => setForm({ ...form, username: e })}
-              otherStyles="mt-3"
+              otherStyles="mt-2"
               placeholder={t("auth.enterUsernamePlaceholder")}
             />
 
@@ -135,7 +181,7 @@ const SignUp = () => {
               title={t("auth.emailAddress")}
               value={form.email}
               handleChangeText={(e) => setForm({ ...form, email: e })}
-              otherStyles="mt-3"
+              otherStyles="mt-2"
               keyboardType="email-address"
               placeholder={t("auth.enterEmailPlaceholder")}
             />
@@ -144,7 +190,7 @@ const SignUp = () => {
               title={t("auth.password")}
               value={form.password}
               handleChangeText={(e) => setForm({ ...form, password: e })}
-              otherStyles="mt-3"
+              otherStyles="mt-2"
               secureTextEntry
               placeholder={t("auth.enterPasswordPlaceholderShort")}
             />
@@ -153,14 +199,23 @@ const SignUp = () => {
               title={t("auth.confirmPassword")}
               value={form.confirmPassword}
               handleChangeText={(e) => setForm({ ...form, confirmPassword: e })}
-              otherStyles="mt-3"
+              otherStyles="mt-2"
               secureTextEntry
               placeholder={t("auth.reenterPasswordPlaceholder")}
             />
 
+            <CurrencySelector
+              initialCountryCode={countryCode} // Pass the country code from session
+              initialCurrencyCode={form.preferredCurrency} // <-- FIXED: Read from form state
+              onCurrencyChange={(value) =>
+                setForm({ ...form, preferredCurrency: value })
+              } // <-- FIXED: Update form state
+              containerStyles="mt-2" // Example styling
+            />
+
             {/* Terms and Privacy Checkbox */}
             <View
-              className={`flex-row items-center mt-5 w-full px-1 ${
+              className={`flex-row items-center mt-2 w-full px-1 ${
                 I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
               }`}
             >
@@ -208,13 +263,13 @@ const SignUp = () => {
             <CustomButton
               title={t("auth.signUpButton")}
               handlePress={submit}
-              containerStyle="mt-7 w-full"
+              containerStyle="mt-4 w-full"
               isLoading={isSubmitting}
             />
 
             {/* Already have an account link */}
             <View
-              className={`justify-center pt-3 flex-row gap-2 ${
+              className={`justify-center pt-2 flex-row gap-2 ${
                 I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
               }`}
             >
@@ -229,11 +284,9 @@ const SignUp = () => {
               </Text>
               <Link
                 href="/sign-in"
-                className={`text-lg text-red-700 ${getFontClassName(
-                  "semibold"
-                )}`}
+                className={`text-lg text-red-700 ${getFontClassName("bold")}`}
                 style={{
-                  fontFamily: getFontClassName("semibold"),
+                  fontFamily: getFontClassName("bold"),
                   textAlign: I18nManager.isRTL ? "right" : "left",
                 }}
               >

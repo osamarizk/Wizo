@@ -157,28 +157,11 @@ const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
                 {t("uploadModal.pleaseSelectToUpload")}
               </Text>
 
-              <View className="flex-row justify-center items-center gap-3 ">
-                {/* Camera Button */}
-                <TouchableOpacity
-                  onPress={() => handleSelect(pickImageFromCamera)}
-                  className="flex-row items-center justify-center bg-gray-50 rounded-xl p-1 w-44 gap-1 border-2 border-[#F0F0F2]"
-                >
-                  <Image
-                    source={icons.camera}
-                    resizeMode="contain"
-                    className="w-10 h-10 mb-2"
-                  />
-                  {/* Camera button text with dynamic font and alignment */}
-                  <Text
-                    className={`text-gray-700 ${getFontClassName("semibold")} ${
-                      I18nManager.isRTL ? "text-right" : "text-left"
-                    }`}
-                    style={{ fontFamily: getFontClassName("semibold") }}
-                  >
-                    {t("uploadModal.camera")}
-                  </Text>
-                </TouchableOpacity>
-
+              <View
+                className={`flex-row justify-center items-center gap-3 ${
+                  I18nManager.isRTL ? "items-end" : "items-start"
+                }`}
+              >
                 {/* Gallery Button */}
                 <TouchableOpacity
                   onPress={() => handleSelect(pickImageFromGallery)}
@@ -197,6 +180,26 @@ const UploadModal = ({ visible, onClose, onUploadSuccess }) => {
                     style={{ fontFamily: getFontClassName("semibold") }}
                   >
                     {t("uploadModal.gallery")}
+                  </Text>
+                </TouchableOpacity>
+                {/* Camera Button */}
+                <TouchableOpacity
+                  onPress={() => handleSelect(pickImageFromCamera)}
+                  className="flex-row items-center justify-center bg-gray-50 rounded-xl p-1 w-44 gap-1 border-2 border-[#F0F0F2]"
+                >
+                  <Image
+                    source={icons.camera}
+                    resizeMode="contain"
+                    className="w-10 h-10 mb-2"
+                  />
+                  {/* Camera button text with dynamic font and alignment */}
+                  <Text
+                    className={`text-gray-700 ${getFontClassName("semibold")} ${
+                      I18nManager.isRTL ? "text-right" : "text-left"
+                    }`}
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    {t("uploadModal.camera")}
                   </Text>
                 </TouchableOpacity>
               </View>

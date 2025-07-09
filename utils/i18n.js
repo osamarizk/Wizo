@@ -220,6 +220,12 @@ const resources = {
         searching: "Searching...",
         upload: "Upload",
         currency_symbol_short: "EGP",
+        currencyPreference: "Currency Preference",
+        selectCurrency: "Select Currency",
+        searchCurrency: "Search Currency...",
+        selectPreferredCurrency: "Select preferred currency",
+        amount: "Amount",
+        month: "Month",
       },
       aiMessages: {
         // Update this line to match the exact message from your AI API
@@ -232,6 +238,12 @@ const resources = {
           "We encountered an issue processing this image. Please try again or with a different receipt.",
         noItemsFound: "No items found in the receipt.",
         missingMerchantName: "Could not identify merchant name.",
+        geminiEmptyResponse:
+          "Failed to extract or detect receipt. Please try again. Details: Empty response from AI.",
+        genericAiError:
+          "An unexpected issue occurred during AI processing. Please try again. Details: {{message}}",
+        modelOverloaded:
+          "The AI model is currently overloaded. Please try again in a moment.",
         // ... any other aiMessages keys
       },
       receiptProcess: {
@@ -282,6 +294,9 @@ const resources = {
         cancel: "Cancel", // Cancel button text (confirm if in common already)
         dataSavingSecurely: "Your data is saving securely...",
         pleaseWaitProcessing: "Please wait while we process your request.",
+        generalProcessingError:
+          "Failed to process receipt data. Please ensure the image is clear and try again.",
+        aiProcessingErrorTitle: "AI Processing Error",
       },
       editReceipt: {
         editReceipt: "Edit Receipt",
@@ -469,7 +484,7 @@ const resources = {
         noReceiptsUploadedYet:
           "✨ No receipts uploaded yet. Let's get started! ✨", // For no receipts message
         detailsTitle: " Details", // Used for "Category Name Details"
-        totalSpending: "Total Spending", // For "Total Spending: X"
+        totalSpending: "Total", // For "Total Spending: X"
         merchantBreakdownTitle: "Merchant Breakdown", // For "Merchant Breakdown" title
         merchantSpendingDescription:
           "Merchant spending figures are calculated based on the individual item prices from your receipts, prior to any discounts, VAT, or other service charges.",
@@ -631,6 +646,12 @@ const resources = {
         financialAdviceNotificationTitle: "Financial Advice", // Assuming this is the title for financial advice notifications
         financialAdviceDetails: "Advice Details:",
         loadingAdvice: "Loading financial advice...",
+        premiumActivatedTitle: "Premium Activated!",
+        premiumActivatedMessage:
+          "Congratulations! Your premium subscription is now active. Enjoy all exclusive features!",
+        premiumDeactivatedTitle: "Premium Deactivated",
+        premiumDeactivatedMessage:
+          "Your premium subscription is no longer active. Some features may be limited.",
       },
       settings: {
         applicationSettingsTitle: "Application Settings",
@@ -758,16 +779,15 @@ const resources = {
           "No receipts for this month to calculate average.",
         merchantAnalysisTitle: "Merchant Analysis",
         merchantVisitsOverview: "Merchant Visits Overview",
-        merchantChartDescription:
-          "Displaying top 5 merchants by visits (default). Chart settings for this limit can be adjusted from the app's settings section.",
+        merchantChartDescription: "Displaying top 5 merchants by visits.",
         merchant: "Merchant",
-        totalAmountShort: "Total (💵)", // Placeholder for currency symbol. Actual symbol from common.currency_symbol_short will be used in code.
+        totalAmountShort: "Total", // Placeholder for currency symbol. Actual symbol from common.currency_symbol_short will be used in code.
         visits: "Visits",
         view: "View",
         noMerchantData: "No merchant data available.",
         itemsBreakdownTitle: "Items Breakdown",
         item: "Item",
-        totalSpend: "Total Spend",
+        totalSpend: "Total",
         timesBought: "Times Bought",
         noItemData: "No item data available.",
         visitsFor: "Visits for {{merchantName}}", // e.g., "Visits for Carrefour"
@@ -1329,6 +1349,56 @@ const resources = {
           "Congratulations! You are now a Premium member. Enjoy unlimited features!",
         financialAdviceUnlimited: "Get Financial Advice Without Limitation",
       },
+      editProfile: {
+        editProfileTitle: "Edit Profile",
+        changeAvatar: "Change Avatar",
+        username: "Username",
+        enterUsername: "Enter your username",
+        email: "Email",
+        preferredCurrency: "Preferred Currency",
+        currentPassword: "Current Password",
+        enterCurrentPassword: "Enter your current password",
+        newPassword: "New Password",
+        enterNewPassword: "Enter new password (min 8 chars)",
+        confirmNewPassword: "Confirm New Password",
+        confirmNewPasswordPlaceholder: "Confirm your new password",
+        saveChanges: "Save Changes",
+        noChangesMade: "No changes were made.",
+        saveSuccess: "Profile updated successfully!",
+        permissionDeniedTitle: "Permission Denied",
+        permissionDeniedMessage:
+          "Permission to access media library was denied. Please enable it in settings to change your avatar.",
+        imagePickerError: "Failed to pick image: {{message}}",
+        passwordTooShort: "New password must be at least 8 characters long.",
+        passwordsDoNotMatch: "New passwords do not match.",
+        currentPasswordRequired:
+          "Current password is required to change password.",
+        incorrectCurrentPassword:
+          "The current password you entered is incorrect.",
+      },
+      subscription: {
+        loadingSubscriptions: "Loading subscription plans...",
+        fetchProductsError: "Failed to load subscription plans: {{message}}",
+        upgradeToPremiumTitle: "Upgrade to Premium",
+        unlockPremiumBenefits: "Unlock Premium Benefits",
+        unlimitedReceipts: "Unlimited Receipt Scans & Storage",
+        advancedAnalytics: "Advanced Spending Analytics",
+        prioritySupport: "Priority Customer Support",
+        chooseYourPlan: "Choose Your Plan",
+        noSubscriptionPlansAvailable:
+          "No subscription plans are currently available. Please try again later.",
+        monthlyPlan: "Monthly Plan",
+        yearlyPlan: "Yearly Plan",
+        restorePurchases: "Restore Purchases",
+        termsDisclaimer:
+          "By subscribing, you agree to our Terms of Service and Privacy Policy. Subscriptions automatically renew unless canceled.",
+        purchaseError: "Purchase failed: {{message}}",
+        purchaseSuccess: "Subscription successful! Premium features activated.",
+        restoreSuccess: "Purchases restored successfully!",
+        restoreNoPurchases: "No purchases found to restore.",
+        restoreError: "Failed to restore purchases: {{message}}",
+        updateStatusError: "Failed to update premium status: {{message}}",
+      },
     },
   },
   ar: {
@@ -1486,6 +1556,12 @@ const resources = {
         error: "خطأ",
         searching: "جاري البحث...",
         upload: "تحميل",
+        currencyPreference: "تفضيل العملة",
+        selectCurrency: "اختر العملة",
+        searchCurrency: "البحث عن العملة...",
+        selectPreferredCurrency: "اختر العملة المفضلة",
+        amount: "المبلغ",
+        month: "الشهر",
       },
       onboarding: {
         heroText: "إدارة الإيصالات مملة وغالبًا ما تُفقد ويصعب تتبعها.",
@@ -1549,6 +1625,12 @@ const resources = {
           "واجهنا مشكلة في معالجة هذه الصورة. الرجاء المحاولة مرة أخرى أو بإيصال مختلف.",
         noItemsFound: "لم يتم العثور على أي عناصر في الإيصال.",
         missingMerchantName: "تعذر التعرف على اسم التاجر.",
+        geminiEmptyResponse:
+          "فشل استخراج أو اكتشاف الإيصال. يرجى المحاولة مرة أخرى. التفاصيل.",
+        genericAiError:
+          "حدث خطأ غير متوقع أثناء معالجة الذكاء الاصطناعي. يرجى المحاولة مرة أخرى. التفاصيل: {{message}}",
+        modelOverloaded:
+          "نموذج الذكاء الاصطناعي محمل حاليًا. يرجى المحاولة مرة أخرى بعد قليل.",
         // ... any other Arabic aiMessages keys
       },
       receiptProcess: {
@@ -1598,6 +1680,9 @@ const resources = {
         cancel: "إلغاء",
         dataSavingSecurely: "بياناتك يتم حفظها بأمان...",
         pleaseWaitProcessing: "الرجاء الانتظار بينما نقوم بمعالجة طلبك.",
+        generalProcessingError:
+          "فشل معالجة بيانات الإيصال. يرجى التأكد من أن الصورة واضحة والمحاولة مرة أخرى.",
+        aiProcessingErrorTitle: "خطأ في معالجة الذكاء الاصطناعي",
       },
       editReceipt: {
         editReceipt: "تعديل الفاتورة",
@@ -1782,7 +1867,7 @@ const resources = {
           "لم يتم العثور على إيصالات مطابقة لمعايير البحث الخاصة بك.",
         noReceiptsUploadedYet: "✨ لم يتم تحميل أي إيصالات بعد. لنبدأ! ✨",
         detailsTitle: " تفاصيل", // For "اسم الفئة تفاصيل"
-        totalSpending: "إجمالي الإنفاق",
+        totalSpending: "الإجمالي",
         merchantBreakdownTitle: "توزيع التجار",
         merchantSpendingDescription:
           "يتم احتساب أرقام إنفاق التجار بناءً على أسعار العناصر الفردية في إيصالاتك، قبل تطبيق أي خصومات أو ضريبة القيمة المضافة أو رسوم خدمة أخرى.",
@@ -1941,6 +2026,12 @@ const resources = {
         financialAdviceNotificationTitle: "نصيحة مالية",
         financialAdviceDetails: "تفاصيل النصيحة:",
         loadingAdvice: "جاري تحميل النصيحة المالية...",
+        premiumActivatedTitle: "تم تفعيل بريميوم!",
+        premiumActivatedMessage:
+          "تهانينا! اشتراكك المميز نشط الآن. استمتع بجميع الميزات الحصرية!",
+        premiumDeactivatedTitle: "تم إلغاء تفعيل بريميوم",
+        premiumDeactivatedMessage:
+          "اشتراكك المميز لم يعد نشطًا. قد تكون بعض الميزات محدودة.",
       },
       settings: {
         applicationSettingsTitle: "إعدادات التطبيق",
@@ -2058,16 +2149,15 @@ const resources = {
         noReceiptsForAverage: "لا توجد فواتير لهذا الشهر لحساب المتوسط.",
         merchantAnalysisTitle: "تحليل التجار",
         merchantVisitsOverview: "نظرة عامة على زيارات التجار",
-        merchantChartDescription:
-          "عرض أفضل 5 تجار حسب الزيارات (افتراضي). يمكن تعديل إعدادات الرسم البياني لهذا الحد من قسم إعدادات التطبيق.",
+        merchantChartDescription: "عرض أفضل 5 تجار حسب الزيارات .",
         merchant: "التاجر",
-        totalAmountShort: "الإجمالي (💵)",
+        totalAmountShort: "الإجمالي",
         visits: "الزيارات",
         view: "عرض",
         noMerchantData: "لا توجد بيانات عن التجار متاحة.",
         itemsBreakdownTitle: "تفصيل العناصر",
         item: "العنصر",
-        totalSpend: "إجمالي الإنفاق",
+        totalSpend: "الإجمالي",
         timesBought: "عدد مرات الشراء",
         noItemData: "لا توجد بيانات عن العناصر متاحة.",
         visitsFor: "زيارات لـ {{merchantName}}",
@@ -2082,7 +2172,7 @@ const resources = {
         noHeatmapData:
           "لا توجد إيصالات للشهر الحالي بعد. قم بتحميل بعضها لرؤية أنماطك!",
         tapToViewFullScreen: "انقر للعرض بملء الشاشة",
-        spendingOn: "الإنفاق في ",
+        spendingOn: " الإنفاق في يوم",
         atTime: " الساعة ",
         totalSpent: "إجمالي الإنفاق",
         numberOfReceipts: "عدد الإيصالات",
@@ -2617,7 +2707,6 @@ const resources = {
         userPremiumUpdateFailed:
           "فشل تحديث حالة اشتراكك المميز. الرجاء الاتصال بالدعم.",
       },
-
       upgradePremium: {
         loadingDetails: "جاري تحميل تفاصيل الاشتراك المميز...",
         goPremiumTitle: "احصل على الاشتراك المميز!",
@@ -2639,6 +2728,56 @@ const resources = {
         congratulationsMessage:
           "تهانينا! أنت الآن عضو مميز. استمتع بالميزات غير المحدودة!",
         financialAdviceUnlimited: "احصل على استشارات مالية بلا حدود",
+      },
+      editProfile: {
+        editProfileTitle: "تعديل الملف الشخصي",
+        changeAvatar: "تغيير الصورة الرمزية",
+        username: "اسم المستخدم",
+        enterUsername: "أدخل اسم المستخدم الخاص بك",
+        email: "البريد الإلكتروني",
+        preferredCurrency: "العملة المفضلة",
+        currentPassword: "كلمة المرور الحالية",
+        enterCurrentPassword: "أدخل كلمة المرور الحالية",
+        newPassword: "كلمة المرور الجديدة",
+        enterNewPassword: "أدخل كلمة المرور الجديدة (8 أحرف على الأقل)",
+        confirmNewPassword: "تأكيد كلمة المرور الجديدة",
+        confirmNewPasswordPlaceholder: "تأكيد كلمة المرور الجديدة",
+        saveChanges: "حفظ التغييرات",
+        noChangesMade: "لم يتم إجراء أي تغييرات.",
+        saveSuccess: "تم تحديث الملف الشخصي بنجاح!",
+        permissionDeniedTitle: "تم رفض الإذن",
+        permissionDeniedMessage:
+          "تم رفض إذن الوصول إلى مكتبة الوسائط. يرجى تمكينه في الإعدادات لتغيير الصورة الرمزية.",
+        imagePickerError: "فشل اختيار الصورة: {{message}}",
+        passwordTooShort:
+          "يجب أن تتكون كلمة المرور الجديدة من 8 أحرف على الأقل.",
+        passwordsDoNotMatch: "كلمتا المرور الجديدتان غير متطابقتين.",
+        currentPasswordRequired:
+          "كلمة المرور الحالية مطلوبة لتغيير كلمة المرور.",
+        incorrectCurrentPassword: "كلمة المرور الحالية التي أدخلتها غير صحيحة.",
+      },
+      subscription: {
+        loadingSubscriptions: "جاري تحميل خطط الاشتراك...",
+        fetchProductsError: "فشل تحميل خطط الاشتراك: {{message}}",
+        upgradeToPremiumTitle: "الترقية إلى بريميوم",
+        unlockPremiumBenefits: "افتح مزايا بريميوم",
+        unlimitedReceipts: "مسح وتخزين إيصالات غير محدود",
+        advancedAnalytics: "تحليلات إنفاق متقدمة",
+        prioritySupport: "دعم عملاء ذو أولوية",
+        chooseYourPlan: "اختر خطتك",
+        noSubscriptionPlansAvailable:
+          "لا توجد خطط اشتراك متاحة حاليًا. يرجى المحاولة مرة أخرى لاحقًا.",
+        monthlyPlan: "الخطة الشهرية",
+        yearlyPlan: "الخطة السنوية",
+        restorePurchases: "استعادة المشتريات",
+        termsDisclaimer:
+          "بالاشتراك، أنت توافق على شروط الخدمة وسياسة الخصوصية الخاصة بنا. تتجدد الاشتراكات تلقائيًا ما لم يتم إلغاؤها.",
+        purchaseError: "فشل الشراء: {{message}}",
+        purchaseSuccess: "الاشتراك ناجح! تم تفعيل الميزات المميزة.",
+        restoreSuccess: "تمت استعادة المشتريات بنجاح!",
+        restoreNoPurchases: "لم يتم العثور على مشتريات لاستعادتها.",
+        restoreError: "فشل استعادة المشتريات: {{message}}",
+        updateStatusError: "فشل تحديث حالة بريميوم: {{message}}",
       },
     },
   },

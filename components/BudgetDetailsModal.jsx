@@ -243,7 +243,7 @@ const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
 };
 
 const BudgetDetailsModal = ({ isVisible, onClose, budgetId, onUpdate }) => {
-  const { user } = useGlobalContext();
+  const { user, preferredCurrencySymbol } = useGlobalContext();
   const { t } = useTranslation(); // NEW: Initialize useTranslation
 
   const [budget, setBudget] = useState(null);
@@ -354,7 +354,7 @@ const BudgetDetailsModal = ({ isVisible, onClose, budgetId, onUpdate }) => {
         onPress={onClose}
       >
         <View
-          className="bg-primary p-6 w-11/12 max-w-md max-h-[80%]"
+          className="bg-primary p-6 w-11/12 max-w-md max-h-[80%] rounded-xl shadow-sm shadow-green-500"
           onStartShouldSetResponder={() => true} // Prevent closing modal when interacting with its content
         >
           {/* Close Button (X icon) */}
@@ -429,8 +429,8 @@ const BudgetDetailsModal = ({ isVisible, onClose, budgetId, onUpdate }) => {
                   {i18n.language.startsWith("ar")
                     ? `${convertToArabicNumerals(
                         parseFloat(budget.budgetAmount || 0).toFixed(2)
-                      )} ${t("common.currency_symbol_short")}`
-                    : `${t("common.currency_symbol_short")}${parseFloat(
+                      )} ${preferredCurrencySymbol}`
+                    : `${preferredCurrencySymbol}${parseFloat(
                         budget.budgetAmount || 0
                       ).toFixed(2)}`}
                 </Text>
