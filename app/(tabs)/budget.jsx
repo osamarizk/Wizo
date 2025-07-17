@@ -49,10 +49,10 @@ import {
 import BudgetDetailsModal from "../../components/BudgetDetailsModal";
 import BudgetSetupModal from "../../components/BudgetSetupModal";
 
-if (Platform.OS === "android") {
-  UIManager.setLayoutAnimationEnabledExperimental &&
-    UIManager.setLayoutLayoutAnimationEnabledExperimental(true);
-}
+// if (Platform.OS === "android") {
+//   UIManager.setLayoutAnimationEnabledExperimental &&
+//     UIManager.setLayoutLayoutAnimationEnabledExperimental(true);
+// }
 
 const screenWidth = Dimensions.get("window").width;
 

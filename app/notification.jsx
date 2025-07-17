@@ -37,10 +37,10 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { format } from "date-fns";
 
 // Enable LayoutAnimation for smooth transitions on Android
-if (Platform.OS === "android") {
-  UIManager.setLayoutAnimationEnabledExperimental &&
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+// if (Platform.OS === "android") {
+//   UIManager.setLayoutAnimationEnabledExperimental &&
+//     UIManager.setLayoutAnimationEnabledExperimental(true);
+// }
 
 // NEW: Utility function to convert numbers to Arabic numerals (copied from Home/BudgetSetupModal)
 const convertToArabicNumerals = (num) => {

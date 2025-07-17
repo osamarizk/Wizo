@@ -26,7 +26,7 @@ import Purchases from "react-native-purchases"; // Main RevenueCat SDK
 // --- Appwrite Imports (for updating user premium status later) ---
 import {
   updateUserPremiumStatus, // You have this function in appwrite.js
-  getAppwriteErrorMessageKey,
+  getAppwriteErrorMessageKey, // This function is not used in the provided code, consider removing if truly unused.
   createNotification, // For notifications on subscription status
   countUnreadNotifications, // To update unread count
   getFutureDate, // For notification expiry
@@ -35,8 +35,8 @@ import {
 
 // Define your RevenueCat API keys here (replace with your actual keys)
 // You should ideally get these from environment variables in a production app.
-const REVENUECAT_APPLE_API_KEY = "appl_YOUR_APPLE_API_KEY"; // Replace with your Apple App Store Public API Key
-const REVENUECAT_GOOGLE_API_KEY = "goog_YOUR_GOOGLE_API_KEY"; // Replace with your Google Play Public API Key
+const REVENUECAT_APPLE_API_KEY = "appl_QGenOQgTBgVrWNxzlmqzkhPezNw"; // Replace with your Apple App Store Public API Key
+const REVENUECAT_GOOGLE_API_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAs4wOunS1xsFu8Qwz6KYtK7p4nEXN7k40gg8TdrnTDj41AC4NHoqwTexQ3lQ/2FPDppV2bj45Zod+B+BQ4SS5IA/DaQjGEzod+USLmwGbeSmFZAq9dT7BGvlMUCZuKMFg9Oe5OfXkHIpa7cuphWVFCE8LryHOkzrieu/iirL3D4JNyHj88nVLGhAV+2ihtsJhnyv22Jyudx2cnSQLMxJjw1zLwFZ0v2CSBjpuoMHfcL6fMA14yY0fH6DHurxQ6W/VdRgD62BaXQD/3Kqh2x7dPYBb8XGAr9uThgvbqd/z3x/cwWYxKYJzUM6jNePOH3LWgFuu9PhRBLc2XXvjOOz1XQIDAQAB"; // Replace with your Google Play Public API Key
 const PREMIUM_ENTITLEMENT_ID = "premium_access"; // The ID of your premium entitlement in RevenueCat
 
 const UpgradePremium = () => {
@@ -46,7 +46,7 @@ const UpgradePremium = () => {
     user,
     setUser, // To update global user context
     isLoading: globalLoading,
-    updateUnreadNotifications, // Assuming you have this in GlobalProvider
+    updateUnreadCount, // Corrected from updateUnreadNotifications
   } = useGlobalContext();
 
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
@@ -115,7 +115,8 @@ const UpgradePremium = () => {
           error
         );
         setPurchaseError(
-          t("subscription.fetchProductsError", {
+          t("upgradePremium.fetchProductsError", {
+            // Changed to upgradePremium
             message: error.message || t("common.unknownError"),
           })
         );
@@ -157,14 +158,17 @@ const UpgradePremium = () => {
             type: "premium_status",
             expiresAt: getFutureDate(isPremium ? 30 : 7), // Longer expiry for active premium, shorter for deactivation
           });
-          const updatedUnreadCount = await countUnreadNotifications(user.$id);
-          updateUnreadNotifications(updatedUnreadCount); // Update global unread count
+          const updatedUnreadCountValue = await countUnreadNotifications(
+            user.$id
+          ); // Renamed to avoid conflict
+          updateUnreadCount(updatedUnreadCountValue); // Update global unread count
         }
       } catch (err) {
         console.error("Error processing customer info update:", err);
         Alert.alert(
           t("common.errorTitle"),
-          t("subscription.updateStatusError", {
+          t("upgradePremium.updateStatusError", {
+            // Changed to upgradePremium
             message: err.message || t("common.unknownError"),
           })
         );
@@ -177,7 +181,121 @@ const UpgradePremium = () => {
     return () => {
       Purchases.removeCustomerInfoUpdateListener(customerInfoUpdateListener);
     };
-  }, [user, t, setUser, updateUnreadNotifications]); // Dependencies for useEffect
+  }, [user, t, setUser, updateUnreadCount]); // Updated dependency to updateUnreadCount
+
+  // --- Purchase Logic ---
+  const handlePurchase = async (productPackage) => {
+    if (isProcessingPurchase) return; // Prevent double taps
+
+    setIsProcessingPurchase(true);
+    setPurchaseError(null); // Clear previous errors
+
+    try {
+      console.log("Attempting to purchase package:", productPackage.identifier);
+      const { customerInfo } = await Purchases.purchasePackage(productPackage);
+
+      // The customerInfoUpdateListener will handle updating Appwrite,
+      // but we can add immediate feedback here.
+      const isPremium = customerInfo.entitlements.active.hasOwnProperty(
+        PREMIUM_ENTITLEMENT_ID
+      );
+
+      if (isPremium) {
+        Alert.alert(
+          t("common.successTitle"),
+          t("upgradePremium.purchaseSuccess") // Changed to upgradePremium
+        );
+        router.back(); // Navigate back if purchase is successful
+      } else {
+        Alert.alert(
+          t("common.errorTitle"),
+          t("upgradePremium.purchaseFailedGeneric") // Changed to upgradePremium
+        );
+      }
+    } catch (e) {
+      if (!e.userCancelled) {
+        // Check if the error was not due to user cancellation
+        console.error("Purchase error:", e);
+        let errorMessage = t("upgradePremium.purchaseFailedGeneric"); // Changed to upgradePremium
+
+        if (
+          e.code === Purchases.PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR
+        ) {
+          errorMessage = t("upgradePremium.purchaseNotAllowed"); // Changed to upgradePremium
+        } else if (
+          e.code === Purchases.PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR
+        ) {
+          errorMessage = t("upgradePremium.paymentPending"); // Changed to upgradePremium
+        } else if (
+          e.code ===
+          Purchases.PURCHASES_ERROR_CODE
+            .PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR
+        ) {
+          errorMessage = t("upgradePremium.productNotAvailable"); // Changed to upgradePremium
+        } else if (
+          e.code ===
+          Purchases.PURCHASES_ERROR_CODE.PURCHASE_INVALID_FOR_PRODUCT_ERROR
+        ) {
+          errorMessage = t("upgradePremium.purchaseInvalid"); // Changed to upgradePremium
+        } else if (
+          e.code === Purchases.PURCHASES_ERROR_CODE.CANNOT_FIND_PRODUCT
+        ) {
+          errorMessage = t("upgradePremium.cannotFindProduct"); // Changed to upgradePremium
+        }
+        // Add more specific error handling for other RevenueCat error codes as needed
+
+        Alert.alert(t("common.errorTitle"), errorMessage);
+        setPurchaseError(errorMessage);
+      } else {
+        console.log("Purchase cancelled by user.");
+      }
+    } finally {
+      setIsProcessingPurchase(false);
+    }
+  };
+
+  // --- Restore Purchases Logic ---
+  const handleRestorePurchases = async () => {
+    if (isProcessingPurchase) return; // Prevent double taps
+
+    setIsProcessingPurchase(true);
+    setPurchaseError(null); // Clear previous errors
+
+    try {
+      console.log("Attempting to restore purchases...");
+      const customerInfo = await Purchases.restorePurchases();
+
+      const isPremium = customerInfo.entitlements.active.hasOwnProperty(
+        PREMIUM_ENTITLEMENT_ID
+      );
+
+      if (isPremium) {
+        Alert.alert(
+          t("common.successTitle"),
+          t("upgradePremium.restoreSuccess") // Changed to upgradePremium
+        );
+        router.back(); // Navigate back if restoration is successful
+      } else {
+        Alert.alert(
+          t("common.infoTitle"),
+          t("upgradePremium.noActivePurchasesFound") // Changed to upgradePremium
+        );
+      }
+    } catch (e) {
+      console.error("Restore purchases error:", e);
+      let errorMessage = t("upgradePremium.restoreFailedGeneric"); // Changed to upgradePremium
+
+      if (e.code === Purchases.PURCHASES_ERROR_CODE.NETWORK_ERROR) {
+        errorMessage = t("upgradePremium.networkError"); // Changed to upgradePremium
+      }
+      // Add more specific error handling for other RevenueCat error codes as needed
+
+      Alert.alert(t("common.errorTitle"), errorMessage);
+      setPurchaseError(errorMessage);
+    } finally {
+      setIsProcessingPurchase(false);
+    }
+  };
 
   // --- Loading State ---
   if (globalLoading || isLoadingProducts) {
@@ -188,7 +306,8 @@ const UpgradePremium = () => {
           className="text-white mt-4"
           style={{ fontFamily: getFontClassName("extralight") }}
         >
-          {t("subscription.loadingSubscriptions")} {/* New translation key */}
+          {t("upgradePremium.loadingSubscriptions")}{" "}
+          {/* Changed to upgradePremium */}
         </Text>
       </SafeAreaView>
     );
@@ -217,8 +336,8 @@ const UpgradePremium = () => {
               className="text-3xl text-black"
               style={{ fontFamily: getFontClassName("bold") }}
             >
-              {t("subscription.upgradeToPremiumTitle")}{" "}
-              {/* New translation key */}
+              {t("upgradePremium.upgradeToPremiumTitle")}{" "}
+              {/* Changed to upgradePremium */}
             </Text>
             <View className="w-10" />
           </View>
@@ -241,19 +360,19 @@ const UpgradePremium = () => {
               }`}
               style={{ fontFamily: getFontClassName("bold") }}
             >
-              {t("subscription.unlockPremiumBenefits")}{" "}
-              {/* New translation key */}
+              {t("upgradePremium.unlockPremiumBenefits")}{" "}
+              {/* Changed to upgradePremium */}
             </Text>
             <BenefitItem
-              text={t("subscription.unlimitedReceipts")} // New translation key
+              text={t("upgradePremium.unlimitedReceipts")} // Changed to upgradePremium
               icon={icons.check} // Assuming a checkmark icon
             />
             <BenefitItem
-              text={t("subscription.advancedAnalytics")} // New translation key
+              text={t("upgradePremium.advancedSpendingAnalytics")} // Changed to upgradePremium
               icon={icons.check}
             />
             <BenefitItem
-              text={t("subscription.prioritySupport")} // New translation key
+              text={t("upgradePremium.priorityCustomerSupport")} // Changed to upgradePremium
               icon={icons.check}
             />
             {/* Add more benefits as needed */}
@@ -266,7 +385,8 @@ const UpgradePremium = () => {
             }`}
             style={{ fontFamily: getFontClassName("bold") }}
           >
-            {t("subscription.chooseYourPlan")} {/* New translation key */}
+            {t("upgradePremium.chooseYourPlan")}{" "}
+            {/* Changed to upgradePremium */}
           </Text>
 
           {products.length === 0 ? (
@@ -275,8 +395,8 @@ const UpgradePremium = () => {
                 className="text-gray-500 italic text-center"
                 style={{ fontFamily: getFontClassName("regular") }}
               >
-                {t("subscription.noSubscriptionPlansAvailable")}{" "}
-                {/* New translation key */}
+                {t("upgradePremium.noSubscriptionPlansAvailable")}{" "}
+                {/* Changed to upgradePremium */}
               </Text>
             </View>
           ) : (
@@ -284,9 +404,7 @@ const UpgradePremium = () => {
               <SubscriptionOption
                 key={product.identifier}
                 product={product}
-                onPress={() =>
-                  console.log("Purchase Pressed for:", product.identifier)
-                } // Will implement purchase logic here
+                onPress={handlePurchase} // Linked to handlePurchase
                 isProcessing={isProcessingPurchase}
                 t={t} // Pass translation function
               />
@@ -295,7 +413,7 @@ const UpgradePremium = () => {
 
           {/* Restore Purchases Button */}
           <TouchableOpacity
-            onPress={() => console.log("Restore Purchases Pressed")} // Will implement restore logic here
+            onPress={handleRestorePurchases} // Linked to handleRestorePurchases
             className={`mt-6 p-4 rounded-lg items-center justify-center border border-blue-600 ${
               isProcessingPurchase ? "opacity-70" : ""
             }`}
@@ -308,7 +426,8 @@ const UpgradePremium = () => {
                 className="text-blue-600 text-lg"
                 style={{ fontFamily: getFontClassName("semibold") }}
               >
-                {t("subscription.restorePurchases")} {/* New translation key */}
+                {t("upgradePremium.restorePurchases")}{" "}
+                {/* Changed to upgradePremium */}
               </Text>
             )}
           </TouchableOpacity>
@@ -320,7 +439,8 @@ const UpgradePremium = () => {
             }`}
             style={{ fontFamily: getFontClassName("regular") }}
           >
-            {t("subscription.termsDisclaimer")} {/* New translation key */}
+            {t("upgradePremium.termsDisclaimer")}{" "}
+            {/* Changed to upgradePremium */}
           </Text>
         </ScrollView>
       </SafeAreaView>
@@ -367,15 +487,17 @@ const SubscriptionOption = ({ product, onPress, isProcessing, t }) => {
   const price = product.product.priceString;
   const description = product.product.description;
   const title = product.product.title; // RevenueCat product title (e.g., "Premium Monthly", "Premium Annual")
-  const period = product.product.period; // e.g., "P1M" for monthly, "P1Y" for yearly
+  // Safely get the period, defaulting to an empty string if undefined/null
+  const period = product.product.period || ""; // e.g., "P1M" for monthly, "P1Y" for yearly
 
   let planLabel = "";
-  if (period.includes("M")) {
-    planLabel = t("subscription.monthlyPlan");
-  } else if (period.includes("Y")) {
-    planLabel = t("subscription.yearlyPlan");
+  // Now, check if 'period' exists (is not an empty string) before calling .includes()
+  if (period && period.includes("M")) {
+    planLabel = t("upgradePremium.monthlyPlan"); // Changed to upgradePremium
+  } else if (period && period.includes("Y")) {
+    planLabel = t("upgradePremium.yearlyPlan"); // Changed to upgradePremium
   } else {
-    planLabel = product.product.periodUnit; // Fallback
+    planLabel = product.product.periodUnit || t("upgradePremium.unknownPlan"); // Changed to upgradePremium
   }
 
   return (

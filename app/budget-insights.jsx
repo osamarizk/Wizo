@@ -9,6 +9,7 @@ import {
     Dimensions,
     Alert,
     RefreshControl,
+    I18nManager,
 } from "react-native";
 import { useGlobalContext } from "../context/GlobalProvider";
 import GradientBackground from "../components/GradientBackground";
@@ -19,7 +20,6 @@ import {
     getCategories2Bud,
 } from "../lib/appwrite";
 
-import { LineChart, PieChart } from "react-native-chart-kit"; // Now using LineChart
 import {
     format,
     startOfMonth,
@@ -27,32 +27,74 @@ import {
     subMonths,
     addMonths,
     eachMonthOfInterval,
-    getYear,
-    getMonth,
 } from "date-fns";
+import { ar as arLocale } from "date-fns/locale";
+
+import { useTranslation } from "react-i18next";
+import i18n from "../utils/i18n";
+import { getFontClassName } from "../utils/fontUtils";
 
 const screenWidth = Dimensions.get("window").width;
-const NUM_MONTHS_FOR_TREND = 6; // Display trends for the last 6 months
+const NUM_MONTHS_FOR_TREND = 6;
+
+// Utility function to convert numbers to Arabic numerals
+const convertToArabicNumerals = (num) => {
+    const numString = String(num || 0);
+    if (typeof numString !== "string") return String(numString);
+    const arabicNumeralsMap = {
+        0: "٠", 1: "١", 2: "٢", 3: "٣", 4: "٤",
+        5: "٥", 6: "٦", 7: "٧", 8: "٨", 9: "٩",
+    };
+    return numString.replace(/\d/g, (digit) => arabicNumeralsMap[digit] || digit);
+};
+
+// Utility function to map database category names to i18n keys
+const mapCategoryNameToI18nKey = (categoryNameFromDB) => {
+    if (!categoryNameFromDB) return "unknownCategory";
+
+    switch (categoryNameFromDB) {
+        case "Food & Dining": return "foodDining";
+        case "Transportation": return "transportation";
+        case "Shopping": return "shopping";
+        case "Health & Wellness": return "healthWellness";
+        case "Bills & Utilities": return "billsUtilities";
+        case "Entertainment & Leisure": return "entertainmentLeisure";
+        case "Business Expenses": return "businessExpenses";
+        case "Education": return "education";
+        case "Financial Services": return "financialServices";
+        case "Gifts & Donations": return "giftsDonations";
+        case "Home Improvement": return "homeImprovement";
+        case "Miscellaneous": return "miscellaneous";
+        case "Household Items": return "householdItems";
+        case "Clothing": return "clothing";
+        default:
+            const camelCaseKey = categoryNameFromDB
+                .replace(/[^a-zA-Z0-9]+(.)?/g, (match, chr) =>
+                    chr ? chr.toUpperCase() : ""
+                )
+                .replace(/^./, (match) => match.toLowerCase());
+            return camelCaseKey || "unknownCategory";
+    }
+};
 
 const BudgetInsights = () => {
-    const { user } = useGlobalContext();
+    const { user, preferredCurrencySymbol } = useGlobalContext();
     const navigation = useNavigation();
+    const { t } = useTranslation();
 
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [currentMonth, setCurrentMonth] = useState(new Date()); // Used for Pie Chart's selected month
-    const [spendingByCategoryData, setSpendingByCategoryData] = useState(null); // For selected month's pie chart
-    const [historicalSpendingData, setHistoricalSpendingData] = useState(null); // For line chart (top categories)
-    const [monthlyBudgetPerformance, setMonthlyBudgetPerformance] = useState(null); // For overall monthly performance
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [spendingByCategoryTableData, setSpendingByCategoryTableData] = useState([]);
+    const [monthlyPerformanceTableData, setMonthlyPerformanceTableData] = useState([]);
+    const [topCategoriesOverallSpending, setTopCategoriesOverallSpending] = useState([]);
     const [categoriesMap, setCategoriesMap] = useState({});
 
-    // Helper to get category name (uses categoriesMap state)
-    const getCategoryName = useCallback(
-        (categoryId) => {
-            return categoriesMap[categoryId] || "Unknown";
-        },
-        [categoriesMap]
-    );
+    // Helper to format numbers based on language
+    const formatNumber = useCallback((number) => {
+        const formatted = number.toFixed(2);
+        return i18n.language.startsWith("ar") ? convertToArabicNumerals(formatted) : formatted;
+    }, [i18n.language]);
 
     const fetchData = useCallback(async () => {
         if (!user?.$id) {
@@ -63,16 +105,18 @@ const BudgetInsights = () => {
         if (!refreshing) setIsLoading(true);
 
         try {
-            // 1. Fetch Categories first (for all data processing)
             const fetchedCategories = await getCategories2Bud();
             const map = {};
             fetchedCategories.forEach((cat) => {
                 map[cat.$id] = cat.name;
             });
-            setCategoriesMap(map); // Update the state with the fetched map
-            const getCategoryNameLocal = (categoryId) => map[categoryId] || "Unknown"; // Local helper for this fetch cycle
+            setCategoriesMap(map);
+            const getCategoryNameLocal = (categoryId) => {
+                const nameFromDB = map[categoryId];
+                const i18nKey = mapCategoryNameToI18nKey(nameFromDB);
+                return t(`categories.${i18nKey}`) || t("common.unknownCategory");
+            };
 
-            // Determine the date range for historical data (e.g., last 6 months including current)
             const today = new Date();
             const endDateForTrends = endOfMonth(today);
             const startDateForTrends = startOfMonth(subMonths(today, NUM_MONTHS_FOR_TREND - 1));
@@ -81,7 +125,6 @@ const BudgetInsights = () => {
             let allHistoricalReceipts = [];
             let allHistoricalBudgets = [];
 
-            // Fetch receipts and budgets for the entire trend period
             for (const month of monthsInTrend) {
                 const monthStart = startOfMonth(month);
                 const monthEnd = endOfMonth(month);
@@ -93,7 +136,7 @@ const BudgetInsights = () => {
                 );
                 allHistoricalReceipts = [...allHistoricalReceipts, ...monthlyReceipts];
 
-                const monthlyBudgets = await getUserBudgets(user.$id); // Fetch all budgets, then filter by month
+                const monthlyBudgets = await getUserBudgets(user.$id);
                 const relevantMonthlyBudgets = monthlyBudgets.filter(budget => {
                     const budgetStartDate = new Date(budget.startDate);
                     const budgetEndDate = new Date(budget.endDate);
@@ -102,7 +145,7 @@ const BudgetInsights = () => {
                 allHistoricalBudgets = [...allHistoricalBudgets, ...relevantMonthlyBudgets];
             }
 
-            // --- Insight 1: Spending by Category for Selected Month (Pie Chart) ---
+            // --- Insight 1: Spending by Category for Selected Month (Table) ---
             const currentMonthStart = startOfMonth(currentMonth);
             const currentMonthEnd = endOfMonth(currentMonth);
 
@@ -140,36 +183,34 @@ const BudgetInsights = () => {
                     items.forEach(item => {
                         const categoryId = item.category_id;
                         const amount = parseFloat(item.price);
-                        if (categoryId && !isNaN(amount) && currentMonthSpendingData[categoryId]) {
+                        if (categoryId && !isNaN(amount)) {
+                            if (!currentMonthSpendingData[categoryId]) {
+                                currentMonthSpendingData[categoryId] = {
+                                    spent: 0,
+                                    budgeted: 0,
+                                    categoryName: getCategoryNameLocal(categoryId),
+                                };
+                            }
                             currentMonthSpendingData[categoryId].spent += amount;
                         }
                     });
                 }
             });
 
-            const pieChartData = Object.values(currentMonthSpendingData)
-                .filter(item => item.spent > 0)
-                .map((item, index) => ({
-                    name: item.categoryName,
-                    population: item.spent,
-                    color: `hsl(${index * 60 % 360}, 70%, 50%)`,
-                    legendFontColor: "#7F7F7F",
-                    legendFontSize: 14,
-                }));
-            setSpendingByCategoryData(pieChartData.length > 0 ? pieChartData : null);
+            const categoryTableData = Object.values(currentMonthSpendingData).map(item => ({
+                categoryName: item.categoryName,
+                spent: item.spent,
+                budgeted: item.budgeted,
+                remaining: item.budgeted - item.spent,
+            })).sort((a, b) => b.spent - a.spent);
 
-            // --- Insight 2: Spending Trends by Top Categories (Line Chart) ---
-            const monthlySpendingAggregation = {};
-            const categoryTotals = {}; // To find top categories
+            setSpendingByCategoryTableData(categoryTableData);
+
+
+            // --- Insight 2: Top Categories Overall Spending (Table) ---
+            const categoryTotalsOverall = {};
 
             allHistoricalReceipts.forEach(receipt => {
-                const receiptDate = new Date(receipt.datetime);
-                const monthKey = format(startOfMonth(receiptDate), 'yyyy-MM'); // e.g., '2023-07'
-
-                if (!monthlySpendingAggregation[monthKey]) {
-                    monthlySpendingAggregation[monthKey] = {};
-                }
-
                 let items = receipt.items;
                 if (typeof items === "string") {
                     try {
@@ -179,72 +220,63 @@ const BudgetInsights = () => {
                         items = [];
                     }
                 }
-
                 if (Array.isArray(items)) {
                     items.forEach(item => {
                         const categoryId = item.category_id;
                         const amount = parseFloat(item.price);
                         if (categoryId && !isNaN(amount)) {
-                            monthlySpendingAggregation[monthKey][categoryId] =
-                                (monthlySpendingAggregation[monthKey][categoryId] || 0) + amount;
-                            categoryTotals[categoryId] = (categoryTotals[categoryId] || 0) + amount;
+                            categoryTotalsOverall[categoryId] = (categoryTotalsOverall[categoryId] || 0) + amount;
                         }
                     });
                 }
             });
 
-            // Get top N categories based on total spending over the period
-            const sortedCategories = Object.entries(categoryTotals)
+            const topCategoriesData = Object.entries(categoryTotalsOverall)
                 .sort(([, a], [, b]) => b - a)
-                .slice(0, 5); // Top 5 categories
+                .slice(0, 5)
+                .map(([categoryId, totalSpent]) => ({
+                    categoryName: getCategoryNameLocal(categoryId),
+                    totalSpent: totalSpent,
+                }));
+            
+            setTopCategoriesOverallSpending(topCategoriesData);
 
-            // FIX: Changed 'MMM YY' to 'MMM yy'
-            const trendChartLabels = monthsInTrend.map(month => format(month, 'MMM yy')); // e.g., 'Jul 23'
 
-            const historicalDatasets = sortedCategories.map(([categoryId, ]) => {
-                const data = monthsInTrend.map(month => {
-                    const monthKey = format(startOfMonth(month), 'yyyy-MM');
-                    return monthlySpendingAggregation[monthKey]?.[categoryId] || 0;
-                });
-                return {
-                    data: data,
-                    color: (opacity = 1) => `hsl(${Math.random() * 360}, 70%, 50%, ${opacity})`, // Random distinct colors for each trend line
-                    strokeWidth: 2,
-                    legend: getCategoryNameLocal(categoryId),
+            // --- Insight 3: Monthly Budget Performance (Table) ---
+            const monthlyPerformanceAggregation = {};
+            monthsInTrend.forEach(month => {
+                const monthKey = format(startOfMonth(month), 'yyyy-MM');
+                monthlyPerformanceAggregation[monthKey] = {
+                    totalBudgeted: 0,
+                    totalSpent: 0,
+                    monthLabel: format(month, t("budgetInsights.monthYearFormat"), { locale: i18n.language.startsWith("ar") ? arLocale : undefined })
                 };
             });
 
-            setHistoricalSpendingData(historicalDatasets.length > 0 ? {
-                labels: trendChartLabels,
-                datasets: historicalDatasets
-            } : null);
-
-            // --- Insight 3: Monthly Budget Performance (Line Chart - Surplus/Deficit) ---
-            const monthlyPerformanceData = {};
-            monthsInTrend.forEach(month => {
-                const monthKey = format(startOfMonth(month), 'yyyy-MM');
-                monthlyPerformanceData[monthKey] = { totalBudgeted: 0, totalSpent: 0 };
-            });
-
-            // Aggregate budgeted amounts by month
             allHistoricalBudgets.forEach(budget => {
                 const budgetStartDate = new Date(budget.startDate);
                 const budgetEndDate = new Date(budget.endDate);
 
-                // For simplicity, prorate budget if it spans multiple months, or just use month of budget start
-                // Here, we'll assign the full budget amount to the month it starts in if it falls within the trend period
-                const budgetMonthKey = format(startOfMonth(budgetStartDate), 'yyyy-MM');
-                if (monthlyPerformanceData[budgetMonthKey]) {
-                    monthlyPerformanceData[budgetMonthKey].totalBudgeted += parseFloat(budget.budgetAmount);
-                }
+                const budgetAmountPerDay = parseFloat(budget.budgetAmount) / ((budgetEndDate.getTime() - budgetStartDate.getTime()) / (1000 * 60 * 60 * 24) + 1);
+
+                eachMonthOfInterval({ start: budgetStartDate, end: budgetEndDate }).forEach(month => {
+                    const monthKey = format(startOfMonth(month), 'yyyy-MM');
+                    if (monthlyPerformanceAggregation[monthKey]) {
+                        const intersectionStart = new Date(Math.max(month.getTime(), budgetStartDate.getTime()));
+                        const intersectionEnd = new Date(Math.min(endOfMonth(month).getTime(), budgetEndDate.getTime()));
+                        const daysInIntersection = (intersectionEnd.getTime() - intersectionStart.getTime()) / (1000 * 60 * 60 * 24) + 1;
+                        if (daysInIntersection > 0) {
+                            monthlyPerformanceAggregation[monthKey].totalBudgeted += budgetAmountPerDay * daysInIntersection;
+                        }
+                    }
+                });
             });
 
-            // Aggregate spent amounts by month
             allHistoricalReceipts.forEach(receipt => {
                 const receiptDate = new Date(receipt.datetime);
                 const monthKey = format(startOfMonth(receiptDate), 'yyyy-MM');
 
-                if (monthlyPerformanceData[monthKey]) {
+                if (monthlyPerformanceAggregation[monthKey]) {
                     let items = receipt.items;
                     if (typeof items === "string") {
                         try {
@@ -258,60 +290,34 @@ const BudgetInsights = () => {
                         items.forEach(item => {
                             const amount = parseFloat(item.price);
                             if (!isNaN(amount)) {
-                                monthlyPerformanceData[monthKey].totalSpent += amount;
+                                monthlyPerformanceAggregation[monthKey].totalSpent += amount;
                             }
                         });
                     }
                 }
             });
 
-            // FIX: Changed 'MMM YY' to 'MMM yy'
-            const performanceLabels = monthsInTrend.map(month => format(month, 'MMM yy'));
-            const performanceBudgeted = monthsInTrend.map(month => monthlyPerformanceData[format(startOfMonth(month), 'yyyy-MM')]?.totalBudgeted || 0);
-            const performanceSpent = monthsInTrend.map(month => monthlyPerformanceData[format(startOfMonth(month), 'yyyy-MM')]?.totalSpent || 0);
-            const performanceSurplusDeficit = monthsInTrend.map(month => {
-                const monthKey = format(startOfMonth(month), 'yyyy-MM');
-                return (monthlyPerformanceData[monthKey]?.totalBudgeted || 0) - (monthlyPerformanceData[monthKey]?.totalSpent || 0);
-            });
+            const monthlyPerformanceTable = Object.values(monthlyPerformanceAggregation).map(data => ({
+                month: data.monthLabel,
+                budgeted: data.totalBudgeted,
+                spent: data.totalSpent,
+                surplusDeficit: data.totalBudgeted - data.totalSpent,
+            }));
 
-            const monthlyPerformanceDatasets = [
-                {
-                    data: performanceBudgeted,
-                    color: (opacity = 1) => `rgba(159, 84, 182, ${opacity})`, // Purple
-                    strokeWidth: 2,
-                    legend: "Total Budgeted"
-                },
-                {
-                    data: performanceSpent,
-                    color: (opacity = 1) => `rgba(220, 38, 38, ${opacity})`, // Red
-                    strokeWidth: 2,
-                    legend: "Total Spent"
-                },
-                // Optional: Show surplus/deficit directly as a line
-                // {
-                //     data: performanceSurplusDeficit,
-                //     color: (opacity = 1) => `rgba(76, 175, 80, ${opacity})`, // Green for surplus/red for deficit
-                //     strokeWidth: 2,
-                //     legend: "Surplus/Deficit"
-                // }
-            ];
-
-            setMonthlyBudgetPerformance(monthlyPerformanceDatasets[0].data.length > 0 ? {
-                labels: performanceLabels,
-                datasets: monthlyPerformanceDatasets
-            } : null);
+            setMonthlyPerformanceTableData(monthlyPerformanceTable);
 
         } catch (error) {
             console.error("Error fetching budget insights data:", error);
-            Alert.alert("Error", "Failed to load budget insights.");
-            setSpendingByCategoryData(null);
-            setHistoricalSpendingData(null);
-            setMonthlyBudgetPerformance(null);
+            Alert.alert(t("common.errorTitle"), t("budgetInsights.loadError"));
+            setSpendingByCategoryTableData([]);
+            setMonthlyPerformanceTableData([]);
+            setTopCategoriesOverallSpending([]);
+            setCategoriesMap({});
         } finally {
             setIsLoading(false);
             setRefreshing(false);
         }
-    }, [user?.$id, currentMonth, refreshing]); // currentMonth still impacts the pie chart for selected month
+    }, [user?.$id, currentMonth, refreshing, t, formatNumber]);
 
 
     useFocusEffect(
@@ -319,9 +325,9 @@ const BudgetInsights = () => {
             fetchData();
             return () => {
                 setIsLoading(true);
-                setSpendingByCategoryData(null);
-                setHistoricalSpendingData(null);
-                setMonthlyBudgetPerformance(null);
+                setSpendingByCategoryTableData([]);
+                setMonthlyPerformanceTableData([]);
+                setTopCategoriesOverallSpending([]);
                 setCategoriesMap({});
             };
         }, [fetchData])
@@ -339,31 +345,56 @@ const BudgetInsights = () => {
         );
     };
 
-    const chartConfig = {
-        backgroundGradientFrom: "#ffffff",
-        backgroundGradientFromOpacity: 0.8,
-        backgroundGradientTo: "#ffffff",
-        backgroundGradientToOpacity: 0.8,
-        color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-        strokeWidth: 2,
-        barPercentage: 0.5,
-        useShadowColorFromDataset: false,
-        decimalPlaces: 0,
-        propsForLabels: {
-            fontSize: 12,
-            fontWeight: "bold",
-        },
-        propsForBackgroundLines: {
-            strokeDasharray: "",
-            stroke: "#e0e0e0",
-        },
-        fillShadowGradientFrom: "#9F54B6",
-        fillShadowGradientTo: "#D03957",
-        fillShadowGradientFromOpacity: 0.7,
-        fillShadowGradientToOpacity: 0.3,
-        withCustomBarColorFromData: true, // Keep this if we ever use a bar chart with custom colors again
-        bezier: true, // For smooth lines in LineChart
-    };
+    // --- Reusable Table Component ---
+    const Table = ({ title, headers, data, renderRow, emptyMessage }) => (
+        <View className="mb-8 p-4 bg-white rounded-xl shadow-md">
+            <Text
+                className={`text-lg text-black mb-4 ${I18nManager.isRTL ? 'text-right' : 'text-left'}`}
+                style={{ fontFamily: getFontClassName("bold") }}
+            >
+                {title}
+            </Text>
+            {data && data.length > 0 ? (
+                <View className="border border-gray-300 rounded-lg overflow-hidden">
+                    {/* Table Header */}
+                    <View className={`flex-row bg-gray-100 border-b border-gray-300 ${I18nManager.isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
+                        {headers.map((header, index) => (
+                            <Text
+                                key={index}
+                                // Adjusted alignment for headers: first column left, others right (or reversed for RTL)
+                                className={`flex-1 p-2 text-md text-gray-700 ${
+                                    I18nManager.isRTL
+                                        ? (index === 0 ? 'text-right pr-4' : 'text-left pl-4') // RTL: First column right, others left
+                                        : (index === 0 ? 'text-left pl-4' : 'text-right pr-4') // LTR: First column left, others right
+                                }`}
+                                style={{ fontFamily: getFontClassName("bold") }}
+                            >
+                                {header}
+                            </Text>
+                        ))}
+                    </View>
+                    {/* Table Rows */}
+                    {data.map((item, rowIndex) => (
+                        <View
+                            key={rowIndex}
+                            className={`flex-row ${rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"} border-b border-gray-200 last:border-b-0 ${I18nManager.isRTL ? 'flex-row-reverse' : 'flex-row'}`}
+                        >
+                            {renderRow(item, rowIndex)}
+                        </View>
+                    ))}
+                </View>
+            ) : (
+                <View className="items-center justify-center min-h-[100px]">
+                    <Text
+                        className="text-gray-500 text-base"
+                        style={{ fontFamily: getFontClassName("medium") }}
+                    >
+                        {emptyMessage}
+                    </Text>
+                </View>
+            )}
+        </View>
+    );
 
     return (
         <GradientBackground>
@@ -379,154 +410,104 @@ const BudgetInsights = () => {
                     }
                 >
                     {/* Header */}
-                    <View className="flex-row items-center justify-between mb-6">
+                    <View className={`flex-row items-center justify-between mb-6 ${I18nManager.isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
                         <TouchableOpacity onPress={() => navigation.goBack()} className="p-2">
-                            <Text className="text-blue-600 text-lg font-pmedium">Back</Text>
+                            <Text className="text-blue-600 text-lg" style={{ fontFamily: getFontClassName("medium") }}>{t("common.back")}</Text>
                         </TouchableOpacity>
-                        <Text className="text-2xl font-pbold text-black">Budget Insights</Text>
+                        <Text className="text-2xl text-black" style={{ fontFamily: getFontClassName("bold") }}>{t("budgetInsights.title")}</Text>
                         <View className="w-10" />
                     </View>
 
-                    {/* Month Navigation (for Pie Chart only) */}
-                    <View className="flex-row justify-center items-center mb-6 bg-slate-200 p-3 rounded-xl ">
+                    {/* Month Navigation (for Spending by Category table) */}
+                    <View className={`flex-row justify-center items-center mb-6 bg-slate-200 p-3 rounded-xl ${I18nManager.isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
                         <TouchableOpacity
                             onPress={() => navigateMonth("prev")}
                             className="p-2.5 rounded-full bg-gray-200"
                         >
-                            <Text className="text-black font-psemibold text-base">{"<"}</Text>
+                            <Text className="text-black text-base" style={{ fontFamily: getFontClassName("bold") }}>{"<"}</Text>
                         </TouchableOpacity>
-                        <Text className="text-xl font-pbold text-black mx-4 w-32 text-center">
-                            {/* FIX: Changed to MMMM yyyy for proper year display */}
-                            {format(currentMonth, "MMMM yyyy")}
+                        <Text className="text-xl text-black mx-4 w-32 text-center" style={{ fontFamily: getFontClassName("bold") }}>
+                            {format(currentMonth, t("budgetInsights.monthYearFormat"), { locale: i18n.language.startsWith("ar") ? arLocale : undefined })}
                         </Text>
                         <TouchableOpacity
                             onPress={() => navigateMonth("next")}
                             className="p-2.5 rounded-full bg-gray-200"
                         >
-                            <Text className="text-black font-psemibold text-base">{">"}</Text>
+                            <Text className="text-black text-base" style={{ fontFamily: getFontClassName("bold") }}>{">"}</Text>
                         </TouchableOpacity>
                     </View>
 
                     {isLoading ? (
                         <View className="flex-1 justify-center items-center min-h-[300px]">
                             <ActivityIndicator size="large" color="#9F54B6" />
-                            <Text className="text-lg text-gray-700 mt-4">
-                                Loading insights...
+                            <Text className="text-lg text-gray-700 mt-4" style={{ fontFamily: getFontClassName("regular") }}>
+                                {t("budgetInsights.loadingInsights")}
                             </Text>
                         </View>
                     ) : (
                         <>
-                            {/* Spending by Category (Pie Chart for Selected Month) */}
-                            {spendingByCategoryData && spendingByCategoryData.length > 0 ? (
-                                <View className="mb-8 p-4 bg-white rounded-xl shadow-md items-center">
-                                    <Text className="text-lg font-pbold text-black mb-4">
-                                        Spending by Category ({format(currentMonth, "MMMM yyyy")}) {/* FIX: Changed to MMMM yyyy */}
-                                    </Text>
-                                    <PieChart
-                                        data={spendingByCategoryData}
-                                        width={screenWidth - 64}
-                                        height={220}
-                                        chartConfig={chartConfig}
-                                        accessor="population"
-                                        backgroundColor="transparent"
-                                        paddingLeft="15"
-                                        absolute
-                                    />
-                                    <View className="flex-row flex-wrap justify-center mt-4">
-                                        {spendingByCategoryData.map((item, index) => (
-                                            <View
-                                                key={index}
-                                                className="flex-row items-center mr-4 mb-2"
-                                            >
-                                                <View
-                                                    style={{
-                                                        width: 12,
-                                                        height: 12,
-                                                        borderRadius: 6,
-                                                        backgroundColor: item.color,
-                                                        marginRight: 5,
-                                                    }}
-                                                />
-                                                <Text className="text-sm text-gray-800">
-                                                    {item.name} (${item.population.toFixed(2)})
-                                                </Text>
-                                            </View>
-                                        ))}
-                                    </View>
-                                </View>
-                            ) : (
-                                <View className="mb-8 p-4 bg-white rounded-xl shadow-md items-center justify-center min-h-[150px]">
-                                    <Text className="text-gray-500 text-base font-pmedium">
-                                        No spending data for {format(currentMonth, "MMMM yyyy")}. {/* FIX: Changed to MMMM yyyy */}
-                                    </Text>
-                                </View>
-                            )}
+                            {/* Spending by Category Table */}
+                            <Table
+                                title={t("budgetInsights.spendingByCategoryTitle", { month: format(currentMonth, t("budgetInsights.monthYearFormat"), { locale: i18n.language.startsWith("ar") ? arLocale : undefined }) })}
+                                headers={[
+                                    t("common.category"),
+                                    `${t("common.spent")} (${preferredCurrencySymbol})`,
+                                    `${t("common.budgeted")} (${preferredCurrencySymbol})`,
+                                    `${t("common.remaining")} (${preferredCurrencySymbol})`
+                                ]}
+                                data={spendingByCategoryTableData}
+                                renderRow={(item) => (
+                                    <>
+                                        <Text className={`flex-1 p-2 text-md text-gray-800 ${I18nManager.isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: getFontClassName("medium") }}>{item.categoryName}</Text>
+                                        <Text className={`flex-1 p-2 text-md text-gray-800 ${I18nManager.isRTL ? 'text-right' : 'text-left '}`} style={{ fontFamily: getFontClassName("bold") }}>{formatNumber(item.spent)}</Text>
+                                        <Text className={`flex-1 p-2 text-md text-gray-800 ${I18nManager.isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: getFontClassName("bold") }}>{formatNumber(item.budgeted)}</Text>
+                                        <Text className={`flex-1 p-2 text-md ${item.remaining < 0 ? 'text-red-600' : 'text-green-600'} ${I18nManager.isRTL ? 'text-left pl-4' : 'text-right pr-4'}`} style={{ fontFamily: getFontClassName("bold") }}>
+                                            {formatNumber(item.remaining)}
+                                        </Text>
+                                    </>
+                                )}
+                                emptyMessage={t("budgetInsights.noSpendingData", { month: format(currentMonth, t("budgetInsights.monthYearFormat"), { locale: i18n.language.startsWith("ar") ? arLocale : undefined }) })}
+                            />
 
-                            {/* Spending Trends by Top Categories (Line Chart) */}
-                            {historicalSpendingData && historicalSpendingData.datasets.length > 0 ? (
-                                <View className="mb-8 p-4 bg-white rounded-xl shadow-md items-center">
-                                    <Text className="text-lg font-pbold text-black mb-4">
-                                        Spending Trends by Top Categories (Last {NUM_MONTHS_FOR_TREND} Months)
-                                    </Text>
-                                    <LineChart
-                                        data={historicalSpendingData}
-                                        width={screenWidth - 64}
-                                        height={250}
-                                        yAxisLabel="$"
-                                        chartConfig={chartConfig}
-                                        bezier // Smooth curves
-                                        style={{ marginVertical: 8, borderRadius: 16 }}
-                                        verticalLabelRotation={30}
-                                    />
-                                     <View className="flex-row flex-wrap justify-center mt-4">
-                                        {historicalSpendingData.datasets.map((dataset, index) => (
-                                            <View key={index} className="flex-row items-center mr-4 mb-2">
-                                                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: dataset.color(), marginRight: 5 }} />
-                                                <Text className="text-sm text-gray-800">{dataset.legend}</Text>
-                                            </View>
-                                        ))}
-                                    </View>
-                                </View>
-                            ) : (
-                                <View className="mb-8 p-4 bg-white rounded-xl shadow-md items-center justify-center min-h-[150px]">
-                                    <Text className="text-gray-500 text-base font-pmedium">
-                                        No historical spending trends available.
-                                    </Text>
-                                </View>
-                            )}
+                            {/* Top Categories Overall Spending Table */}
+                            <Table
+                                title={t("budgetInsights.topCategoriesOverallTitle", { numMonths: NUM_MONTHS_FOR_TREND })}
+                                headers={[
+                                    t("common.category"),
+                                    `${t("common.totalSpent")} (${preferredCurrencySymbol})`
+                                ]}
+                                data={topCategoriesOverallSpending}
+                                renderRow={(item) => (
+                                    <>
+                                        <Text className={`flex-1 p-2 text-md text-gray-800 ${I18nManager.isRTL ? 'text-right pr-4' : 'text-left pl-4'}`} style={{ fontFamily: getFontClassName("medium") }}>{item.categoryName}</Text>
+                                        <Text className={`flex-1 p-2 text-md text-gray-800 ${I18nManager.isRTL ? 'text-left pl-4' : 'text-right pr-4'}`} style={{ fontFamily: getFontClassName("bold") }}>{formatNumber(item.totalSpent)}</Text>
+                                    </>
+                                )}
+                                emptyMessage={t("budgetInsights.noTopCategoriesData", { numMonths: NUM_MONTHS_FOR_TREND })}
+                            />
 
-                            {/* Monthly Budget Performance (Line Chart) */}
-                            {monthlyBudgetPerformance && monthlyBudgetPerformance.datasets.length > 0 ? (
-                                <View className="mb-8 p-4 bg-white rounded-xl shadow-md items-center">
-                                    <Text className="text-lg font-pbold text-black mb-4">
-                                        Monthly Budget Performance (Last {NUM_MONTHS_FOR_TREND} Months)
-                                    </Text>
-                                    <LineChart
-                                        data={monthlyBudgetPerformance}
-                                        width={screenWidth - 64}
-                                        height={250}
-                                        yAxisLabel="$"
-                                        chartConfig={chartConfig}
-                                        bezier
-                                        style={{ marginVertical: 8, borderRadius: 16 }}
-                                        verticalLabelRotation={30}
-                                    />
-                                    <View className="flex-row flex-wrap justify-center mt-4">
-                                        {monthlyBudgetPerformance.datasets.map((dataset, index) => (
-                                            <View key={index} className="flex-row items-center mr-4 mb-2">
-                                                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: dataset.color(), marginRight: 5 }} />
-                                                <Text className="text-sm text-gray-800">{dataset.legend}</Text>
-                                            </View>
-                                        ))}
-                                    </View>
-                                </View>
-                            ) : (
-                                <View className="mb-8 p-4 bg-white rounded-xl shadow-md items-center justify-center min-h-[150px]">
-                                    <Text className="text-gray-500 text-base font-pmedium">
-                                        No monthly budget performance data available.
-                                    </Text>
-                                </View>
-                            )}
+                            {/* Monthly Budget Performance Table */}
+                            <Table
+                                title={t("budgetInsights.monthlyBudgetPerformanceTitle", { numMonths: NUM_MONTHS_FOR_TREND })}
+                                headers={[
+                                    t("common.month"),
+                                    `${t("common.budgeted")} (${preferredCurrencySymbol})`,
+                                    `${t("common.spent")} (${preferredCurrencySymbol})`,
+                                    `${t("common.surplusDeficit")} (${preferredCurrencySymbol})`
+                                ]}
+                                data={monthlyPerformanceTableData}
+                                renderRow={(item) => (
+                                    <>
+                                        <Text className={`flex-1 p-2 text-md text-gray-800 ${I18nManager.isRTL ? 'text-right ' : 'text-left'}`} style={{ fontFamily: getFontClassName("medium") }}>{item.month}</Text>
+                                        <Text className={`flex-1 p-2 text-md text-gray-800 ${I18nManager.isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: getFontClassName("bold") }}>{formatNumber(item.budgeted)}</Text>
+                                        <Text className={`flex-1 p-2 text-md text-gray-800 ${I18nManager.isRTL ? 'text-right' : 'text-left'}`} style={{ fontFamily: getFontClassName("bold") }}>{formatNumber(item.spent)}</Text>
+                                        <Text className={`flex-1 p-2 text-md ${item.surplusDeficit < 0 ? 'text-red-600' : 'text-green-600'} ${I18nManager.isRTL ? 'text-left pl-4' : 'text-right pr-4'}`} style={{ fontFamily: getFontClassName("bold") }}>
+                                            {formatNumber(item.surplusDeficit)}
+                                        </Text>
+                                    </>
+                                )}
+                                emptyMessage={t("budgetInsights.noMonthlyPerformanceData", { numMonths: NUM_MONTHS_FOR_TREND })}
+                            />
                         </>
                     )}
 

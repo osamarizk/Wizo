@@ -48,6 +48,7 @@ import lock from "../assets/icons/lock.png";
 import check from "../assets/icons/check.png";
 import sparkles from "../assets/icons/sparkles.png";
 import analysis from "../assets/icons/analysis.png";
+import resynq from "../assets/icons/resynq.png";
 
 // sparkles.png
 // import receipt from "../assets/icons/receipt";
@@ -101,5 +102,6 @@ export default {
   lock,
   check,
   sparkles,
-  analysis
+  analysis,
+  resynq,
 };

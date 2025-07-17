@@ -1377,8 +1377,20 @@ const Home = () => {
           ListHeaderComponent={
             <>
               {/* Header Section */}
-              <View className="flex-row justify-between items-center mb-4 mt-1 p-4">
+              <View className="flex items-center  -mt-10 -mb-12">
+                <Image
+                      source={icons.resynq}
+                      className="w-40 h-40"
+                      tintColor="#9F54B6"
+                    />
+              </View>
+               
+              <View className="flex-row justify-between items-center mb-4 mt-0 p-4 ">
+              
+               
                 <View>
+                 
+                  
                   <Text
                     className="text-base text-gray-500 "
                     style={{ fontFamily: getFontClassName("regular") }}
@@ -1399,6 +1411,8 @@ const Home = () => {
                           .toUpperCase()}${user.email.slice(1)}`
                       : "User"}
                   </Text>
+                  
+                 
                 </View>
                 {/* Notification icon */}
                 <View className="flex-row items-center space-x-3">
@@ -1454,6 +1468,7 @@ const Home = () => {
                       {t("settings.premium")}
                     </Text>
                   </TouchableOpacity>
+
                 </View>
               </View>
 
@@ -1683,10 +1698,10 @@ const Home = () => {
                   <TouchableOpacity
                     onPress={() => router.push("/financial-insights")}
                     // MODIFIED CLASSNAMES: Increased padding, larger rounded corners, added shadow
-                    className={`bg-[#2A9D8F] rounded-xl p-4 mx-0 mb-6 shadow-lg shadow-red-500 border border-gray-200 flex-row items-center justify-between ${
+                    className={`bg-[#2A9D8F] rounded-xl  mx-0 mb-4 shadow-md shadow-red-500  flex-row items-center justify-between ${
                       I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
                     }`}
-                    style={{ minHeight: 80 }} // Ensure minimum height for consistent appearance
+                    style={{ minHeight: 70 }} // Ensure minimum height for consistent appearance
                   >
                     <Image
                       source={icons.sparkles} // Assuming icons.sparkles exists
@@ -1701,7 +1716,7 @@ const Home = () => {
 
                       {user.isPremium ? (
                         <Text
-                          className={`text-lg text-white ${getFontClassName(
+                          className={`text-base text-white ${getFontClassName(
                             "bold"
                           )}`}
                           style={{
@@ -1714,7 +1729,7 @@ const Home = () => {
                       ) : (
                         <>
                           <Text
-                            className={`text-lg text-white ${getFontClassName(
+                            className={`text-base text-white ${getFontClassName(
                               "bold"
                             )}`}
                             style={{
@@ -1900,7 +1915,7 @@ const Home = () => {
                 user &&
                 !user.isPremium &&
                 applicationSettings && (
-                  <View className=" bg-transparent rounded-xl  mx-4 shadow-lg shadow-green-500">
+                  <View className=" bg-transparent rounded-xl  mx-4 shadow-lg shadow-red-500">
                     {/* <Text className="text-lg font-pbold text-gray-800 mb-2">
                       Your Monthly Usage
                     </Text>
@@ -2022,11 +2037,11 @@ const Home = () => {
 
                     <Text
                       // Keep general Tailwind classes, but remove font-specific ones
-                      className="text-center text-2xl text-gray-800 mb-2"
+                      className="text-center text-xl text-gray-800 mb-2"
                       style={{ fontFamily: getFontClassName("extrabold") }} // NEW: Apply font directly via style
                     >
                       <Text
-                        className="text-2xl" // Remove font class from inner Text as well
+                        className="text-xl" // Remove font class from inner Text as well
                         style={{ fontFamily: getFontClassName("extralight") }} // Apply font directly
                       >
                         ®️
