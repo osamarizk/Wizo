@@ -118,6 +118,8 @@ const RootLayout = () => {
           />
 
           <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
+           <Stack.Screen name="about-us" options={{ headerShown: false }} />
+            <Stack.Screen name="help-center" options={{ headerShown: false }} />
         </Stack>
 
         {/* financial-insights */}

@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   I18nManager,
+  Linking, // Import Linking for external links like email
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import UploadModal from "../components/UploadModal";
@@ -33,10 +34,6 @@ const Account = () => {
     setShowUploadModal,
   } = useGlobalContext();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  // Removed 'refreshing' state and its related useEffect/useCallback as they weren't directly used by menu options.
-  // If you have specific data refresh needs on focus, keep the useFocusEffect logic,
-  // but it's not tied to menuOptions directly.
 
   const handleLogout = async () => {
     Alert.alert(
@@ -72,61 +69,116 @@ const Account = () => {
     );
   };
 
+  // Function to open a URL (for email or web link)
+  const openUrl = async (url) => {
+    const supported = await Linking.canOpenURL(url);
+    if (supported) {
+      await Linking.openURL(url);
+    } else {
+      console.error(`Don't know how to open this URL: ${url}`);
+      Alert.alert(t("common.error"), t("account.linkOpenError")); // Using common.error and new translation key
+    }
+  };
+
+  // NEW: Handle Account Deletion Request
+  const handleAccountDeletionRequest = () => {
+    Alert.alert(
+      t("account.deleteAccountConfirmTitle"),
+      t("account.deleteAccountConfirmMessage"),
+      [
+        {
+          text: t("common.cancel"), // Reusing common.cancel
+          style: "cancel",
+        },
+        {
+          text: t("account.deleteAccountConfirmButton"),
+          onPress: () => {
+            const recipient = "support@resynq.com";
+            const subject = encodeURIComponent(
+              `Account Deletion Request for User ID: ${user?.$id || "N/A"}`
+            );
+            const body = encodeURIComponent(
+              `Dear ResynQ Support Team,\n\nI would like to request the deletion of my ResynQ account.\n\nMy registered email address is: ${
+                user?.email || "N/A"
+              }\nMy User ID is: ${
+                user?.$id || "N/A"
+              }\n\nPlease confirm once my account and all associated data have been permanently deleted.\n\nThank you.`
+            );
+            const mailtoUrl = `mailto:${recipient}?subject=${subject}&body=${body}`;
+            openUrl(mailtoUrl);
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
   if (globalLoading) {
     return (
       <View className="flex-1 justify-center items-center bg-white">
         <ActivityIndicator size="large" color="#4E17B3" />
         <Text
-          className="mt-2 text-gray-500" // Removed font class from className
-          style={{ fontFamily: getFontClassName("regular") }} // Apply font directly
+          className="mt-2 text-gray-500"
+          style={{ fontFamily: getFontClassName("regular") }}
         >
-          {t("account.loadingUserData")} {/* Translated */}
+          {t("account.loadingUserData")}
         </Text>
       </View>
     );
   }
 
-  // Define menu options, now including the logout item
+  // Define menu options, now including the logout and delete account items
   const menuOptions = [
     {
       id: "appSettings",
-      title: t("account.applicationSettings"), // Translated
+      title: t("account.applicationSettings"),
       icon: icons.settings,
       onPress: () => router.push("settings/app-settings"),
     },
     {
-      id: "financialInsights", // NEW ID
-      title: t("financialInsights.pageTitle"), // Use the translated page title
+      id: "financialInsights",
+      title: t("financialInsights.pageTitle"),
       icon: icons.analysis, // Suggesting a chart-like icon, or sparkles if you have it
-      onPress: () => router.push("/financial-insights"), // Link to the new page
+      onPress: () => router.push("/financial-insights"),
     },
     {
       id: "privacyPolicy",
-      title: t("account.privacyPolicy"), // Translated
+      title: t("account.privacyPolicy"),
       icon: icons.privacy,
-      onPress: () => router.push("/settings/privacy-policy"),
+      onPress: () =>
+        openUrl("https://wizo-app-auth.web.app/privacy-policy.html"), // Use openUrl for external link
     },
     {
       id: "termsOfService",
-      title: t("account.termsOfService"), // Translated
+      title: t("account.termsOfService"),
       icon: icons.terms,
-      onPress: () => router.push("/settings/terms-of-service"),
+      onPress: () =>
+        openUrl(
+          "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+        ), // Use openUrl for external link
     },
     {
       id: "aboutUs",
-      title: t("account.aboutUs"), // Translated
+      title: t("account.aboutUs"),
       icon: icons.about,
-      onPress: () => router.push("/about-us"),
+      onPress: () => router.push("/about-us"), // Assuming this is an internal route now
     },
     {
       id: "helpCenter",
-      title: t("account.helpCenter"), // Translated
+      title: t("account.helpCenter"),
       icon: icons.help,
-      onPress: () => router.push("/help-center"),
+      onPress: () => router.push("/help-center"), // Assuming this is an internal route now
+    },
+    {
+      id: "deleteAccount", // NEW ID for Delete Account
+      title: t("account.deleteAccount"), // Translated
+      icon: icons.dlt, // Assuming you have a delete icon
+      onPress: handleAccountDeletionRequest,
+      isDestructiveOption: true, // Custom flag for destructive action
     },
     {
       id: "logout",
-      title: t("account.logout"), // Translated
+      title: t("account.logout"),
       icon: icons.logout,
       onPress: handleLogout,
       isLogoutOption: true,
@@ -155,21 +207,21 @@ const Account = () => {
                 className="text-blue-600 text-lg"
                 style={{ fontFamily: getFontClassName("medium") }}
               >
-                {t("common.back")} {/* Translated */}
+                {t("common.back")}
               </Text>
             </TouchableOpacity>
             <Text
               className="text-3xl text-black"
               style={{ fontFamily: getFontClassName("bold") }}
             >
-              {t("account.accountSettingsTitle")} {/* Translated */}
+              {t("account.accountSettingsTitle")}
             </Text>
             {/* Spacer for symmetrical layout */}
             <View className="w-10" />
           </View>
           {/* User Profile Section */}
           <View
-            className={`bg-white rounded-xl p-6 mb-6 mt-4  border border-gray-200 flex-row items-center ${
+            className={`bg-white rounded-xl p-6 mb-6 mt-4 border border-gray-200 flex-row items-center ${
               I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse for RTL
             }`}
           >
@@ -187,7 +239,7 @@ const Account = () => {
                 }`}
                 style={{ fontFamily: getFontClassName("bold") }}
               >
-                {user?.username || t("account.guestUser")} {/* Translated */}
+                {user?.username || t("account.guestUser")}
               </Text>
               <Text
                 className={`text-base text-gray-600 mt-1 ${
@@ -195,7 +247,7 @@ const Account = () => {
                 }`}
                 style={{ fontFamily: getFontClassName("regular") }}
               >
-                {user?.email || t("account.noEmailProvided")} {/* Translated */}
+                {user?.email || t("account.noEmailProvided")}
               </Text>
               {/* Optional: Edit Profile Button */}
               <TouchableOpacity
@@ -215,36 +267,45 @@ const Account = () => {
           </View>
           {/* Menu Options */}
           <View className="bg-white rounded-xl mb-8 shadow-md border border-gray-200 overflow-hidden">
-            {/* Changed bg-transparent to bg-white, added shadow/border */}
             {menuOptions.map((option, index) => (
               <TouchableOpacity
                 key={option.id}
                 className={`flex-row items-center p-5 ${
                   index < menuOptions.length - 1
-                    ? "border-b border-gray-100" // Lighter border
+                    ? "border-b border-gray-100"
                     : ""
                 } ${
-                  option.isLogoutOption ? "bg-red-50" : "bg-white" // Light red background for logout
-                } ${I18nManager.isRTL ? "flex-row-reverse" : "flex-row"}`} // Reverse for RTL
+                  option.isLogoutOption
+                    ? "bg-red-50"
+                    : option.isDestructiveOption
+                    ? "bg-red-50" // Apply light red background for destructive options too
+                    : "bg-white"
+                } ${I18nManager.isRTL ? "flex-row-reverse" : "flex-row"}`}
                 onPress={option.onPress}
-                disabled={option.isLogoutOption && isLoggingOut}
+                disabled={
+                  (option.isLogoutOption && isLoggingOut) ||
+                  (option.isDestructiveOption && isLoggingOut)
+                } // Disable destructive options during logout
               >
-                {/* Conditionally show ActivityIndicator for logout */}
-                {option.isLogoutOption && isLoggingOut ? (
+                {/* Conditionally show ActivityIndicator for logout/destructive */}
+                {(option.isLogoutOption || option.isDestructiveOption) &&
+                isLoggingOut ? (
                   <ActivityIndicator
                     size="small"
-                    color="#D03957" // Red tint for logout indicator
-                    className={`${I18nManager.isRTL ? "ml-4" : "mr-4"}`} // Adjust margin
+                    color="#D03957"
+                    className={`${I18nManager.isRTL ? "ml-4" : "mr-4"}`}
                   />
                 ) : (
                   option.icon && (
                     <Image
                       source={option.icon}
                       className={`w-6 h-6 ${
-                        I18nManager.isRTL ? "ml-4" : "mr-4" // Adjust margin
+                        I18nManager.isRTL ? "ml-4" : "mr-4"
                       }`}
                       tintColor={
-                        option.isLogoutOption ? "#D03957" : "#264653" // Red for logout, Dark Blue for others
+                        option.isLogoutOption || option.isDestructiveOption
+                          ? "#D03957"
+                          : "#264653" // Red for logout/destructive, Dark Blue for others
                       }
                       resizeMode="contain"
                     />
@@ -252,18 +313,20 @@ const Account = () => {
                 )}
                 <Text
                   className={`flex-1 text-lg mr-3 ${
-                    option.isLogoutOption ? "text-red-600" : "text-gray-700" // Red for logout, gray for others
-                  } ${I18nManager.isRTL ? "text-right" : "text-left"}`} // Align text
-                  style={{ fontFamily: getFontClassName("semibold") }} // Always use semibold for menu items
+                    option.isLogoutOption || option.isDestructiveOption
+                      ? "text-red-600"
+                      : "text-gray-700"
+                  } ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                  style={{ fontFamily: getFontClassName("semibold") }}
                 >
                   {option.title}
                 </Text>
-                {/* Right Arrow Icon (optional, only for non-logout) */}
-                {!option.isLogoutOption && (
+                {/* Right Arrow Icon (optional, only for non-logout/non-destructive) */}
+                {!(option.isLogoutOption || option.isDestructiveOption) && (
                   <Image
-                    source={icons.arrowRight} // Assuming you have an arrowRight icon
+                    source={icons.arrowRight}
                     className="w-4 h-4"
-                    tintColor="#7b7b8b" // Gray tint
+                    tintColor="#7b7b8b"
                     resizeMode="contain"
                   />
                 )}

@@ -684,7 +684,7 @@ const Budget = () => {
     <GradientBackground>
       <SafeAreaView className="flex-1">
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, width: "100%", padding: 16 }}
+          contentContainerStyle={{ flexGrow: 1, width: "100%", padding: 20 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
@@ -857,117 +857,6 @@ const Budget = () => {
             </View>
           )}
 
-          {(userTotalPoints > 0 ||
-            userBadges.length > 0 ||
-            showBudgetPrompt) && (
-            <View className="mb-2">
-              {(userTotalPoints > 0 || userBadges.length > 0) && (
-                <View
-                  className={`flex-col items-center bg-white rounded-xl p-4 mx-0 mb-6 shadow-md border border-gray-200 w-full`} // Changed to flex-col, removed flex-1 and justify-around from here
-                >
-                  {/* Points Row */}
-                  <View
-                    className={`flex-row justify-between items-center w-full pb-3 mb-3 border-b border-gray-100 ${
-                      I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse inner row for RTL
-                    }`}
-                  >
-                    <View
-                      className={`flex-row items-center ${
-                        I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse icon and text for RTL
-                      }`}
-                    >
-                      <Image
-                        source={icons.star}
-                        className={`w-8 h-8 ml-2 ${
-                          I18nManager.isRTL ? "ml-2" : "mr-2"
-                        }`} // Adjust margin for RTL
-                        // tintColor="#D03957" // Red from your gradientColors
-                        resizeMode="contain"
-                      />
-                      <Text
-                        className="text-base text-slate-800" // Removed font-pmedium
-                        style={{ fontFamily: getFontClassName("medium") }} // Apply font
-                      >
-                        {t("budget.points")}: {/* Translated "Points:" */}
-                        <Text
-                          className="text-lg text-red-600" // Removed font-pbold
-                          style={{ fontFamily: getFontClassName("bold") }} // Apply font
-                        >
-                          {i18n.language.startsWith("ar")
-                            ? convertToArabicNumerals(userTotalPoints || 0)
-                            : userTotalPoints || 0}
-                        </Text>
-                      </Text>
-                    </View>
-                    {/* Optional: Add a button or action for points here if desired */}
-                  </View>
-
-                  {/* Badges Row */}
-                  <View
-                    className={`flex-row justify-between items-center w-full pt-3 ${
-                      I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse inner row for RTL
-                    }`}
-                  >
-                    <View
-                      className={`flex-row items-center ${
-                        I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse icon and text for RTL
-                      }`}
-                    >
-                      <Image
-                        source={icons.medal}
-                        className={`w-8 h-8 ml-2 ${
-                          I18nManager.isRTL ? "ml-2" : "mr-2"
-                        }`} // Adjust margin for RTL
-                        // tintColor="#2A9D8F" // Teal from your gradientColors
-                        resizeMode="contain"
-                      />
-                      <Text
-                        className="text-base text-black" // Removed font-pmedium
-                        style={{ fontFamily: getFontClassName("medium") }} // Apply font
-                      >
-                        {t("budget.badges")}: {/* Translated "Badges:" */}
-                        <Text
-                          className="text-lg text-black" // Removed font-pbold
-                          style={{ fontFamily: getFontClassName("bold") }} // Apply font
-                        >
-                          {i18n.language.startsWith("ar")
-                            ? convertToArabicNumerals(userBadges?.length || 0)
-                            : userBadges?.length || 0}
-                        </Text>
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      onPress={() =>
-                        showCustomModal(
-                          t("budget.yourBadgesTitle"), // Translated title
-                          t("budget.viewAchievementsMessage") // Translated message
-                        )
-                      }
-                      className={`flex-row items-center bg-[#F4A261] rounded-lg py-2 px-3 ${
-                        I18nManager.isRTL ? "mr-2" : "ml-2" // Adjust margin for RTL, added small padding to match prev
-                      }`}
-                    >
-                      <Text
-                        className="text-white text-base" // Example text style, adjust as needed
-                        style={{ fontFamily: getFontClassName("semibold") }} // Apply font
-                      >
-                        {t("common.view")}{" "}
-                        {/* Assuming a "View" translation in common */}
-                      </Text>
-                      <Image
-                        source={icons.arrowRight} // Assuming you have an arrowRight icon or equivalent
-                        className={`w-4 h-4 ${
-                          I18nManager.isRTL ? "mr-2" : "ml-2"
-                        }`} // Adjust margin for RTL
-                        tintColor="white" // Ensure arrow is visible
-                        resizeMode="contain"
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              )}
-            </View>
-          )}
           {/* NEW: Button to navigate to Budget Insights */}
           {userBudgets.length > 0 && ( // Conditional render if there are any budgets
             <TouchableOpacity

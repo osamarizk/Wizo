@@ -49,9 +49,7 @@ import check from "../assets/icons/check.png";
 import sparkles from "../assets/icons/sparkles.png";
 import analysis from "../assets/icons/analysis.png";
 import resynq from "../assets/icons/resynq.png";
-
-// sparkles.png
-// import receipt from "../assets/icons/receipt";
+import dlt from "../assets/icons/dlt.png";
 export default {
   play,
   bookmark,
@@ -104,4 +102,5 @@ export default {
   sparkles,
   analysis,
   resynq,
+  dlt,
 };

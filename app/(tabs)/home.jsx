@@ -1377,20 +1377,16 @@ const Home = () => {
           ListHeaderComponent={
             <>
               {/* Header Section */}
-              <View className="flex items-center  -mt-10 -mb-12">
+              <View className="flex items-center  -mt-6 -mb-6">
                 <Image
-                      source={icons.resynq}
-                      className="w-40 h-40"
-                      tintColor="#9F54B6"
-                    />
+                  source={icons.resynq}
+                  className="w-32 h-32"
+                  tintColor="#9F54B6"
+                />
               </View>
-               
+
               <View className="flex-row justify-between items-center mb-4 mt-0 p-4 ">
-              
-               
                 <View>
-                 
-                  
                   <Text
                     className="text-base text-gray-500 "
                     style={{ fontFamily: getFontClassName("regular") }}
@@ -1411,8 +1407,6 @@ const Home = () => {
                           .toUpperCase()}${user.email.slice(1)}`
                       : "User"}
                   </Text>
-                  
-                 
                 </View>
                 {/* Notification icon */}
                 <View className="flex-row items-center space-x-3">
@@ -1468,7 +1462,6 @@ const Home = () => {
                       {t("settings.premium")}
                     </Text>
                   </TouchableOpacity>
-
                 </View>
               </View>
 
@@ -1915,7 +1908,7 @@ const Home = () => {
                 user &&
                 !user.isPremium &&
                 applicationSettings && (
-                  <View className=" bg-transparent rounded-xl  mx-4 shadow-lg shadow-red-500">
+                  <View className=" bg-transparent rounded-xl  mx-4 ">
                     {/* <Text className="text-lg font-pbold text-gray-800 mb-2">
                       Your Monthly Usage
                     </Text>
@@ -2028,7 +2021,7 @@ const Home = () => {
               {receiptStats.totalCount > 0 && (
                 <View className="p-2  mb-2 rounded-md border-t border-[#9F54B6] border-opacity-50 ">
                   <TouchableOpacity
-                    onPress={() => router.push("/notification")}
+                    onPress={() => router.push("/spending")}
                     className="relative p-2 rounded-full mt-1"
                   >
                     {/* <Text className="text-center text-gray-600 mb-2  font-pregular">

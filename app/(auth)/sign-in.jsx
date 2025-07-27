@@ -94,7 +94,7 @@ const SignIn = () => {
     setIsSubmitting(true);
 
     try {
-      const REDIRECT_URL = "https://wizo-app-auth.web.app/reset-password.html"; // <<< IMPORTANT: MATCH YOUR EXPO DEEP LINK/WEB REDIRECT URL
+      const REDIRECT_URL = "https://resynq.net/reset-password.html"; // <<< IMPORTANT: MATCH YOUR EXPO DEEP LINK/WEB REDIRECT URL
       console.log("REDIRECT_URL", REDIRECT_URL);
       await requestPasswordReset(email, REDIRECT_URL);
 

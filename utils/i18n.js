@@ -251,6 +251,8 @@ const resources = {
         unknownError: "An unknown error occurred.",
         successTitle: "Success!",
         infoTitle: "Information",
+        week: "week",
+        weeks: "weeks",
       },
       aiMessages: {
         // Update this line to match the exact message from your AI API
@@ -1064,21 +1066,28 @@ const resources = {
       },
       account: {
         accountSettingsTitle: "Account Settings",
-        logoutAlertTitle: "Log Out",
-        logoutAlertMessage: "Are you sure you want to log out?",
-        cancelLogout: "Cancel",
-        confirmLogout: "Log Out",
-        logoutErrorTitle: "Logout Error",
-        loadingUserData: "Loading user data...",
+        guestUser: "Guest User",
+        noEmailProvided: "No email provided",
+        editProfile: "Edit Profile",
         applicationSettings: "Application Settings",
         privacyPolicy: "Privacy Policy",
         termsOfService: "Terms of Service",
         aboutUs: "About Us",
         helpCenter: "Help Center",
-        logout: "Log Out",
-        guestUser: "Guest User",
-        noEmailProvided: "No email provided",
-        editProfile: "Edit Profile", // Assuming there might be an edit profile button later
+        logout: "Logout",
+        logoutAlertTitle: "Confirm Logout",
+        logoutAlertMessage: "Are you sure you want to log out?",
+        cancelLogout: "Cancel",
+        confirmLogout: "Logout",
+        logoutErrorTitle: "Logout Error",
+        loadingUserData: "Loading user data...",
+        deleteAccount: "Delete Account",
+        deleteAccountConfirmTitle: "Confirm Account Deletion",
+        deleteAccountConfirmMessage:
+          "Are you sure you want to request account deletion? This will permanently remove your account and all associated data. You will be redirected to your email app to send the request.",
+        deleteAccountConfirmButton: "Yes, Delete My Account",
+        linkOpenError:
+          "Could not open the link. Please ensure you have a web browser or email client installed.",
       },
       manageData: {
         pageTitle: "Manage My Data",
@@ -1360,8 +1369,12 @@ const resources = {
         fetchProductsError: "Failed to load subscription plans: {{message}}",
         unlockPremiumBenefits: "Unlock Premium Benefits:",
         unlimitedReceipts: "Unlimited Receipt Uploads",
+        customBudgets: "Custom Budget Categories & Tracking",
+        cloudSync: "Secure Cloud Sync & Data Backup",
+        addFree: "Ad-Free Experience",
         advancedSpendingAnalytics: "Advanced Spending Analytics",
         priorityCustomerSupport: "Priority Customer Support",
+        introductoryOffer: "Try for {{price}} {{currency}} for {{period}}",
         chooseYourPlan: "Choose Your Plan",
         noSubscriptionPlansAvailable:
           "No subscription plans are currently available. Please try again later.",
@@ -1471,6 +1484,89 @@ const resources = {
         noMonthlyPerformanceData:
           "No monthly budget performance data available.",
         loadError: "Failed to load budget insights. Please try again.",
+      },
+      ads: {
+        sponsored: "Sponsored",
+        adErrorTitle: "Ad Error",
+        adErrorMessage: "Could not load ad. Please try again later.",
+        adLoadingTitle: "Loading Ad",
+        adLoadingMessage: "Ad is loading, please wait...",
+        adNotReadyTitle: "Ad Not Ready",
+        adNotReadyMessage: "Ad is not ready yet. Please try again.",
+        loadingAd: "Loading Ad...",
+        earnExtraUpload: "Watch Ad for +1 Receipt Upload",
+      },
+
+      helpCenter: {
+        pageTitle: "Help Center",
+        intro:
+          "Welcome to the ResynQ Help Center. Here you can find answers to common questions and resources to help you get the most out of your financial companion app.",
+        faqTitle: "Frequently Asked Questions (FAQs)",
+        gettingStartedTitle: "Getting Started",
+        faq1Q: "How do I create an account?",
+        faq1A:
+          "You can create an account directly within the ResynQ app using your email address and a secure password. Follow the on-screen prompts during your first launch.",
+        faq2Q: "What is ResynQ Premium?",
+        faq2A:
+          "ResynQ Premium offers unlimited receipt uploads, advanced analytics, custom budget categories, ad-free experience, and priority customer support. You can learn more and subscribe from the app's Wallet/Premium section.",
+        receiptManagementTitle: "Receipt Scanning & Management",
+        faq3Q: "How do I upload a receipt?",
+        faq3A:
+          "Tap the 'Upload' button (camera icon) at the bottom of the screen. You can then snap a photo of your receipt or select one from your device's gallery. Our AI will automatically extract the details.",
+        faq4Q: "What if the AI makes a mistake?",
+        faq4A:
+          "You can easily edit any extracted receipt details within the app after it's processed. Simply tap on the transaction to make corrections.",
+        faq5Q: "Can I download my receipts?",
+        faq5A:
+          "Yes, free users can download up to 3 receipts, while Premium users have unlimited downloads. Navigate to your receipts list and select the download option.",
+        budgetingAnalyticsTitle: "Budgeting & Analytics",
+        faq6Q: "How do I create a budget?",
+        faq6A:
+          "Go to the 'Budget' tab and tap the '+' icon to create a new budget. Free users can create up to 3 budgets, Premium users have unlimited custom budgets.",
+        faq7Q: "How does ResynQ categorize my spending?",
+        faq7A:
+          "Our AI automatically categorizes your expenses based on merchant and item details. You can always re-categorize transactions manually if needed.",
+        troubleshootingTitle: "Troubleshooting",
+        troubleshootingIntro: "If you encounter any issues or bugs:",
+        troubleshootingList1:
+          "• Ensure your app is updated to the latest version.",
+        troubleshootingList2: "• Check your internet connection.",
+        troubleshootingList3: "• Restart the app.",
+        troubleshootingList4:
+          "• If the issue persists, please contact our support team.",
+        contactSupportTitle: "Contact Support",
+        contactSupportIntro:
+          "If you can't find an answer to your question here or need further assistance, please reach out to our support team:",
+        contactEmail: "By email: support@resynq.com",
+        contactWebsite:
+          "By visiting our support page: https://www.resynq.com/support",
+        linkOpenError:
+          "Could not open the link. Please ensure you have a web browser or email client installed.",
+      },
+      aboutUs: {
+        pageTitle: "About Us",
+        intro:
+          "Welcome to ResynQ, your smart financial companion designed to simplify receipt management and empower you with insightful spending analytics. Our mission is to transform the way you interact with your finances, making it effortless to track expenses, manage budgets, and gain clarity on your financial health.\n\nWe believe that managing your money should be simple, intuitive, and secure. That's why we built ResynQ with advanced AI technology to automate the tedious task of data entry, allowing you to focus on what truly matters: understanding your spending habits and achieving your financial goals.",
+        ourVisionTitle: "Our Vision",
+        ourVisionContent:
+          "To empower individuals worldwide with the tools and insights needed to achieve financial freedom and peace of mind, one receipt at a time.",
+        ourCommitmentTitle: "Our Commitment",
+        ourCommitmentList1:
+          "• Innovation: Continuously improving our AI and features to provide the most efficient and accurate financial tools.",
+        ourCommitmentList2:
+          "• Security: Protecting your financial data with robust security measures and a privacy-first approach.",
+        ourCommitmentList3:
+          "• User Experience: Designing an intuitive and enjoyable app that makes financial management a breeze.",
+        ourCommitmentList4:
+          "• Transparency: Being clear about how we collect, use, and protect your information.",
+        contactUsTitle: "Contact Us",
+        contactUsIntro:
+          "If you have any questions or feedback, please don't hesitate to reach out:",
+        contactEmail: "By email: support@resynq.com",
+        contactWebsite:
+          "By visiting our support page: https://www.resynq.com/support",
+        linkOpenError:
+          "Could not open the link. Please ensure you have a web browser or email client installed.",
       },
     },
   },
@@ -1655,6 +1751,8 @@ const resources = {
         unknown: "غير معروف",
         yes: "نعم",
         no: "لا",
+        week: "أسبوع",
+        weeks: "أسابيع",
       },
       onboarding: {
         heroText: "إدارة الإيصالات مملة وغالبًا ما تُفقد ويصعب تتبعها.",
@@ -2521,21 +2619,28 @@ const resources = {
       },
       account: {
         accountSettingsTitle: "إعدادات الحساب",
-        logoutAlertTitle: "تسجيل الخروج",
+        guestUser: "مستخدم ضيف",
+        noEmailProvided: "لم يتم تقديم بريد إلكتروني",
+        editProfile: "تعديل الملف الشخصي",
+        applicationSettings: "إعدادات التطبيق",
+        privacyPolicy: "سياسة الخصوصية",
+        termsOfService: "شروط الخدمة",
+        aboutUs: "حول التطبيق",
+        helpCenter: "مركز المساعدة",
+        logout: "تسجيل الخروج",
+        logoutAlertTitle: "تأكيد تسجيل الخروج",
         logoutAlertMessage: "هل أنت متأكد أنك تريد تسجيل الخروج؟",
         cancelLogout: "إلغاء",
         confirmLogout: "تسجيل الخروج",
         logoutErrorTitle: "خطأ في تسجيل الخروج",
         loadingUserData: "جاري تحميل بيانات المستخدم...",
-        applicationSettings: "إعدادات التطبيق",
-        privacyPolicy: "سياسة الخصوصية",
-        termsOfService: "شروط الخدمة",
-        aboutUs: "عنا",
-        helpCenter: "مركز المساعدة",
-        logout: "تسجيل الخروج",
-        guestUser: "مستخدم ضيف",
-        noEmailProvided: "لم يتم تقديم بريد إلكتروني",
-        editProfile: "تعديل الملف الشخصي",
+        deleteAccount: "حذف الحساب",
+        deleteAccountConfirmTitle: "تأكيد حذف الحساب",
+        deleteAccountConfirmMessage:
+          "هل أنت متأكد أنك تريد طلب حذف حسابك؟ سيؤدي هذا إلى إزالة حسابك وجميع البيانات المرتبطة به بشكل دائم. سيتم توجيهك إلى تطبيق البريد الإلكتروني الخاص بك لإرسال الطلب.",
+        deleteAccountConfirmButton: "نعم، احذف حسابي",
+        linkOpenError:
+          "تعذر فتح الرابط. يرجى التأكد من تثبيت متصفح ويب أو عميل بريد إلكتروني.",
       },
       manageData: {
         pageTitle: "إدارة بياناتي",
@@ -2808,6 +2913,10 @@ const resources = {
         unlimitedReceipts: "تحميل إيصالات غير محدود",
         advancedSpendingAnalytics: "تحليلات إنفاق متقدمة",
         priorityCustomerSupport: "دعم العملاء ذو الأولوية",
+        customBudgets: "فئات ميزانية مخصصة وتتبع",
+        cloudSync: "مزامنة سحابية آمنة ونسخ احتياطي للبيانات",
+        addFree: "تجربة خالية من الإعلانات",
+        introductoryOffer: "جرب بـ {{price}} {{currency}} لمدة {{period}}",
         chooseYourPlan: "اختر خطتك",
         noSubscriptionPlansAvailable:
           "لا توجد خطط اشتراك متاحة حاليًا. يرجى المحاولة مرة أخرى لاحقًا.",
@@ -2912,6 +3021,88 @@ const resources = {
           "أداء الميزانية الشهري (آخر {{numMonths}} أشهر)",
         noMonthlyPerformanceData: "لا توجد بيانات أداء الميزانية الشهرية.",
         loadError: "فشل تحميل رؤى الميزانية. يرجى المحاولة مرة أخرى.",
+      },
+
+      ads: {
+        sponsored: "إعلان",
+        adErrorTitle: "خطأ في الإعلان",
+        adErrorMessage: "تعذر تحميل الإعلان. يرجى المحاولة لاحقًا.",
+        adLoadingTitle: "جاري تحميل الإعلان",
+        adLoadingMessage: "الإعلان قيد التحميل، يرجى الانتظار...",
+        adNotReadyTitle: "الإعلان غير جاهز",
+        adNotReadyMessage: "الإعلان غير جاهز بعد. يرجى المحاولة.",
+        loadingAd: "جاري تحميل الإعلان...",
+        earnExtraUpload: "شاهد إعلانًا لتحصل على تحميل إيصال إضافي",
+      },
+      helpCenter: {
+        pageTitle: "مركز المساعدة",
+        intro:
+          "مرحباً بك في مركز مساعدة ResynQ. هنا يمكنك العثور على إجابات للأسئلة الشائعة وموارد لمساعدتك في تحقيق أقصى استفادة من تطبيقك المالي.",
+        faqTitle: "الأسئلة المتكررة",
+        gettingStartedTitle: "البدء",
+        faq1Q: "كيف أنشئ حسابًا؟",
+        faq1A:
+          "يمكنك إنشاء حساب مباشرة داخل تطبيق ResynQ باستخدام عنوان بريدك الإلكتروني وكلمة مرور آمنة. اتبع التعليمات التي تظهر على الشاشة عند التشغيل الأول.",
+        faq2Q: "ما هو ResynQ Premium؟",
+        faq2A:
+          "يقدم ResynQ Premium تحميلات إيصالات غير محدودة، تحليلات متقدمة، فئات ميزانية مخصصة، تجربة خالية من الإعلانات، ودعم عملاء ذو أولوية. يمكنك معرفة المزيد والاشتراك من قسم المحفظة/الاشتراك في التطبيق.",
+        receiptManagementTitle: "مسح الإيصالات وإدارتها",
+        faq3Q: "كيف أقوم بتحميل إيصال؟",
+        faq3A:
+          "اضغط على زر 'تحميل' (أيقونة الكاميرا) في أسفل الشاشة. يمكنك بعد ذلك التقاط صورة لإيصالك أو اختيار واحدة من معرض جهازك. سيقوم الذكاء الاصطناعي لدينا باستخراج التفاصيل تلقائيًا.",
+        faq4Q: "ماذا لو ارتكب الذكاء الاصطناعي خطأ؟",
+        faq4A:
+          "يمكنك بسهولة تعديل أي تفاصيل إيصال مستخرجة داخل التطبيق بعد معالجتها. ما عليك سوى النقر على المعاملة لإجراء التصحيحات.",
+        faq5Q: "هل يمكنني تنزيل إيصالاتي؟",
+        faq5A:
+          "نعم، يمكن للمستخدمين المجانيين تنزيل ما يصل إلى 3 إيصالات، بينما يتمتع المستخدمون المميزون بتنزيلات غير محدودة. انتقل إلى قائمة إيصالاتك وحدد خيار التنزيل.",
+        budgetingAnalyticsTitle: "الميزانية والتحليلات",
+        faq6Q: "كيف أنشئ ميزانية؟",
+        faq6A:
+          "انتقل إلى علامة التبويب 'الميزانية' واضغط على أيقونة '+' لإنشاء ميزانية جديدة. يمكن للمستخدمين المجانيين إنشاء ما يصل إلى 3 ميزانيات، ويتمتع المستخدمون المميزون بميزانيات مخصصة غير محدودة.",
+        faq7Q: "كيف يقوم ResynQ بتصنيف إنفاقي؟",
+        faq7A:
+          "يقوم الذكاء الاصطناعي لدينا بتصنيف نفقاتك تلقائيًا بناءً على التاجر وتفاصيل العنصر. يمكنك دائمًا إعادة تصنيف المعاملات يدويًا إذا لزم الأمر.",
+        troubleshootingTitle: "استكشاف الأخطاء وإصلاحها",
+        troubleshootingIntro: "إذا واجهت أي مشاكل أو أخطاء:",
+        troubleshootingList1: "• تأكد من تحديث تطبيقك إلى أحدث إصدار.",
+        troubleshootingList2: "• تحقق من اتصالك بالإنترنت.",
+        troubleshootingList3: "• أعد تشغيل التطبيق.",
+        troubleshootingList4:
+          "• إذا استمرت المشكلة، يرجى الاتصال بفريق الدعم لدينا.",
+        contactSupportTitle: "الاتصال بالدعم",
+        contactSupportIntro:
+          "إذا لم تتمكن من العثور على إجابة لسؤالك هنا أو كنت بحاجة إلى مزيد من المساعدة، يرجى التواصل مع فريق الدعم لدينا:",
+        contactEmail: "عبر البريد الإلكتروني: support@resynq.com",
+        contactWebsite:
+          "عبر زيارة صفحة الدعم على موقعنا: [https://www.resynq.com/support](https://www.resynq.com/support)",
+        linkOpenError:
+          "تعذر فتح الرابط. يرجى التأكد من تثبيت متصفح ويب أو عميل بريد إلكتروني.",
+      },
+      aboutUs: {
+        pageTitle: "حول التطبيق",
+        intro:
+          "مرحبًا بك في ResynQ، رفيقك المالي الذكي المصمم لتبسيط إدارة الإيصالات وتمكينك من تحليلات الإنفاق الثاقبة. مهمتنا هي تحويل طريقة تفاعلك مع أموالك، مما يجعل تتبع النفقات وإدارة الميزانيات واكتساب الوضوح بشأن صحتك المالية أمرًا سهلاً.\n\nنعتقد أن إدارة أموالك يجب أن تكون بسيطة، بديهية، وآمنة. لهذا السبب قمنا ببناء ResynQ بتقنية الذكاء الاصطناعي المتقدمة لأتمتة مهمة إدخال البيانات المملة، مما يتيح لك التركيز على ما يهم حقًا: فهم عادات الإنفاق الخاصة بك وتحقيق أهدافك المالية.",
+        ourVisionTitle: "رؤيتنا",
+        ourVisionContent:
+          "تمكين الأفراد في جميع أنحاء العالم بالأدوات والرؤى اللازمة لتحقيق الحرية المالية وراحة البال، إيصالًا بإيصال.",
+        ourCommitmentTitle: "التزامنا",
+        ourCommitmentList1:
+          "• الابتكار: التحسين المستمر لذكائنا الاصطناعي وميزاتنا لتقديم أدوات مالية أكثر كفاءة ودقة.",
+        ourCommitmentList2:
+          "• الأمان: حماية بياناتك المالية بإجراءات أمنية قوية ونهج يركز على الخصوصية أولاً.",
+        ourCommitmentList3:
+          "• تجربة المستخدم: تصميم تطبيق بديهي وممتع يجعل الإدارة المالية سهلة.",
+        ourCommitmentList4:
+          "• الشفافية: الوضوح بشأن كيفية جمعنا لبياناتك واستخدامها وحمايتها.",
+        contactUsTitle: "اتصل بنا",
+        contactUsIntro:
+          "إذا كان لديك أي أسئلة أو ملاحظات، فلا تتردد في التواصل معنا:",
+        contactEmail: "عبر البريد الإلكتروني: support@resynq.com",
+        contactWebsite:
+          "عبر زيارة صفحة الدعم على موقعنا: [https://www.resynq.com/support](https://www.resynq.com/support)",
+        linkOpenError:
+          "تعذر فتح الرابط. يرجى التأكد من تثبيت متصفح ويب أو عميل بريد إلكتروني.",
       },
     },
   },

@@ -6,9 +6,9 @@ export default {
     slug: "ResynQ",
     scheme: "ResynQ",
     jsEngine: "jsc",
-    version: "1.0.0", // Your user-facing app version
+    version: "1.1.0", // Your user-facing app version
     orientation: "portrait",
-    icon: "./assets/icon.png",
+    icon: "./assets/icons/ResynQ-logo.png",
     userInterfaceStyle: "light",
     newArchEnabled: true,
     splash: {
@@ -18,9 +18,9 @@ export default {
     },
     ios: {
       supportsRTL: true,
-      supportsTablet: true,
+      supportsTablet: false,
       bundleIdentifier: "com.o7.rn1",
-      buildNumber: "5",
+      buildNumber: "3",
       infoPlist: {
         NSCameraUsageDescription:
           "This app needs access to your camera to take photos of receipts.",
@@ -55,8 +55,10 @@ export default {
     ],
     extra: {
       GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+      REVENUECAT_APPLE_API_KEY: process.env.REVENUECAT_APPLE_API_KEY,
+      REVENUECAT_GOOGLE_API_KEY: process.env.REVENUECAT_GOOGLE_API_KEY,
       eas: {
-        projectId: "25b09883-da1b-42ae-9e94-c19a6ae209d0",
+        projectId: "545243ca-fd5a-492f-8d6f-bf236c9166d5",
       },
     },
   },

@@ -22,7 +22,7 @@ import {
   getMonthlyReceiptSummary,
   getAppwriteErrorMessageKey,
 } from "../../lib/appwrite";
-import { format, subMonths, isSameMonth, isSameYear } from "date-fns"; // Import isSameMonth, isSameYear
+import { format, subMonths, isSameMonth, isSameYear } from "date-fns"; 
 import { ar as arLocale } from "date-fns/locale";
 import icons from "../../constants/icons";
 import GradientBackground from "../../components/GradientBackground";

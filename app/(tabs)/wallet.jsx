@@ -506,12 +506,16 @@ const Wallet = () => {
     <GradientBackground>
       <SafeAreaView className="flex-1">
         <ScrollView
-          className="w-full h-full p-2"
+          className="w-full h-full p-4 mt-6"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
         >
-          <View className="flex-row justify-between items-center mb-6 mt-4 mr-8">
+          <View
+            className={`flex-row justify-between items-center mb-6 mt-4 mr-8 ${
+              I18nManager.isRTL ? "flex-row-reverse" : "flex-row" // Reverse header for RTL
+            }`}
+          >
             <Text
               className="text-lg text-black" // Removed font-pbold from className
               style={{ fontFamily: getFontClassName("bold") }} // Apply font directly
