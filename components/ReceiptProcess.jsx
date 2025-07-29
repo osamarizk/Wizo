@@ -269,7 +269,11 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         let alertTitle;
         // If the message indicates a technical AI issue (like overload or empty response),
         // use a more general "AI Processing Error" title.
-        if (data.message && (data.message.includes("overloaded") || data.message.includes("Empty response from Gemini"))) {
+        if (
+          data.message &&
+          (data.message.includes("overloaded") ||
+            data.message.includes("Empty response from Gemini"))
+        ) {
           alertTitle = t("receiptProcess.aiProcessingErrorTitle"); // NEW translation key
         } else {
           // Otherwise, it's genuinely "not a receipt" or a general AI message
@@ -838,7 +842,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             </TouchableOpacity>
 
             {isProcessing ? (
-              <View className="items-center mt-6 mb-6">
+              <View className="items-center mt-2 mb-2">
                 <ActivityIndicator size="large" color="#ef6969" />
                 <Text
                   className={`mt-2 text-black/70 text-center ${getFontClassName(
@@ -850,13 +854,13 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                 </Text>
               </View>
             ) : (
-              <View className="flex-row justify-center items-center gap-6 mt-4 mb-6">
+              <View className="flex-row justify-center items-center gap-6 mt-2 mb-4">
                 <TouchableOpacity onPress={handleProcessReceipt}>
                   <View className="items-center">
                     <Image
                       source={images.confirm}
                       resizeMode="contain"
-                      className="w-[57px] h-[57px] rounded-full p-1 border-2 border-green-800 opacity-90"
+                      className="w-[57px] h-[57px] rounded-full p-1 border-2 border-green-800 "
                     />
                     <Text
                       className={`mt-1 text-sm text-black/80 ${getFontClassName(
@@ -1065,27 +1069,20 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                       🛒 {t("receiptProcess.items")}:
                     </Text>
                     {extractedData.items.length > 2 && ( // Default showing 2 items initially
-                      <ScrollView
-                        className="flex-1"
-                        horizontal={I18nManager.isRTL} // Scroll horizontally in RTL if needed for "Show more" text
-                        showsHorizontalScrollIndicator={false}
-                        showsVerticalScrollIndicator={false}
-                      >
-                        <TouchableOpacity onPress={toggleItems}>
-                          <Text
-                            className={`text-base text-blue-700 ${
-                              I18nManager.isRTL ? "mr-1" : "ml-1"
-                            } ${getFontClassName("bold")} ${
-                              I18nManager.isRTL ? "text-right" : "text-left"
-                            }`}
-                            style={{ fontFamily: getFontClassName("bold") }}
-                          >
-                            {showAllItems
-                              ? t("receiptProcess.showLess")
-                              : t("receiptProcess.showMore")}{" "}
-                          </Text>
-                        </TouchableOpacity>
-                      </ScrollView>
+                      <TouchableOpacity onPress={toggleItems}>
+                        <Text
+                          className={`text-base text-blue-700 ${
+                            I18nManager.isRTL ? "mr-1" : "ml-1"
+                          } ${getFontClassName("bold")} ${
+                            I18nManager.isRTL ? "text-right" : "text-left"
+                          }`}
+                          style={{ fontFamily: getFontClassName("bold") }}
+                        >
+                          {showAllItems
+                            ? t("receiptProcess.showLess")
+                            : t("receiptProcess.showMore")}{" "}
+                        </Text>
+                      </TouchableOpacity>
                     )}
                   </View>
 

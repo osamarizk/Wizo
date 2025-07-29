@@ -43,7 +43,7 @@ const Index = () => {
             <Image
               source={images.mobrc}
               resizeMode="contain"
-              style={{ width: width * 0.9, height: height * 0.35 }}
+              style={{ width: width * 0.9, height: height * 0.3 }}
               className="mb-1"
             />
 
@@ -62,7 +62,7 @@ const Index = () => {
                 {"\n"}
               </Text>
               <Text
-                className={`text-gray-700 text-base mb-3 ${getFontClassName(
+                className={`text-gray-700 text-base mb-2 ${getFontClassName(
                   "regular"
                 )}`} // NEW: Apply font class
                 style={{
@@ -95,7 +95,7 @@ const Index = () => {
               onPress={() => {
                 router.push("/sign-in");
               }}
-              className="mt-2 w-full bg-secondary rounded-md p-3 items-center justify-center" // Adjust className for your desired style
+              className="mt-4 w-full bg-secondary rounded-md p-3 items-center justify-center" // Adjust className for your desired style
             >
               <Text
                 className={`text-white text-base ${getFontClassName("bold")}`} // NEW: Apply font class

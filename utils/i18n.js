@@ -12,8 +12,8 @@ const resources = {
         heroText:
           "Receipts are tedious to manage, often lost and hard to track.",
         feature1: "🔥 Capture and upload your receipt with ease.",
-        feature2: "🔥 Let AI handle the storing and processing for you.",
-        feature3: "🔥 Say goodbye to the hassle of manual record-keeping.",
+        feature2: "🔥 Let ResynQ handle the Receipts processing.",
+        feature3: "🔥 Say goodbye to the hassle of manual work.",
         feature4: "🔥 No personal information is shared ever.",
         slogan: "O7 Empower the best solution",
         continueWithMail: "Continue with mail",
