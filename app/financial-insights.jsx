@@ -57,7 +57,7 @@ const DEFAULT_MAX_FREE_REQUESTS = 3;
 const FinancialInsights = () => {
   const navigation = useNavigation();
   const { t } = useTranslation();
-  const { user, currentLanguage } = useGlobalContext();
+  const { user, currentLanguage, preferredCurrencySymbol } = useGlobalContext();
 
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
@@ -855,10 +855,10 @@ const FinancialInsights = () => {
                     {i18n.language.startsWith("ar")
                       ? `${convertToArabicNumerals(
                           financialData.overallSpending.toFixed(2)
-                        )} ${t("common.currency_symbol_short")}`
-                      : `${t(
-                          "common.currency_symbol_short"
-                        )}${financialData.overallSpending.toFixed(2)}`}
+                        )} ${preferredCurrencySymbol}`
+                      : `${preferredCurrencySymbol}${financialData.overallSpending.toFixed(
+                          2
+                        )}`}
                   </Text>
                 </View>
                 {financialData.topSpendingCategories.length > 0 && (
@@ -891,10 +891,8 @@ const FinancialInsights = () => {
                         {i18n.language.startsWith("ar")
                           ? `${convertToArabicNumerals(
                               c.amount.toFixed(2)
-                            )} ${t("common.currency_symbol_short")}`
-                          : `${t(
-                              "common.currency_symbol_short"
-                            )}${c.amount.toFixed(2)}`}
+                            )} ${preferredCurrencySymbol}`
+                          : `${preferredCurrencySymbol}${c.amount.toFixed(2)}`}
                       </Text>
                     ))}
                   </View>
@@ -917,10 +915,10 @@ const FinancialInsights = () => {
                     {i18n.language.startsWith("ar")
                       ? `${convertToArabicNumerals(
                           financialData.walletBalance.toFixed(2)
-                        )} ${t("common.currency_symbol_short")}`
-                      : `${t(
-                          "common.currency_symbol_short"
-                        )}${financialData.walletBalance.toFixed(2)}`}
+                        )} ${preferredCurrencySymbol}`
+                      : `${preferredCurrencySymbol}${financialData.walletBalance.toFixed(
+                          2
+                        )}`}
                   </Text>
                 </View>
               </View>

@@ -98,20 +98,34 @@ const SignIn = () => {
       console.log("REDIRECT_URL", REDIRECT_URL);
       await requestPasswordReset(email, REDIRECT_URL);
 
+      // SUCCESS MESSAGE (This is for when the email *was* successfully sent)
       Alert.alert(
         t("auth.passwordResetSuccessTitle"),
         t("auth.passwordResetSuccessMessage")
       );
     } catch (error) {
       console.error("Forgot Password Error:", error);
-      const errorKey = getAppwriteErrorMessageKey(error); // Get the translation key
-      let errorMessage = t(errorKey);
+      console.log("Exact error.message:", error.message); // <-- ADD THIS
+      console.log("Full error object:", JSON.stringify(error, null, 2)); // <-- ADD THIS to see full structure
 
-      if (errorKey === "appwriteErrors.genericAppwriteError") {
-        errorMessage = t(errorKey, { message: error.message });
+      const errorKey = getAppwriteErrorMessageKey(error);
+      console.log("Determined errorKey:", errorKey); // <-- ADD THIS
+
+      let userFacingMessage = t("common.errorTitle"); // Default title for errors
+
+      if (errorKey === "appwriteErrors.userNotFound") {
+        userFacingMessage = t("auth.passwordResetGenericConfirmation");
+      } else if (errorKey === "appwriteErrors.networkRequestFailed") {
+        userFacingMessage = t("appwriteErrors.networkRequestFailed");
+      } else {
+        let errorMessage = t(errorKey);
+        if (errorKey === "appwriteErrors.genericAppwriteError") {
+          errorMessage = t(errorKey, { message: error.message });
+        }
+        userFacingMessage = errorMessage;
       }
 
-      Alert.alert(t("common.errorTitle"), errorMessage);
+      Alert.alert(t("common.errorTitle"), userFacingMessage);
     } finally {
       setIsSubmitting(false);
     }

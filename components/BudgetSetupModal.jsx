@@ -272,7 +272,8 @@ const BudgetSetupModal = ({
 }) => {
   const { t } = useTranslation();
 
-  const { user, setHasBudget, updateUnreadCount } = useGlobalContext();
+  const { user, setHasBudget, updateUnreadCount, preferredCurrencySymbol } =
+    useGlobalContext();
   const [budgetAmount, setBudgetAmount] = useState("");
   const [loading, setLoading] = useState(false);
   const [isExistingBudget, setIsExistingBudget] = useState(false);
@@ -427,7 +428,7 @@ const BudgetSetupModal = ({
       const categoryName = getCategoryNameForNotification(selectedCategory); // Get translated name for notifications
       const subcategoryName =
         getSubcategoryNameForNotification(selectedSubcategory); // Get name for notifications
-      const currencySymbol = t("common.currency_symbol_short");
+      const currencySymbol = preferredCurrencySymbol;
 
       if (isExistingBudget && initialBudgetData?.$id) {
         // --- UPDATE EXISTING BUDGET FLOW ---
@@ -667,7 +668,7 @@ const BudgetSetupModal = ({
                   textAlign: I18nManager.isRTL ? "right" : "left",
                 }}
                 placeholder={t("budget.enterBudgetAmountPlaceholder", {
-                  currencySymbol: t("common.currency_symbol_short"),
+                  currencySymbol: preferredCurrencySymbol,
                 })}
                 placeholderTextColor="#7b7b8b"
                 value={

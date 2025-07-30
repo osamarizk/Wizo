@@ -22,7 +22,7 @@ import {
   getMonthlyReceiptSummary,
   getAppwriteErrorMessageKey,
 } from "../../lib/appwrite";
-import { format, subMonths, isSameMonth, isSameYear } from "date-fns"; 
+import { format, subMonths, isSameMonth, isSameYear } from "date-fns";
 import { ar as arLocale } from "date-fns/locale";
 import icons from "../../constants/icons";
 import GradientBackground from "../../components/GradientBackground";
@@ -797,7 +797,7 @@ const Spending = () => {
               <SpendingHeatmap
                 allReceipts={allReceipts}
                 isLoading={isLoading}
-                preferredCurrencySymbol={preferredCurrencySymbol} 
+                preferredCurrencySymbol={preferredCurrencySymbol}
               />
 
               {/* Merchant Analysis Table */}
@@ -1273,7 +1273,7 @@ const Spending = () => {
                             selectedMonthDetails.totalSpending.toFixed(2)
                           )
                         : selectedMonthDetails.totalSpending.toFixed(2)}{" "}
-                      {t("common.currency_symbol_short")}
+                      {preferredCurrencySymbol}
                     </Text>
                   </>
                 )}

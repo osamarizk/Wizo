@@ -255,7 +255,7 @@ const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
 const NotificationPage = () => {
   const { t } = useTranslation();
 
-  const { user, updateUnreadCount } = useGlobalContext();
+  const { user, updateUnreadCount,preferredCurrencySymbol } = useGlobalContext();
   const [notifications, setNotifications] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
@@ -664,8 +664,8 @@ const NotificationPage = () => {
                         {i18n.language.startsWith("ar")
                           ? `${convertToArabicNumerals(
                               parseFloat(receipt.total || 0).toFixed(2)
-                            )} ${t("common.currency_symbol_short")}`
-                          : `${t("common.currency_symbol_short")}${parseFloat(
+                            )} ${preferredCurrencySymbol}`
+                          : `${preferredCurrencySymbol}${parseFloat(
                               receipt.total || 0
                             ).toFixed(2)}`}
                       </Text>
@@ -776,8 +776,8 @@ const NotificationPage = () => {
                         {i18n.language.startsWith("ar")
                           ? `${convertToArabicNumerals(
                               parseFloat(budget.budgetAmount || 0).toFixed(2)
-                            )} ${t("common.currency_symbol_short")}`
-                          : `${t("common.currency_symbol_short")}${parseFloat(
+                            )} ${preferredCurrencySymbol}`
+                          : `${preferredCurrencySymbol}${parseFloat(
                               budget.budgetAmount || 0
                             ).toFixed(2)}`}
                       </Text>

@@ -53,7 +53,7 @@ const convertToArabicNumerals = (num) => {
 const ManageData = () => {
   const { t } = useTranslation();
   const navigation = useNavigation();
-  const { user, setUser } = useGlobalContext();
+  const { user, setUser, preferredCurrencySymbol } = useGlobalContext();
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -162,7 +162,7 @@ const ManageData = () => {
       const allReceipts = await fetchUserReceipts(user.$id);
       console.log("Fetched receipts for export:", allReceipts.length);
 
-      const currencySymbol = t("common.currency_symbol_short"); // Get translated currency symbol
+      const currencySymbol = preferredCurrencySymbol; // Get translated currency symbol
 
       // Convert data to CSV format
       const header = `${t("common.id")},${t("common.date")},${t(
@@ -420,7 +420,7 @@ const ManageData = () => {
                 className="text-lg text-gray-800"
                 style={{ fontFamily: getFontClassName("semibold") }}
               >
-                {t("common.currency_symbol_short")}{" "}
+                {preferredCurrencySymbol}{" "}
                 {i18n.language.startsWith("ar")
                   ? convertToArabicNumerals(
                       dataSummary.totalSpendingOverall.toFixed(2)

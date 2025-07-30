@@ -61,6 +61,9 @@ const resources = {
         agreeTermsError:
           "You must agree to the Terms of Service and Privacy Policy.",
         signUpErrorTitle: "Sign Up Error",
+
+        passwordResetGenericConfirmation:
+          "If an account with that email address exists, a password reset link has been sent to it. Please check your inbox (and spam folder).",
       },
       common: {
         hello: "Hello",
@@ -1804,6 +1807,8 @@ const resources = {
         passwordsMismatchError: "كلمات المرور غير متطابقة.",
         passwordLengthError: "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.",
         agreeTermsError: "يجب أن توافق على شروط الخدمة وسياسة الخصوصية.",
+        passwordResetGenericConfirmation:
+          "إذا كان هناك حساب مرتبط بهذا البريد الإلكتروني، فقد تم إرسال رابط إعادة تعيين كلمة المرور إليه. يرجى التحقق من صندوق الوارد الخاص بك (ومجلد الرسائل غير المرغوب فيها).",
       },
       aiMessages: {
         // Update this line with the correct Arabic translation for the exact English message
