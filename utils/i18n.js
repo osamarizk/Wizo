@@ -1537,9 +1537,9 @@ const resources = {
         contactSupportTitle: "Contact Support",
         contactSupportIntro:
           "If you can't find an answer to your question here or need further assistance, please reach out to our support team:",
-        contactEmail: "By email: support@resynq.com",
+        contactEmail: "By email: support@resynq.net",
         contactWebsite:
-          "By visiting our support page: https://www.resynq.com/support",
+          "By visiting our support page: https://resynq.net/support.html",
         linkOpenError:
           "Could not open the link. Please ensure you have a web browser or email client installed.",
       },
@@ -1562,9 +1562,9 @@ const resources = {
         contactUsTitle: "Contact Us",
         contactUsIntro:
           "If you have any questions or feedback, please don't hesitate to reach out:",
-        contactEmail: "By email: support@resynq.com",
+        contactEmail: "By email: support@resynq.net",
         contactWebsite:
-          "By visiting our support page: https://www.resynq.com/support",
+          "By visiting our support page: https://resynq.net/support.html",
         linkOpenError:
           "Could not open the link. Please ensure you have a web browser or email client installed.",
       },
@@ -3073,9 +3073,9 @@ const resources = {
         contactSupportTitle: "الاتصال بالدعم",
         contactSupportIntro:
           "إذا لم تتمكن من العثور على إجابة لسؤالك هنا أو كنت بحاجة إلى مزيد من المساعدة، يرجى التواصل مع فريق الدعم لدينا:",
-        contactEmail: "عبر البريد الإلكتروني: support@resynq.com",
+        contactEmail: "عبر البريد الإلكتروني: support@resynq.net",
         contactWebsite:
-          "عبر زيارة صفحة الدعم على موقعنا: [https://www.resynq.com/support](https://www.resynq.com/support)",
+          "عبر زيارة صفحة الدعم على موقعنا: [https://resynq.net/support.html]",
         linkOpenError:
           "تعذر فتح الرابط. يرجى التأكد من تثبيت متصفح ويب أو عميل بريد إلكتروني.",
       },
@@ -3098,9 +3098,9 @@ const resources = {
         contactUsTitle: "اتصل بنا",
         contactUsIntro:
           "إذا كان لديك أي أسئلة أو ملاحظات، فلا تتردد في التواصل معنا:",
-        contactEmail: "عبر البريد الإلكتروني: support@resynq.com",
+        contactEmail: "عبر البريد الإلكتروني: support@resynq.net",
         contactWebsite:
-          "عبر زيارة صفحة الدعم على موقعنا: [https://www.resynq.com/support](https://www.resynq.com/support)",
+          "عبر زيارة صفحة الدعم على موقعنا: [https://resynq.net/support.html]",
         linkOpenError:
           "تعذر فتح الرابط. يرجى التأكد من تثبيت متصفح ويب أو عميل بريد إلكتروني.",
       },

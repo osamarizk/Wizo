@@ -140,7 +140,7 @@ const AboutUs = () => {
               {t("aboutUs.contactUsIntro")}
             </Text>
             <TouchableOpacity
-              onPress={() => openExternalLink("mailto:support@resynq.com")}
+              onPress={() => openExternalLink("mailto:support@resynq.net")}
             >
               <Text
                 className="text-blue-600 text-base underline mb-1"
@@ -153,7 +153,9 @@ const AboutUs = () => {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              onPress={() => openExternalLink("https://www.resynq.com/support")}
+              onPress={() =>
+                openExternalLink("https://resynq.net/support.html")
+              }
             >
               <Text
                 className="text-blue-600 text-base underline"

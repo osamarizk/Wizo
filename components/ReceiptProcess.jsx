@@ -642,34 +642,34 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           expiresAt: getFutureDate(7),
         });
 
-        const pointsEarned = 0;
-        await updateUserPoints(user.$id, pointsEarned, "receipt_upload");
+        // const pointsEarned = 0;
+        // await updateUserPoints(user.$id, pointsEarned, "receipt_upload");
 
-        const earnedBadges = await checkAndAwardBadges(user.$id);
-        if (earnedBadges.length > 0) {
-          const badgeNames = earnedBadges.map((badge) => badge.name).join(", ");
-          const pointsExtra = earnedBadges
-            .map((badge) => badge.points_reward)
-            .join(", ");
-          Alert.alert(
-            t("notifications.achievementUnlockedTitle"), // Translated "Achievement Unlocked!"
-            t("notifications.achievementUnlockedMessage", {
-              badgeNames,
-              pointsExtra,
-            }) // Translated with interpolation
-          );
+        // const earnedBadges = await checkAndAwardBadges(user.$id);
+        // if (earnedBadges.length > 0) {
+        //   const badgeNames = earnedBadges.map((badge) => badge.name).join(", ");
+        //   const pointsExtra = earnedBadges
+        //     .map((badge) => badge.points_reward)
+        //     .join(", ");
+        //   Alert.alert(
+        //     t("notifications.achievementUnlockedTitle"), // Translated "Achievement Unlocked!"
+        //     t("notifications.achievementUnlockedMessage", {
+        //       badgeNames,
+        //       pointsExtra,
+        //     }) // Translated with interpolation
+        //   );
 
-          await createNotification({
-            user_id: user.$id,
-            title: t("notifications.achievementUnlockedTitle"), // Translated
-            message: t("notifications.achievementUnlockedMessage", {
-              badgeNames,
-              pointsExtra,
-            }), // Translated with interpolation
-            type: "points_award",
-            expiresAt: getFutureDate(7),
-          });
-        }
+        //   await createNotification({
+        //     user_id: user.$id,
+        //     title: t("notifications.achievementUnlockedTitle"), // Translated
+        //     message: t("notifications.achievementUnlockedMessage", {
+        //       badgeNames,
+        //       pointsExtra,
+        //     }), // Translated with interpolation
+        //     type: "points_award",
+        //     expiresAt: getFutureDate(7),
+        //   });
+        // }
 
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
         updateUnreadCount(updatedUnreadCount);

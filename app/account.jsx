@@ -93,7 +93,7 @@ const Account = () => {
         {
           text: t("account.deleteAccountConfirmButton"),
           onPress: () => {
-            const recipient = "support@resynq.com";
+            const recipient = "support@resynq.net";
             const subject = encodeURIComponent(
               `Account Deletion Request for User ID: ${user?.$id || "N/A"}`
             );

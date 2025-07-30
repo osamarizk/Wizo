@@ -37,7 +37,11 @@ const HelpCenter = () => {
     <GradientBackground>
       <SafeAreaView className="flex-1">
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16, paddingVertical: 16 }} // Combined padding
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingHorizontal: 16,
+            paddingVertical: 16,
+          }} // Combined padding
           showsVerticalScrollIndicator={false}
         >
           {/* Header */}
@@ -102,7 +106,9 @@ const HelpCenter = () => {
                 textAlign: I18nManager.isRTL ? "right" : "left",
               }}
             >
-              <Text style={{ fontFamily: getFontClassName("bold") }}>{t("helpCenter.faq1Q")}</Text>
+              <Text style={{ fontFamily: getFontClassName("bold") }}>
+                {t("helpCenter.faq1Q")}
+              </Text>
               {"\n"}
               {t("helpCenter.faq1A")}
             </Text>
@@ -113,7 +119,9 @@ const HelpCenter = () => {
                 textAlign: I18nManager.isRTL ? "right" : "left",
               }}
             >
-              <Text style={{ fontFamily: getFontClassName("bold") }}>{t("helpCenter.faq2Q")}</Text>
+              <Text style={{ fontFamily: getFontClassName("bold") }}>
+                {t("helpCenter.faq2Q")}
+              </Text>
               {"\n"}
               {t("helpCenter.faq2A")}
             </Text>
@@ -132,7 +140,9 @@ const HelpCenter = () => {
                 textAlign: I18nManager.isRTL ? "right" : "left",
               }}
             >
-              <Text style={{ fontFamily: getFontClassName("bold") }}>{t("helpCenter.faq3Q")}</Text>
+              <Text style={{ fontFamily: getFontClassName("bold") }}>
+                {t("helpCenter.faq3Q")}
+              </Text>
               {"\n"}
               {t("helpCenter.faq3A")}
             </Text>
@@ -143,7 +153,9 @@ const HelpCenter = () => {
                 textAlign: I18nManager.isRTL ? "right" : "left",
               }}
             >
-              <Text style={{ fontFamily: getFontClassName("bold") }}>{t("helpCenter.faq4Q")}</Text>
+              <Text style={{ fontFamily: getFontClassName("bold") }}>
+                {t("helpCenter.faq4Q")}
+              </Text>
               {"\n"}
               {t("helpCenter.faq4A")}
             </Text>
@@ -154,7 +166,9 @@ const HelpCenter = () => {
                 textAlign: I18nManager.isRTL ? "right" : "left",
               }}
             >
-              <Text style={{ fontFamily: getFontClassName("bold") }}>{t("helpCenter.faq5Q")}</Text>
+              <Text style={{ fontFamily: getFontClassName("bold") }}>
+                {t("helpCenter.faq5Q")}
+              </Text>
               {"\n"}
               {t("helpCenter.faq5A")}
             </Text>
@@ -173,7 +187,9 @@ const HelpCenter = () => {
                 textAlign: I18nManager.isRTL ? "right" : "left",
               }}
             >
-              <Text style={{ fontFamily: getFontClassName("bold") }}>{t("helpCenter.faq6Q")}</Text>
+              <Text style={{ fontFamily: getFontClassName("bold") }}>
+                {t("helpCenter.faq6Q")}
+              </Text>
               {"\n"}
               {t("helpCenter.faq6A")}
             </Text>
@@ -184,7 +200,9 @@ const HelpCenter = () => {
                 textAlign: I18nManager.isRTL ? "right" : "left",
               }}
             >
-              <Text style={{ fontFamily: getFontClassName("bold") }}>{t("helpCenter.faq7Q")}</Text>
+              <Text style={{ fontFamily: getFontClassName("bold") }}>
+                {t("helpCenter.faq7Q")}
+              </Text>
               {"\n"}
               {t("helpCenter.faq7A")}
             </Text>
@@ -237,18 +255,30 @@ const HelpCenter = () => {
             >
               {t("helpCenter.contactSupportIntro")}
             </Text>
-            <TouchableOpacity onPress={() => openExternalLink('mailto:support@resynq.com')}>
+            <TouchableOpacity
+              onPress={() => openExternalLink("mailto:support@resynq.net")}
+            >
               <Text
                 className="text-blue-600 text-base underline mb-1"
-                style={{ fontFamily: getFontClassName("regular"), textAlign: I18nManager.isRTL ? "right" : "left" }}
+                style={{
+                  fontFamily: getFontClassName("regular"),
+                  textAlign: I18nManager.isRTL ? "right" : "left",
+                }}
               >
                 {t("helpCenter.contactEmail")}
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => openExternalLink('https://www.resynq.com/support')}>
+            <TouchableOpacity
+              onPress={() =>
+                openExternalLink("https://resynq.net/support.html")
+              }
+            >
               <Text
                 className="text-blue-600 text-base underline"
-                style={{ fontFamily: getFontClassName("regular"), textAlign: I18nManager.isRTL ? "right" : "left" }}
+                style={{
+                  fontFamily: getFontClassName("regular"),
+                  textAlign: I18nManager.isRTL ? "right" : "left",
+                }}
               >
                 {t("helpCenter.contactWebsite")}
               </Text>
