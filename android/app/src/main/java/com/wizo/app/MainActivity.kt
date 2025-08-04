@@ -1,4 +1,4 @@
-package com.wizo.app
+package com.o7.rn1
 
 import android.os.Build
 import android.os.Bundle

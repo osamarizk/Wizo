@@ -1,4 +1,4 @@
-package com.wizo.app
+package com.o7.rn1
 
 import android.app.Application
 import android.content.res.Configuration

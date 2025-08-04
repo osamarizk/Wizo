@@ -647,7 +647,7 @@ const BudgetSetupModal = ({
             </View>
           )}
 
-          <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
+          <ScrollView showsVerticalScrollIndicator={false}>
             {/* Budget Amount Input */}
             <View className="mb-3">
               <Text

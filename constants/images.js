@@ -8,7 +8,7 @@ import logoSmall from "../assets/images/logo-small.png";
 import empty from "../assets/images/empty.png";
 import mobrc from "../assets/images/mob-rc.png";
 import shop from "../assets/images/shop.png";
-import insp from "../assets/images/Insp.png";
+
 import gr from "../assets/images/gr.png";
 import path1 from "../assets/images/path1.png";
 import cancel from "../assets/images/cancel.png";
@@ -26,7 +26,6 @@ export default {
   empty,
   mobrc,
   shop,
-  insp,
   gr,
   path1,
   cancel,

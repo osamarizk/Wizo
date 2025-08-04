@@ -502,20 +502,28 @@ const SubscriptionOption = ({ product, onPress, isProcessing, t }) => {
   const { preferredCurrencySymbol } = useGlobalContext(); // Access global currency symbol
 
   const price = product.product.priceString;
-  const description = product.product.description;
-  const title = product.product.title; // RevenueCat product title (e.g., "Premium Monthly", "Premium Annual")
+  // Get the product's description from RevenueCat, if available.
+  const productDescription = product.product.description || "";
+  const title = product.product.title; // RevenueCat product title (e.g., "ResynQ Premium Monthly")
   // Safely get the period, defaulting to an empty string if undefined/null
   const period = product.product.period || ""; // e.g., "P1M" for monthly, "P1Y" for yearly
 
   let planLabel = "";
+  let subscriptionLengthText = "";
+
   // Now, check if 'period' exists (is not an empty string) before calling .includes()
   if (period && period.includes("M")) {
     planLabel = t("upgradePremium.monthlyPlan"); // Changed to upgradePremium
+    subscriptionLengthText = t("upgradePremium.monthlySubscriptionLength"); // e.g., "1 month subscription"
   } else if (period && period.includes("Y")) {
     planLabel = t("upgradePremium.yearlyPlan"); // Changed to upgradePremium
+    subscriptionLengthText = t("upgradePremium.yearlySubscriptionLength"); // e.g., "1 year subscription"
   } else {
     planLabel = product.product.periodUnit || t("upgradePremium.unknownPlan"); // Changed to upgradePremium
   }
+
+  // --- NEW: A clearer description of what the subscription provides ---
+  const serviceDescription = t("upgradePremium.serviceDescription"); // e.g., "Get unlimited receipts and advanced analytics."
 
   return (
     <TouchableOpacity
@@ -531,7 +539,15 @@ const SubscriptionOption = ({ product, onPress, isProcessing, t }) => {
         }`}
         style={{ fontFamily: getFontClassName("semibold") }}
       >
-        {planLabel} ({price}) {/* e.g., "Monthly Plan ($9.99)" */}
+        {title} ({price}) {/* e.g., "ResynQ Premium Monthly ($9.99)" */}
+      </Text>
+      <Text
+        className={`text-base text-gray-700 mb-1 ${
+          I18nManager.isRTL ? "text-right" : "text-left"
+        }`}
+        style={{ fontFamily: getFontClassName("regular") }}
+      >
+        {subscriptionLengthText}
       </Text>
       <Text
         className={`text-base text-gray-700 ${
@@ -539,10 +555,8 @@ const SubscriptionOption = ({ product, onPress, isProcessing, t }) => {
         }`}
         style={{ fontFamily: getFontClassName("regular") }}
       >
-        {description || title}{" "}
-        {/* Use description if available, otherwise title */}
+        {productDescription || serviceDescription}
       </Text>
-      {/* You can add more details here, like saving percentage for yearly */}
     </TouchableOpacity>
   );
 };

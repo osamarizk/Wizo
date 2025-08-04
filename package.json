@@ -1,5 +1,5 @@
 {
-  "name": "wizo",
+  "name": "resynq",
   "license": "0BSD",
   "version": "1.0.0",
   "main": "expo-router/entry",
@@ -30,7 +30,6 @@
     "expo-file-system": "~18.1.10",
     "expo-image-manipulator": "~13.1.7",
     "expo-image-picker": "^16.1.4",
-    "expo-in-app-purchases": "^14.5.0",
     "expo-linear-gradient": "~14.1.4",
     "expo-linking": "~7.1.4",
     "expo-localization": "~16.1.5",
@@ -39,6 +38,7 @@
     "expo-status-bar": "~2.2.3",
     "gifted-charts-core": "^0.1.63",
     "i18next": "^25.2.1",
+    "intl": "^1.2.5",
     "lucide-react": "^0.510.0",
     "mime": "^4.0.7",
     "nativewind": "^2.0.0",
@@ -63,7 +63,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
-    "tailwindcss": "^3.3.2"
+    "tailwindcss": "3.3.2"
   },
   "private": true
 }

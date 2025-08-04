@@ -558,7 +558,7 @@ const Budget = () => {
                   const categoryNameForNotif = getCategoryName(
                     budgetDetailsForNotification.category_id
                   );
-                  const currencySymbol = {preferredCurrencySymbol};
+                  const currencySymbol = preferredCurrencySymbol;
 
                   await createNotification({
                     user_id: user.$id,

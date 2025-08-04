@@ -1,3 +1,6 @@
+import "intl";
+import "intl/locale-data/jsonp/en"; // English locale data
+import "intl/locale-data/jsonp/ar"; // Arabic locale data
 import {
   View,
   Text,
