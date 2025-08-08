@@ -41,6 +41,7 @@ import * as ImageManipulator from "expo-image-manipulator";
 import GradientBackground from "./GradientBackground";
 import { ar } from "date-fns/locale";
 import { format } from "date-fns";
+// import useInternetConnection from "../lib/useInternetConnection";
 
 const convertToArabicNumerals = (num) => {
   const numString = String(num);
@@ -75,6 +76,7 @@ const generateTranslationKey = (originalName) => {
 };
 const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   const { t } = useTranslation();
+  // const isConnected = useInternetConnection();
   const [showFullImage, setShowFullImage] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -592,6 +594,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       };
 
       const userCurrentReceiptCount = user.currentMonthReceiptCount || 0; // Get current count from global user object
+
+      console.log("Data being sent to createReceipt:", receiptData);
 
       const { receipt: newReceipt, updatedUser: freshUser } =
         await createReceipt(

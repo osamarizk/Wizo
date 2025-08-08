@@ -33,6 +33,7 @@ import SpendingTrendsChart from "../../components/SpendingTrendsChart";
 import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../../utils/fontUtils";
 import i18n from "../../utils/i18n";
+// import useInternetConnection from "../../lib/useInternetConnection";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -83,6 +84,8 @@ const gradientColors = [
 ];
 
 const Spending = () => {
+  // const isConnected = useInternetConnection(); // <-- Add this line
+
   const { t } = useTranslation();
   const {
     user,
@@ -132,6 +135,8 @@ const Spending = () => {
   }, []);
 
   const fetchData = useCallback(async () => {
+
+
     if (!user?.$id) {
       setIsLoading(false);
       return;
@@ -458,6 +463,16 @@ const Spending = () => {
   return (
     <GradientBackground>
       <SafeAreaView className=" flex-1">
+        {/* {isConnected === false && (
+          <View className="bg-red-500 p-2 items-center">
+            <Text
+              className="text-white text-sm"
+              style={{ fontFamily: getFontClassName("regular") }}
+            >
+              {t("common.noInternetMessage")}
+            </Text>
+          </View>
+        )} */}
         <ScrollView
           className="w-full h-full p-2"
           refreshControl={

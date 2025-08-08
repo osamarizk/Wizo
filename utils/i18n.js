@@ -256,6 +256,8 @@ const resources = {
         infoTitle: "Information",
         week: "week",
         weeks: "weeks",
+        noInternetTitle: "No Internet Connection",
+        noInternetMessage: "Please check your network settings and try again.",
       },
       aiMessages: {
         // Update this line to match the exact message from your AI API
@@ -521,7 +523,7 @@ const resources = {
         receiptOptions: "Receipt Options",
         viewDetails: "View Details",
         editReceipt: "Edit Receipt",
-        downloadImage: "Download Image",
+        downloadImage: "Download Receipt",
         deleteReceipt: "Delete Receipt",
         unlimitedAdviceTitle: "Your Unlimited Financial Insights Await!",
         newAdviceAvailableTitle: "New Financial Advice Available!",
@@ -595,6 +597,7 @@ const resources = {
         searchPlaceholder: "Search by merchant name...", // For the main search input
         openFilter: "Open Filter", // For the filter button
         filtersActive: "Filters Active", // For the filter button when active
+        premiumUser: "Premium User",
       },
       notifications: {
         receiptViewed: "Receipt Viewed",
@@ -682,6 +685,12 @@ const resources = {
         premiumDeactivatedTitle: "Premium Deactivated",
         premiumDeactivatedMessage:
           "Your premium subscription is no longer active. Some features may be limited.",
+
+        premiumActivatedMessage:
+          "Your premium subscription is now active! Enjoy all the benefits.",
+        premiumDeactivatedTitle: "Premium Deactivated",
+        premiumDeactivatedMessage:
+          "Your premium subscription has ended. Renew to continue enjoying premium features.",
       },
       settings: {
         applicationSettingsTitle: "Application Settings",
@@ -726,6 +735,7 @@ const resources = {
         languageChangeRestartTitle: "Language Change",
         languageChangeRestartMessage:
           "For full language application, please restart the app.",
+        bepremium: "Be Premium",
       },
       receipts: {
         // New namespace from Home.jsx needs
@@ -1365,6 +1375,10 @@ const resources = {
           "Failed to update your premium status. Please contact support.",
       },
       upgradePremium: {
+        planChangeSuccess: "Your plan has been changed successfully!",
+        currentPlan: "Current Plan",
+        subscribe: "Subscribe",
+        processing: "Processing...",
         getPremiumBenefitsTitle: "Get Premium Benefits",
         unlockPremiumFeatures: "Unlock Premium Features",
         loadingSubscriptions: "Loading subscription plans...",
@@ -1427,6 +1441,9 @@ const resources = {
         yearlySubscriptionLength: "1 year subscription",
         serviceDescription:
           "Unlock unlimited receipts, custom budgets, and advanced spending analytics.",
+        alreadySubscribed: "You are already a premium subscriber.",
+        subscriptionActive:
+          "our subscription is active. Enjoy all the premium benefits!",
       },
       editProfile: {
         editProfileTitle: "Edit Profile",
@@ -1781,6 +1798,8 @@ const resources = {
         no: "لا",
         week: "أسبوع",
         weeks: "أسابيع",
+        noInternetTitle: "لا يوجد اتصال بالإنترنت",
+        noInternetMessage: "يرجى التحقق من إعدادات الشبكة والمحاولة مرة أخرى.",
       },
       onboarding: {
         heroText: "إدارة الإيصالات مملة وغالبًا ما تُفقد ويصعب تتبعها.",
@@ -2168,6 +2187,7 @@ const resources = {
         searchPlaceholder: "البحث باسم التاجر...",
         openFilter: "فتح التصفية",
         filtersActive: "الفلاتر نشطة",
+        premiumUser: "مستخدم مميز",
       },
       notifications: {
         receiptViewed: "تم عرض الإيصال",
@@ -2247,12 +2267,18 @@ const resources = {
         financialAdviceNotificationTitle: "نصيحة مالية",
         financialAdviceDetails: "تفاصيل النصيحة:",
         loadingAdvice: "جاري تحميل النصيحة المالية...",
-        premiumActivatedTitle: "تم تفعيل بريميوم!",
+
         premiumActivatedMessage:
           "تهانينا! اشتراكك المميز نشط الآن. استمتع بجميع الميزات الحصرية!",
         premiumDeactivatedTitle: "تم إلغاء تفعيل بريميوم",
         premiumDeactivatedMessage:
           "اشتراكك المميز لم يعد نشطًا. قد تكون بعض الميزات محدودة.",
+        premiumActivatedTitle: "تم تفعيل الاشتراك المميز",
+        premiumActivatedMessage:
+          "اشتراكك المميز نشط الآن! استمتع بجميع المزايا.",
+        premiumDeactivatedTitle: "تم إلغاء الاشتراك المميز",
+        premiumDeactivatedMessage:
+          "انتهى اشتراكك المميز. جدد للاستمرار في الاستمتاع بالميزات المميزة.",
       },
       settings: {
         applicationSettingsTitle: "إعدادات التطبيق",
@@ -2293,6 +2319,7 @@ const resources = {
         notLoggedInSaveError: "يجب عليك تسجيل الدخول لحفظ الإعدادات.",
         settingsSavedSuccess: "تم حفظ الإعدادات بنجاح!",
         failedToSaveSettings: "فشل حفظ الإعدادات. الرجاء المحاولة مرة أخرى.",
+        bepremium: "كن مميزا",
       },
       receipts: {
         receipts: "إجمالي الإيصالات ",
@@ -2936,6 +2963,10 @@ const resources = {
           "فشل تحديث حالة اشتراكك المميز. الرجاء الاتصال بالدعم.",
       },
       upgradePremium: {
+        planChangeSuccess: "تم تغيير خطتك بنجاح!",
+        currentPlan: "الخطة الحالية",
+        subscribe: "اشترك",
+        processing: "جاري المعالجة...",
         getPremiumBenefitsTitle: "احصل على مزايا بريميوم",
         unlockPremiumFeatures: "افتح الميزات المميزة",
         loadingSubscriptions: "جارٍ تحميل خطط الاشتراك...",
@@ -2994,6 +3025,8 @@ const resources = {
         yearlySubscriptionLength: "اشتراك لمدة سنة واحدة",
         serviceDescription:
           "افتح الإيصالات غير المحدودة، والميزانيات المخصصة، وتحليلات الإنفاق المتقدمة.",
+        alreadySubscribed: "أنت مشترك بالفعل في الباقة المميزة.",
+        subscriptionActive: "اشتراكك نشط. استمتع بجميع الميزات المميزة!",
       },
       editProfile: {
         editProfileTitle: "تعديل الملف الشخصي",

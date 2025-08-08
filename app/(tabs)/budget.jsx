@@ -30,6 +30,7 @@ import { ar as arLocale } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../../utils/fontUtils"; // Assumed to return direct font family name
 import i18n from "../../utils/i18n";
+// import useInternetConnection from "../../lib/useInternetConnection";
 
 import {
   getUserBudgets,
@@ -122,6 +123,7 @@ const mapCategoryNameToI18nKey = (categoryNameFromDB) => {
   }
 };
 const Budget = () => {
+  // const isConnected = useInternetConnection();
   const { t } = useTranslation();
 
   const {
@@ -683,6 +685,16 @@ const Budget = () => {
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1">
+        {/* {isConnected === false && (
+          <View className="bg-red-500 p-2 items-center">
+            <Text
+              className="text-white text-sm"
+              style={{ fontFamily: getFontClassName("regular") }}
+            >
+              {t("common.noInternetMessage")}
+            </Text>
+          </View>
+        )} */}
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, width: "100%", padding: 20 }}
           refreshControl={

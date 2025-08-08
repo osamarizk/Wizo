@@ -20,7 +20,7 @@ export default {
       supportsRTL: true,
       supportsTablet: false,
       bundleIdentifier: "com.o7.rn1",
-      buildNumber: "5",
+      buildNumber: "17",
       infoPlist: {
         NSCameraUsageDescription:
           "This app needs access to your camera to take photos of receipts.",
@@ -39,7 +39,7 @@ export default {
         foregroundImage: "./assets/icons/resynq.png",
         backgroundColor: "#ffffff",
       },
-      versionCode: 5,
+      versionCode: 17,
     },
     web: {
       favicon: "./assets/favicon.png",
@@ -59,7 +59,7 @@ export default {
       REVENUECAT_APPLE_API_KEY: process.env.REVENUECAT_APPLE_API_KEY,
       REVENUECAT_GOOGLE_API_KEY: process.env.REVENUECAT_GOOGLE_API_KEY,
       eas: {
-        projectId: "25b09883-da1b-42ae-9e94-c19a6ae209d0",
+        projectId: "545243ca-fd5a-492f-8d6f-bf236c9166d5",
       },
     },
   },

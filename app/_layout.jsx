@@ -19,6 +19,7 @@ import GlobalProvider from "../context/GlobalProvider";
 import i18n from "../utils/i18n"; // Import your i18next instance
 
 import { Stack, SplashScreen } from "expo-router";
+import { useAppUpdates } from "../lib/useAppUpdates";
 
 // This block runs once when the JavaScript module is loaded.
 // It sets the initial I18nManager state based on the language.
@@ -34,6 +35,7 @@ if (I18nManager.isRTL !== initialLocaleIsRTL) {
 }
 
 const RootLayout = () => {
+  useAppUpdates();
   const { fontsLoaded, error } = useLoadFonts();
   const [currentDisplayLanguage, setCurrentDisplayLanguage] = useState(
     i18n.language
@@ -118,8 +120,8 @@ const RootLayout = () => {
           />
 
           <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
-           <Stack.Screen name="about-us" options={{ headerShown: false }} />
-            <Stack.Screen name="help-center" options={{ headerShown: false }} />
+          <Stack.Screen name="about-us" options={{ headerShown: false }} />
+          <Stack.Screen name="help-center" options={{ headerShown: false }} />
         </Stack>
 
         {/* financial-insights */}

@@ -27,6 +27,8 @@ import icons from "../../constants/icons";
 import i18n from "../../utils/i18n";
 import { ar as arLocale } from "date-fns/locale";
 
+// import useInternetConnection from "../../lib/useInternetConnection";
+
 import {
   countUnreadNotifications,
   getReceiptStats,
@@ -119,7 +121,10 @@ const generateTranslationKey = (originalName) => {
 };
 
 const Home = () => {
+  // const isConnected = useInternetConnection(); // <-- Add this line
+
   const { t } = useTranslation();
+
   const hours = new Date().getHours();
   // Global context for user and notification count
   const {
@@ -277,6 +282,7 @@ const Home = () => {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+
     await fetchData();
     setRefreshing(false);
     setIsDeleting(false);
@@ -335,6 +341,13 @@ const Home = () => {
   const fetchData = useCallback(async () => {
     if (user?.$id) {
       setIsLoading(true);
+
+      // if (isConnected === false) {
+      //   setIsLoading(false);
+      //   Alert.alert(t("common.noInternetTitle"), t("common.noInternetMessage"));
+      //   return; // Exit the function early if offline
+      // }
+
       try {
         const [
           unreadCount,
@@ -626,7 +639,8 @@ const Home = () => {
   const uploadInitialData = async () => {
     try {
       // Only upload if the user is an admin
-      if (user?.email === "osama@gmail.com") {
+      console.log("User Email:>>>>", user?.email);
+      if (user?.email === "Osamarizk20@gmail.com") {
         // <- Replace with your actual admin check
         console.log("Home: User is admin, proceeding with data upload.");
         await createCategories(categoriesData);
@@ -1364,6 +1378,16 @@ const Home = () => {
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1 ">
+        {/* {isConnected === false && ( // <-- Add this conditional rendering block
+          <View className="bg-red-500 p-2 items-center">
+            <Text
+              className="text-white text-sm"
+              style={{ fontFamily: getFontClassName("regular") }}
+            >
+              {t("common.noInternetMessage")}{" "}
+            </Text>
+          </View>
+        )} */}
         <FlashList // Use FlashList here
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -1443,25 +1467,46 @@ const Home = () => {
                       resizeMode="contain"
                     />
                   </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => router.push("/upgrade-premium")}
-                    className="p-1 items-center"
-                  >
-                    <Image
-                      source={icons.star}
-                      className="w-7 h-7"
-                      tintColor="#06d6a0" // Adjust tint color as needed
-                      resizeMode="contain"
-                    />
-                    {/* premium */}
-                    <Text
-                      className="text-[#4E17B3]  text-xs mt-1"
-                      style={{ fontFamily: getFontClassName("bold") }}
+                  {user?.isPremium ? (
+                    <TouchableOpacity
+                      onPress={() => router.push("/upgrade-premium")}
+                      className="p-1 items-center"
                     >
-                      {t("settings.premium")}
-                    </Text>
-                  </TouchableOpacity>
+                      <Image
+                        source={icons.star}
+                        className="w-7 h-7"
+                        tintColor="#06d6a0" // Adjust tint color as needed
+                        resizeMode="contain"
+                      />
+                      {/* premium */}
+                      <Text
+                        className="text-[#4E17B3]  text-xs mt-1"
+                        style={{ fontFamily: getFontClassName("bold") }}
+                      >
+                        {t("settings.premium")}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    // If user is NOT premium, show the upgrade icon
+                    <TouchableOpacity
+                      onPress={() => router.push("/upgrade-premium")}
+                      className="p-1 items-center"
+                    >
+                      <Image
+                        source={icons.star}
+                        className="w-7 h-7"
+                        tintColor="#4E17B3" // Adjust tint color as needed
+                        resizeMode="contain"
+                      />
+                      {/* premium */}
+                      <Text
+                        className="text-[#4E17B3]  text-xs mt-1"
+                        style={{ fontFamily: getFontClassName("bold") }}
+                      >
+                        {t("settings.bepremium")}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
 
@@ -2665,13 +2710,13 @@ const Home = () => {
               {/* View Receipt */}
               <TouchableOpacity
                 onPress={handleViewDetails}
-                className={`mt-3 w-full bg-[#4E17B3] rounded-md p-3 items-center justify-center gap-2 ${
+                className={`mt-3 w-full bg-[#4E17B3] rounded-md p-3 items-center justify-center  ${
                   I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
                 }`}
               >
                 <Image
                   source={icons.eye} // Assuming you have an eye icon in icons.js
-                  className="w-5 h-5 mr-2"
+                  className="w-5 h-5 ml-2 mr-2"
                   resizeMode="contain"
                   tintColor="#FFFFFF"
                 />
@@ -2692,7 +2737,7 @@ const Home = () => {
               >
                 <Image
                   source={icons.edit} // Assuming you have an edit icon in icons.js
-                  className="w-5 h-5 ml-2"
+                  className="w-5 h-5 ml-2  mr-2"
                   resizeMode="contain"
                   tintColor="#FFFFFF"
                 />
@@ -2715,7 +2760,7 @@ const Home = () => {
               >
                 <Image
                   source={icons.download} // Assuming you have a download icon
-                  className="w-5 h-5 ml-2"
+                  className="w-5 h-5 ml-2 mr-2"
                   resizeMode="contain"
                   tintColor="#FFFFFF"
                 />
@@ -2740,7 +2785,7 @@ const Home = () => {
               >
                 <Image
                   source={icons.trash} // Assuming you have a trash icon
-                  className="w-5 h-5 ml-2"
+                  className="w-5 h-5 ml-2  mr-2"
                   resizeMode="contain"
                   tintColor="#FFFFFF"
                 />

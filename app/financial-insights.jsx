@@ -219,10 +219,20 @@ const FinancialInsights = () => {
       console.log("Raw userBudgets from Appwrite:", userBudgetsRaw);
 
       const budgetPerformance = userBudgetsRaw.map((budget) => {
+        console.log("Processing budget in Advise:", budget);
         const budgetedAmount = parseFloat(budget.budgetAmount || 0);
         const categoryId = budget.categoryId;
+        console.log(
+          "Processing budget [budget.categoryId]:",
+          budget.categoryId
+        );
+
         const categoryName =
           categoryIdToNameMap[categoryId] || "Unknown Category";
+        console.log(
+          "Processing budget [categoryName]:",
+          categoryIdToNameMap[categoryId]
+        );
 
         const categoryTotalSpent = categorySpendingById[categoryId] || 0;
 

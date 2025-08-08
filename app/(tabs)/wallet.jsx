@@ -41,6 +41,8 @@ import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../../utils/fontUtils"; // Assumed to return direct font family name
 import i18n from "../../utils/i18n";
 
+// import useInternetConnection from "../../lib/useInternetConnection";
+
 const screenWidth = Dimensions.get("window").width;
 
 const convertToArabicNumerals = (num) => {
@@ -62,6 +64,8 @@ const convertToArabicNumerals = (num) => {
 };
 
 const Wallet = () => {
+  // const isConnected = useInternetConnection(); // <-- Add this line
+
   const { t } = useTranslation();
   // Ensure updateUnreadCount is destructured from useGlobalContext
   const {
@@ -505,6 +509,16 @@ const Wallet = () => {
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1">
+        {/* {isConnected === false && (
+          <View className="bg-red-500 p-2 items-center">
+            <Text
+              className="text-white text-sm"
+              style={{ fontFamily: getFontClassName("regular") }}
+            >
+              {t("common.noInternetMessage")}
+            </Text>
+          </View>
+        )} */}
         <ScrollView
           className="w-full h-full p-4 mt-6"
           refreshControl={

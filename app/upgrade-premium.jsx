@@ -6,10 +6,11 @@ import {
   ScrollView,
   SafeAreaView,
   ActivityIndicator,
-  Alert, // For RevenueCat errors
+  Alert,
   Image,
   I18nManager,
   Platform,
+  Linking,
 } from "react-native";
 import { router, useNavigation } from "expo-router";
 import { useGlobalContext } from "../context/GlobalProvider";
@@ -20,59 +21,132 @@ import GradientBackground from "../components/GradientBackground";
 import icons from "../constants/icons";
 
 // --- RevenueCat Imports ---
-import Purchases from "react-native-purchases"; // Main RevenueCat SDK
-import Constants from "expo-constants"; // Import Constants to access extra config
-
+import Purchases from "react-native-purchases";
+import Constants from "expo-constants";
 // --- END RevenueCat Imports ---
 
-// --- Appwrite Imports (for updating user premium status later) ---
+// --- Appwrite Imports ---
 import {
-  updateUserPremiumStatus, // You have this function in appwrite.js
-  getAppwriteErrorMessageKey, // This function is not used in the provided code, consider removing if truly unused.
-  createNotification, // For notifications on subscription status
-  countUnreadNotifications, // To update unread count
-  getFutureDate, // For notification expiry
+  updateUserPremiumStatus,
+  createNotification,
+  countUnreadNotifications,
+  getFutureDate,
 } from "../lib/appwrite";
 // --- END Appwrite Imports ---
 
-// Define your RevenueCat API keys here (replace with your actual keys)
-// You should ideally get these from environment variables in a production app.
 const REVENUECAT_APPLE_API_KEY =
-  Constants.expoConfig.extra.REVENUECAT_APPLE_API_KEY; // Replace with your Apple App Store Public API Key
+  Constants.expoConfig.extra.REVENUECAT_APPLE_API_KEY;
 const REVENUECAT_GOOGLE_API_KEY =
-  Constants.expoConfig.extra.REVENUECAT_GOOGLE_API_KEY; // Replace with your Google Play Public API Key
-const PREMIUM_ENTITLEMENT_ID = "resynqent"; // The ID of your premium entitlement in RevenueCat
+  Constants.expoConfig.extra.REVENUECAT_GOOGLE_API_KEY;
+const PREMIUM_ENTITLEMENT_ID = "resynqent";
 
 const UpgradePremium = () => {
   const navigation = useNavigation();
   const { t } = useTranslation();
   const {
     user,
-    setUser, // To update global user context
+    setUser,
     isLoading: globalLoading,
-    updateUnreadCount, // Corrected from updateUnreadNotifications
+    updateUnreadCount,
   } = useGlobalContext();
 
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
-  const [products, setProducts] = useState([]); // To store fetched RevenueCat products
-  const [offerings, setOfferings] = useState([]);
+  const [products, setProducts] = useState([]);
   const [purchaseError, setPurchaseError] = useState(null);
   const [isProcessingPurchase, setIsProcessingPurchase] = useState(false);
 
-  // --- Configure RevenueCat and fetch products on component mount ---
+  const [activeSubscription, setActiveSubscription] = useState(null);
+
+  // --- Listener as a stable callback ---
+  // This listener is still required to handle subscription status changes while the app is open.
+  const customerInfoUpdateListener = useCallback(
+    async (customerInfo) => {
+      console.log(
+        "RevenueCat: Customer info updated from listener:",
+        customerInfo
+      );
+      const activeEntitlement =
+        customerInfo.entitlements.active[PREMIUM_ENTITLEMENT_ID];
+      const isPremium = !!activeEntitlement;
+
+      // We only update Appwrite if there's a difference to avoid unnecessary calls.
+      if (user?.isPremium === isPremium) {
+        console.log("Premium status unchanged. No Appwrite update needed.");
+        return;
+      }
+
+      try {
+        if (user?.$id) {
+          // --- BEGIN: UPDATED LOGIC ---
+          // Extract the individual values from the activeEntitlement
+          const subscriptionType = isPremium
+            ? activeEntitlement.productIdentifier.includes("monthly")
+              ? "monthly"
+              : "yearly"
+            : null;
+          const renewalDate = isPremium
+            ? activeEntitlement.latestExpirationDate
+            : null;
+          const premiumStartDate = isPremium
+            ? activeEntitlement.purchaseDate
+            : null;
+
+          await updateUserPremiumStatus(
+            user.$id,
+            isPremium,
+            subscriptionType,
+            renewalDate,
+            premiumStartDate
+          );
+          // --- END: UPDATED LOGIC ---
+
+          setUser((prevUser) => ({
+            ...prevUser,
+            isPremium: isPremium,
+            subscriptionType: subscriptionType,
+            renewalDate: renewalDate,
+            premiumStartDate: premiumStartDate,
+          }));
+
+          console.log(
+            `Appwrite user ${user.$id} premium status updated via listener.`
+          );
+
+          await createNotification({
+            user_id: user.$id,
+            title: isPremium
+              ? t("notifications.premiumActivatedTitle")
+              : t("notifications.premiumDeactivatedTitle"),
+            message: isPremium
+              ? t("notifications.premiumActivatedMessage")
+              : t("notifications.premiumDeactivatedMessage"),
+            type: "premium_status",
+            expiresAt: getFutureDate(isPremium ? 30 : 7),
+          });
+          const updatedUnreadCountValue = await countUnreadNotifications(
+            user.$id
+          );
+          updateUnreadCount(updatedUnreadCountValue);
+        }
+      } catch (err) {
+        console.error("Error processing customer info update:", err);
+        // In a real app, you might want to log this or retry
+      }
+    },
+    [user, t, setUser, updateUnreadCount]
+  );
+
   useEffect(() => {
+    // 1. Configure RevenueCat and fetch products on component mount
     const configureAndFetchProducts = async () => {
       try {
-        // Set up RevenueCat debug logs (remove in production)
         Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
 
-        // Configure RevenueCat with platform-specific API keys
         if (Platform.OS === "ios") {
           Purchases.configure({ apiKey: REVENUECAT_APPLE_API_KEY });
         } else if (Platform.OS === "android") {
           Purchases.configure({ apiKey: REVENUECAT_GOOGLE_API_KEY });
         } else {
-          // For web or other platforms, you might use a different approach or not offer in-app purchases
           console.warn(
             "RevenueCat not configured for this platform:",
             Platform.OS
@@ -81,29 +155,84 @@ const UpgradePremium = () => {
           return;
         }
 
-        // Identify the user with their Appwrite ID
         if (user?.$id) {
           await Purchases.logIn(user.$id);
           console.log("RevenueCat identified user:", user.$id);
         } else {
-          // For guest users, Purchases.configure will create an anonymous ID
           console.warn("RevenueCat: User not logged in, using anonymous ID.");
         }
 
-        // Fetch available products
+        // This is the core logic to synchronize the state on page load.
+        // Get the latest info from RevenueCat.
+        const customerInfo = await Purchases.getCustomerInfo();
+        const activeEntitlement =
+          customerInfo.entitlements.active[PREMIUM_ENTITLEMENT_ID];
+        const isPremiumFromRevenueCat = !!activeEntitlement;
+
+        // Compare RevenueCat's status with Appwrite's.
+        if (user?.isPremium !== isPremiumFromRevenueCat) {
+          console.log("Appwrite status is out of sync. Updating Appwrite...");
+          // Appwrite is stale, so we update it in the background silently.
+          // We use the RevenueCat data as the source of truth.
+          if (user?.$id) {
+            // --- BEGIN: UPDATED LOGIC ---
+            // Extract the individual values from the activeEntitlement
+            const subscriptionType = isPremiumFromRevenueCat
+              ? activeEntitlement.productIdentifier.includes("monthly")
+                ? "monthly"
+                : "yearly"
+              : null;
+            const renewalDate = isPremiumFromRevenueCat
+              ? activeEntitlement.latestExpirationDate
+              : null;
+            const premiumStartDate = isPremiumFromRevenueCat
+              ? activeEntitlement.purchaseDate
+              : null;
+
+            await updateUserPremiumStatus(
+              user.$id,
+              isPremiumFromRevenueCat,
+              subscriptionType,
+              renewalDate,
+              premiumStartDate
+            );
+            // --- END: UPDATED LOGIC ---
+
+            setUser((prevUser) => ({
+              ...prevUser,
+              isPremium: isPremiumFromRevenueCat,
+              subscriptionType: subscriptionType,
+              renewalDate: renewalDate,
+              premiumStartDate: premiumStartDate,
+            }));
+          }
+        }
+
+        // Now, get the subscription details to display if the user is premium.
+        if (isPremiumFromRevenueCat) {
+          setActiveSubscription({
+            renewalDate: new Date(
+              activeEntitlement.latestExpirationDate
+            ).toLocaleDateString(),
+            subscriptionType: activeEntitlement.productIdentifier.includes(
+              "monthly"
+            )
+              ? t("upgradePremium.monthlyPlan")
+              : t("upgradePremium.yearlyPlan"),
+          });
+        }
+
+        // Fetch products for the UI
         const offerings = await Purchases.getOfferings();
         if (
           offerings.current &&
           offerings.current.availablePackages.length > 0
         ) {
-          // Alert.alert("Offering Result", JSON.stringify(offerings));
-          console.log("Offering", JSON.stringify(offerings, null, 2));
-          // Filter for your specific products if needed, or sort them
           const monthlyProduct = offerings.current.availablePackages.find(
-            (pkg) => pkg.packageType === Purchases.PACKAGE_TYPE.MONTHLY // Assuming you have a monthly package
+            (pkg) => pkg.packageType === Purchases.PACKAGE_TYPE.MONTHLY
           );
           const yearlyProduct = offerings.current.availablePackages.find(
-            (pkg) => pkg.packageType === Purchases.PACKAGE_TYPE.ANNUAL // Assuming you have an annual package
+            (pkg) => pkg.packageType === Purchases.PACKAGE_TYPE.ANNUAL
           );
 
           const fetchedProducts = [];
@@ -123,7 +252,6 @@ const UpgradePremium = () => {
         );
         setPurchaseError(
           t("upgradePremium.fetchProductsError", {
-            // Changed to upgradePremium
             message: error.message || t("common.unknownError"),
           })
         );
@@ -134,75 +262,19 @@ const UpgradePremium = () => {
 
     configureAndFetchProducts();
 
-    // --- Listener for entitlement changes (important for real-time updates) ---
-    // This listener will fire when a purchase is made, restored, or expires
-    const customerInfoUpdateListener = async (customerInfo) => {
-      console.log("RevenueCat: Customer info updated:", customerInfo);
-      try {
-        const isPremium = customerInfo.entitlements.active.hasOwnProperty(
-          PREMIUM_ENTITLEMENT_ID
-        );
-        console.log("RevenueCat: Is Premium?", isPremium);
-
-        // Update Appwrite user document
-        if (user?.$id) {
-          await updateUserPremiumStatus(user.$id, isPremium);
-          // Update global user context immediately
-          setUser((prevUser) => ({ ...prevUser, isPremium: isPremium }));
-          console.log(
-            `Appwrite user ${user.$id} premium status updated to ${isPremium}`
-          );
-
-          // Send notification to user
-          await createNotification({
-            user_id: user.$id,
-            title: isPremium
-              ? t("notification.premiumActivatedTitle")
-              : t("notification.premiumDeactivatedTitle"),
-            message: isPremium
-              ? t("notification.premiumActivatedMessage")
-              : t("notification.premiumDeactivatedMessage"),
-            type: "premium_status",
-            expiresAt: getFutureDate(isPremium ? 30 : 7), // Longer expiry for active premium, shorter for deactivation
-          });
-          const updatedUnreadCountValue = await countUnreadNotifications(
-            user.$id
-          ); // Renamed to avoid conflict
-          updateUnreadCount(updatedUnreadCountValue); // Update global unread count
-        }
-      } catch (err) {
-        console.error("Error processing customer info update:", err);
-        Alert.alert(
-          t("common.errorTitle"),
-          t("upgradePremium.updateStatusError", {
-            // Changed to upgradePremium
-            message: err.message || t("common.unknownError"),
-          })
-        );
-      }
-    };
-
     Purchases.addCustomerInfoUpdateListener(customerInfoUpdateListener);
-
-    // Cleanup listener on unmount
     return () => {
       Purchases.removeCustomerInfoUpdateListener(customerInfoUpdateListener);
     };
-  }, [user, t, setUser, updateUnreadCount]); // Updated dependency to updateUnreadCount
+  }, [user]);
 
-  // --- Purchase Logic ---
   const handlePurchase = async (productPackage) => {
-    if (isProcessingPurchase) return; // Prevent double taps
-
+    if (isProcessingPurchase) return;
     setIsProcessingPurchase(true);
-    setPurchaseError(null); // Clear previous errors
-
+    setPurchaseError(null);
     try {
       console.log("Attempting to purchase package:", productPackage.identifier);
       const { customerInfo } = await Purchases.purchasePackage(productPackage);
-
-      // The customerInfoUpdateListener will handle updating Appwrite,
-      // but we can add immediate feedback here.
       const isPremium = customerInfo.entitlements.active.hasOwnProperty(
         PREMIUM_ENTITLEMENT_ID
       );
@@ -210,47 +282,43 @@ const UpgradePremium = () => {
       if (isPremium) {
         Alert.alert(
           t("common.successTitle"),
-          t("upgradePremium.purchaseSuccess") // Changed to upgradePremium
+          t("upgradePremium.purchaseSuccess")
         );
-        router.back(); // Navigate back if purchase is successful
+        router.back();
       } else {
         Alert.alert(
           t("common.errorTitle"),
-          t("upgradePremium.purchaseFailedGeneric") // Changed to upgradePremium
+          t("upgradePremium.purchaseFailedGeneric")
         );
       }
     } catch (e) {
       if (!e.userCancelled) {
-        // Check if the error was not due to user cancellation
         console.error("Purchase error:", e);
-        let errorMessage = t("upgradePremium.purchaseFailedGeneric"); // Changed to upgradePremium
-
+        let errorMessage = t("upgradePremium.purchaseFailedGeneric");
         if (
           e.code === Purchases.PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR
         ) {
-          errorMessage = t("upgradePremium.purchaseNotAllowed"); // Changed to upgradePremium
+          errorMessage = t("upgradePremium.purchaseNotAllowed");
         } else if (
           e.code === Purchases.PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR
         ) {
-          errorMessage = t("upgradePremium.paymentPending"); // Changed to upgradePremium
+          errorMessage = t("upgradePremium.paymentPending");
         } else if (
           e.code ===
           Purchases.PURCHASES_ERROR_CODE
             .PRODUCT_NOT_AVAILABLE_FOR_PURCHASE_ERROR
         ) {
-          errorMessage = t("upgradePremium.productNotAvailable"); // Changed to upgradePremium
+          errorMessage = t("upgradePremium.productNotAvailable");
         } else if (
           e.code ===
           Purchases.PURCHASES_ERROR_CODE.PURCHASE_INVALID_FOR_PRODUCT_ERROR
         ) {
-          errorMessage = t("upgradePremium.purchaseInvalid"); // Changed to upgradePremium
+          errorMessage = t("upgradePremium.purchaseInvalid");
         } else if (
           e.code === Purchases.PURCHASES_ERROR_CODE.CANNOT_FIND_PRODUCT
         ) {
-          errorMessage = t("upgradePremium.cannotFindProduct"); // Changed to upgradePremium
+          errorMessage = t("upgradePremium.cannotFindProduct");
         }
-        // Add more specific error handling for other RevenueCat error codes as needed
-
         Alert.alert(t("common.errorTitle"), errorMessage);
         setPurchaseError(errorMessage);
       } else {
@@ -261,42 +329,34 @@ const UpgradePremium = () => {
     }
   };
 
-  // --- Restore Purchases Logic ---
   const handleRestorePurchases = async () => {
-    if (isProcessingPurchase) return; // Prevent double taps
-
+    if (isProcessingPurchase) return;
     setIsProcessingPurchase(true);
-    setPurchaseError(null); // Clear previous errors
-
+    setPurchaseError(null);
     try {
       console.log("Attempting to restore purchases...");
       const customerInfo = await Purchases.restorePurchases();
-
       const isPremium = customerInfo.entitlements.active.hasOwnProperty(
         PREMIUM_ENTITLEMENT_ID
       );
-
       if (isPremium) {
         Alert.alert(
           t("common.successTitle"),
-          t("upgradePremium.restoreSuccess") // Changed to upgradePremium
+          t("upgradePremium.restoreSuccess")
         );
-        router.back(); // Navigate back if restoration is successful
+        router.back();
       } else {
         Alert.alert(
           t("common.infoTitle"),
-          t("upgradePremium.noActivePurchasesFound") // Changed to upgradePremium
+          t("upgradePremium.noActivePurchasesFound")
         );
       }
     } catch (e) {
       console.error("Restore purchases error:", e);
-      let errorMessage = t("upgradePremium.restoreFailedGeneric"); // Changed to upgradePremium
-
+      let errorMessage = t("upgradePremium.restoreFailedGeneric");
       if (e.code === Purchases.PURCHASES_ERROR_CODE.NETWORK_ERROR) {
-        errorMessage = t("upgradePremium.networkError"); // Changed to upgradePremium
+        errorMessage = t("upgradePremium.networkError");
       }
-      // Add more specific error handling for other RevenueCat error codes as needed
-
       Alert.alert(t("common.errorTitle"), errorMessage);
       setPurchaseError(errorMessage);
     } finally {
@@ -304,7 +364,24 @@ const UpgradePremium = () => {
     }
   };
 
-  // --- Loading State ---
+  const handleManageSubscription = async () => {
+    try {
+      if (Platform.OS === "ios") {
+        await Purchases.presentCodeRedemptionSheet();
+      } else if (Platform.OS === "android") {
+        await Linking.openURL(
+          "https://play.google.com/store/account/subscriptions"
+        );
+      }
+    } catch (e) {
+      console.error("Error managing subscription:", e);
+      Alert.alert(
+        t("common.errorTitle"),
+        t("upgradePremium.manageSubscriptionError")
+      );
+    }
+  };
+
   if (globalLoading || isLoadingProducts) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-primary">
@@ -313,14 +390,12 @@ const UpgradePremium = () => {
           className="text-white mt-4"
           style={{ fontFamily: getFontClassName("extralight") }}
         >
-          {t("upgradePremium.loadingSubscriptions")}{" "}
-          {/* Changed to upgradePremium */}
+          {t("upgradePremium.loadingSubscriptions")}
         </Text>
       </SafeAreaView>
     );
   }
 
-  // --- Render UI ---
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1">
@@ -328,7 +403,6 @@ const UpgradePremium = () => {
           contentContainerStyle={{ flexGrow: 1 }}
           className="p-4 mt-6"
         >
-          {/* Header */}
           <View
             className={`flex-row items-center justify-between mb-8 mt-4 ${
               I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
@@ -346,12 +420,10 @@ const UpgradePremium = () => {
               className="text-3xl text-black"
               style={{ fontFamily: getFontClassName("bold") }}
             >
-              {t("upgradePremium.upgradeToPremiumTitle")}{" "}
-              {/* Changed to upgradePremium */}
+              {t("upgradePremium.upgradeToPremiumTitle")}
             </Text>
             <View className="w-10" />
           </View>
-          {/* Error Message */}
           {purchaseError && (
             <Text
               className="text-red-500 text-center mb-4"
@@ -360,104 +432,141 @@ const UpgradePremium = () => {
               {purchaseError}
             </Text>
           )}
-
-          {/* Premium Benefits Section */}
-          <View className="bg-white rounded-xl p-6 mb-6 border border-gray-200">
-            <Text
-              className={`text-xl text-black mb-4 ${
-                I18nManager.isRTL ? "text-right" : "text-left"
-              }`}
-              style={{ fontFamily: getFontClassName("bold") }}
-            >
-              {t("upgradePremium.unlockPremiumBenefits")}{" "}
-              {/* Changed to upgradePremium */}
-            </Text>
-            <BenefitItem
-              text={t("upgradePremium.unlimitedReceipts")} // Changed to upgradePremium
-              icon={icons.check} // Assuming a checkmark icon
-            />
-            <BenefitItem
-              text={t("upgradePremium.advancedSpendingAnalytics")} // Changed to upgradePremium
-              icon={icons.check}
-            />
-            <BenefitItem
-              text={t("upgradePremium.priorityCustomerSupport")} // Changed to upgradePremium
-              icon={icons.check}
-            />
-            <BenefitItem
-              text={t("upgradePremium.addFree")} // Changed to upgradePremium
-              icon={icons.check}
-            />
-            <BenefitItem
-              text={t("upgradePremium.customBudgets")} // Changed to upgradePremium
-              icon={icons.check}
-            />
-            {/* Add more benefits as needed */}
-          </View>
-
-          {/* Subscription Options */}
-          <Text
-            className={`text-2xl text-black mb-4 ${
-              I18nManager.isRTL ? "text-right" : "text-left"
-            }`}
-            style={{ fontFamily: getFontClassName("bold") }}
-          >
-            {t("upgradePremium.chooseYourPlan")}{" "}
-            {/* Changed to upgradePremium */}
-          </Text>
-
-          {products.length === 0 ? (
-            <View className="bg-white rounded-xl p-6 border border-gray-200 items-center">
+          {user?.isPremium ? (
+            <View className="bg-white rounded-xl p-6 mb-6 border border-gray-200 items-center">
+              <Image
+                source={icons.check}
+                className="w-10 h-10 mb-4"
+                tintColor="#2A9D8F"
+                resizeMode="contain"
+              />
               <Text
-                className="text-gray-500 italic text-center"
-                style={{ fontFamily: getFontClassName("regular") }}
+                className="text-2xl text-black text-center mb-2"
+                style={{ fontFamily: getFontClassName("bold") }}
               >
-                {t("upgradePremium.noSubscriptionPlansAvailable")}{" "}
-                {/* Changed to upgradePremium */}
+                {t("upgradePremium.youArePremium")}
               </Text>
+              {activeSubscription && (
+                <>
+                  <Text
+                    className="text-base text-gray-700 text-center mb-1"
+                    style={{ fontFamily: getFontClassName("regular") }}
+                  >
+                    {t("upgradePremium.yourPlan")}:{" "}
+                    {activeSubscription.subscriptionType}
+                  </Text>
+                  <Text
+                    className="text-base text-gray-700 text-center"
+                    style={{ fontFamily: getFontClassName("regular") }}
+                  >
+                    {t("upgradePremium.nextRenewal")}:{" "}
+                    {activeSubscription.renewalDate}
+                  </Text>
+                </>
+              )}
+              <TouchableOpacity
+                onPress={handleManageSubscription}
+                className="mt-4 p-4 rounded-lg bg-blue-600 items-center w-full"
+              >
+                <Text
+                  className="text-white text-lg"
+                  style={{ fontFamily: getFontClassName("semibold") }}
+                >
+                  {t("upgradePremium.manageSubscription")}
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : (
-            products.map((product) => (
-              <SubscriptionOption
-                key={product.identifier}
-                product={product}
-                onPress={handlePurchase} // Linked to handlePurchase
-                isProcessing={isProcessingPurchase}
-                t={t} // Pass translation function
-              />
-            ))
+            <>
+              <View className="bg-white rounded-xl p-6 mb-6 border border-gray-200">
+                <Text
+                  className={`text-xl text-black mb-4 ${
+                    I18nManager.isRTL ? "text-right" : "text-left"
+                  }`}
+                  style={{ fontFamily: getFontClassName("bold") }}
+                >
+                  {t("upgradePremium.unlockPremiumBenefits")}
+                </Text>
+                <BenefitItem
+                  text={t("upgradePremium.unlimitedReceipts")}
+                  icon={icons.check}
+                />
+                <BenefitItem
+                  text={t("upgradePremium.advancedSpendingAnalytics")}
+                  icon={icons.check}
+                />
+                <BenefitItem
+                  text={t("upgradePremium.priorityCustomerSupport")}
+                  icon={icons.check}
+                />
+                <BenefitItem
+                  text={t("upgradePremium.addFree")}
+                  icon={icons.check}
+                />
+                <BenefitItem
+                  text={t("upgradePremium.customBudgets")}
+                  icon={icons.check}
+                />
+              </View>
+
+              <Text
+                className={`text-2xl text-black mb-4 ${
+                  I18nManager.isRTL ? "text-right" : "text-left"
+                }`}
+                style={{ fontFamily: getFontClassName("bold") }}
+              >
+                {t("upgradePremium.chooseYourPlan")}
+              </Text>
+
+              {products.length === 0 ? (
+                <View className="bg-white rounded-xl p-6 border border-gray-200 items-center">
+                  <Text
+                    className="text-gray-500 italic text-center"
+                    style={{ fontFamily: getFontClassName("regular") }}
+                  >
+                    {t("upgradePremium.noSubscriptionPlansAvailable")}
+                  </Text>
+                </View>
+              ) : (
+                products.map((product) => (
+                  <SubscriptionOption
+                    key={product.identifier}
+                    product={product}
+                    onPress={handlePurchase}
+                    isProcessing={isProcessingPurchase}
+                    t={t}
+                  />
+                ))
+              )}
+
+              <TouchableOpacity
+                onPress={handleRestorePurchases}
+                className={`mt-6 p-4 rounded-lg items-center justify-center border border-blue-600 ${
+                  isProcessingPurchase ? "opacity-70" : ""
+                }`}
+                disabled={isProcessingPurchase}
+              >
+                {isProcessingPurchase ? (
+                  <ActivityIndicator size="small" color="#264653" />
+                ) : (
+                  <Text
+                    className="text-blue-600 text-lg"
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    {t("upgradePremium.restorePurchases")}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </>
           )}
 
-          {/* Restore Purchases Button */}
-          <TouchableOpacity
-            onPress={handleRestorePurchases} // Linked to handleRestorePurchases
-            className={`mt-6 p-4 rounded-lg items-center justify-center border border-blue-600 ${
-              isProcessingPurchase ? "opacity-70" : ""
-            }`}
-            disabled={isProcessingPurchase}
-          >
-            {isProcessingPurchase ? (
-              <ActivityIndicator size="small" color="#264653" />
-            ) : (
-              <Text
-                className="text-blue-600 text-lg"
-                style={{ fontFamily: getFontClassName("semibold") }}
-              >
-                {t("upgradePremium.restorePurchases")}{" "}
-                {/* Changed to upgradePremium */}
-              </Text>
-            )}
-          </TouchableOpacity>
-
-          {/* Terms and Privacy */}
           <Text
             className={`text-xs text-gray-500 text-center mt-6 ${
               I18nManager.isRTL ? "text-right" : "text-left"
             }`}
             style={{ fontFamily: getFontClassName("regular") }}
           >
-            {t("upgradePremium.termsDisclaimer")}{" "}
-            {/* Changed to upgradePremium */}
+            {t("upgradePremium.termsDisclaimer")}
           </Text>
         </ScrollView>
       </SafeAreaView>
@@ -465,10 +574,9 @@ const UpgradePremium = () => {
   );
 };
 
-// --- Helper Component for Benefit List Items ---
 const BenefitItem = ({ text, icon }) => {
-  const { I18nManager } = require("react-native"); // Re-import I18nManager if not globally available
-  const { getFontClassName } = require("../utils/fontUtils"); // Re-import if not globally available
+  const { I18nManager } = require("react-native");
+  const { getFontClassName } = require("../utils/fontUtils");
   return (
     <View
       className={`flex-row items-center mb-2 ${
@@ -495,35 +603,29 @@ const BenefitItem = ({ text, icon }) => {
   );
 };
 
-// --- Helper Component for Subscription Option Cards ---
 const SubscriptionOption = ({ product, onPress, isProcessing, t }) => {
   const { I18nManager } = require("react-native");
   const { getFontClassName } = require("../utils/fontUtils");
-  const { preferredCurrencySymbol } = useGlobalContext(); // Access global currency symbol
 
   const price = product.product.priceString;
-  // Get the product's description from RevenueCat, if available.
   const productDescription = product.product.description || "";
-  const title = product.product.title; // RevenueCat product title (e.g., "ResynQ Premium Monthly")
-  // Safely get the period, defaulting to an empty string if undefined/null
-  const period = product.product.period || ""; // e.g., "P1M" for monthly, "P1Y" for yearly
+  const title = product.product.title;
+  const period = product.product.period || "";
 
   let planLabel = "";
   let subscriptionLengthText = "";
 
-  // Now, check if 'period' exists (is not an empty string) before calling .includes()
   if (period && period.includes("M")) {
-    planLabel = t("upgradePremium.monthlyPlan"); // Changed to upgradePremium
-    subscriptionLengthText = t("upgradePremium.monthlySubscriptionLength"); // e.g., "1 month subscription"
+    planLabel = t("upgradePremium.monthlyPlan");
+    subscriptionLengthText = t("upgradePremium.monthlySubscriptionLength");
   } else if (period && period.includes("Y")) {
-    planLabel = t("upgradePremium.yearlyPlan"); // Changed to upgradePremium
-    subscriptionLengthText = t("upgradePremium.yearlySubscriptionLength"); // e.g., "1 year subscription"
+    planLabel = t("upgradePremium.yearlyPlan");
+    subscriptionLengthText = t("upgradePremium.yearlySubscriptionLength");
   } else {
-    planLabel = product.product.periodUnit || t("upgradePremium.unknownPlan"); // Changed to upgradePremium
+    planLabel = product.product.periodUnit || t("upgradePremium.unknownPlan");
   }
 
-  // --- NEW: A clearer description of what the subscription provides ---
-  const serviceDescription = t("upgradePremium.serviceDescription"); // e.g., "Get unlimited receipts and advanced analytics."
+  const serviceDescription = t("upgradePremium.serviceDescription");
 
   return (
     <TouchableOpacity
@@ -539,7 +641,7 @@ const SubscriptionOption = ({ product, onPress, isProcessing, t }) => {
         }`}
         style={{ fontFamily: getFontClassName("semibold") }}
       >
-        {title} ({price}) {/* e.g., "ResynQ Premium Monthly ($9.99)" */}
+        {title} ({price})
       </Text>
       <Text
         className={`text-base text-gray-700 mb-1 ${

@@ -126,7 +126,7 @@ const SignUp = () => {
 
       router.replace("/home");
     } catch (error) {
-      // console.error("Sign Up Error:", error);
+      console.error("Sign Up Error:", error);
       const errorKey = getAppwriteErrorMessageKey(error); // Get the translation key
       let errorMessage = t(errorKey);
 
