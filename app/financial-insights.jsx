@@ -22,6 +22,8 @@ import {
   getUserBudgets,
   getWalletTransactions,
   createNotification,
+  getCategories,
+  initializeUserCategories
 } from "../lib/appwrite";
 import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../utils/fontUtils";
@@ -92,10 +94,33 @@ const FinancialInsights = () => {
       let overallSpending = 0;
       const categorySpendingById = {};
       const categoryIdToNameMap = {};
-
       const recentExpenses = [];
       const merchantVisits = {};
       const itemOccurrences = {};
+
+      // --- START OF MODIFIED LOGIC ---
+      // First, try to get the user's categories.
+      let allCategories = await getCategories(user.$id);
+
+      // If the user has no categories, initialize them with a default set.
+      if (allCategories.length === 0) {
+        console.log(
+          `User ${user.$id} has no categories. Initializing default categories...`
+        );
+        await initializeUserCategories(user.$id);
+        // Re-fetch the categories after initialization.
+        allCategories = await getCategories(user.$id);
+      }
+
+      // Now, build the comprehensive ID-to-name map from the user's categories.
+      allCategories.forEach((cat) => {
+        if (cat.$id) {
+          categoryIdToNameMap[cat.$id] = cat.name;
+        }
+      });
+
+      console.log("Pre-populated CategoryId to Name Map:", categoryIdToNameMap);
+      // --- END OF MODIFIED LOGIC ---
 
       allReceipts.forEach((receipt) => {
         let items = receipt.items;
@@ -104,7 +129,6 @@ const FinancialInsights = () => {
           try {
             parsedItems = JSON.parse(items);
             if (!Array.isArray(parsedItems)) {
-              console.warn("Parsed items is not an array:", parsedItems);
               parsedItems = [];
             }
           } catch (e) {
