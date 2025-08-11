@@ -1260,7 +1260,7 @@ const resources = {
           "You've reached your free advice limit for today. Upgrade to Premium for unlimited insights!",
         upgradeToPremium: "Upgrade to Premium",
         loadingData: "Loading your financial data...",
-        topSpendingCategories: "Top Spending Categories",
+        topSpendingCategories: "Top Spending ",
         walletBalance: "Wallet Balance",
         freeAdviceRemaining:
           "You have {{count}} out of {{max}} free advices remaining today.",

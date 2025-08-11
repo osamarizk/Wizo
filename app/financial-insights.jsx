@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   I18nManager,
   Image,
+  FlatList,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useFocusEffect, router } from "expo-router";
@@ -23,7 +24,7 @@ import {
   getWalletTransactions,
   createNotification,
   getCategories,
-  initializeUserCategories
+  initializeUserCategories,
 } from "../lib/appwrite";
 import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../utils/fontUtils";
@@ -53,17 +54,57 @@ const convertToArabicNumerals = (num) => {
 };
 
 const GEMINI_API_KEY = Constants.expoConfig?.extra?.GEMINI_API_KEY;
-const GEMINI_MODEL = "gemini-1.5-flash"; // Or "gemini-1.5-pro"
+const GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"; // Or "gemini-1.5-pro"
 const DEFAULT_MAX_FREE_REQUESTS = 3;
 
 const FinancialInsights = () => {
+  const ListHeader = () => (
+    <>
+      <Text
+        className={`text-2xl text-blue-800 mb-1 ${
+          I18nManager.isRTL ? "text-right" : "text-left"
+        }`}
+        style={{ fontFamily: getFontClassName("bold") }}
+      >
+        {t("financialInsights.adviceTitle")}
+      </Text>
+      {lastGeneratedTime && (
+        <Text
+          className="text-base text-gray-500 mb-4"
+          style={{
+            fontFamily: getFontClassName("regular"),
+            textAlign: I18nManager.isRTL ? "right" : "left",
+          }}
+        >
+          {t("financialInsights.lastUpdated")}{" "}
+          {format(lastGeneratedTime, "PPP p", {
+            locale: currentLanguage.startsWith("ar") ? arLocale : undefined,
+          })}
+        </Text>
+      )}
+    </>
+  );
+
+  // Create a component that will act as the footer for the FlatList
+  const ListFooter = () => (
+    <Text
+      className="text-base text-gray-700 mt-4 italic"
+      style={{
+        fontFamily: getFontClassName("light"),
+        textAlign: I18nManager.isRTL ? "right" : "left",
+      }}
+    >
+      {t("financialInsights.adviceDisclaimer")}
+    </Text>
+  );
+
   const navigation = useNavigation();
   const { t } = useTranslation();
   const { user, currentLanguage, preferredCurrencySymbol } = useGlobalContext();
 
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
-  const [adviceText, setAdviceText] = useState("");
+  const [adviceText, setAdviceText] = useState([]);
   const [lastGeneratedTime, setLastGeneratedTime] = useState(null);
   const [dailyFreeRequests, setDailyFreeRequests] = useState(0);
 
@@ -98,30 +139,28 @@ const FinancialInsights = () => {
       const merchantVisits = {};
       const itemOccurrences = {};
 
-      // --- START OF MODIFIED LOGIC ---
-      // First, try to get the user's categories.
       let allCategories = await getCategories(user.$id);
 
-      // If the user has no categories, initialize them with a default set.
       if (allCategories.length === 0) {
         console.log(
           `User ${user.$id} has no categories. Initializing default categories...`
         );
         await initializeUserCategories(user.$id);
-        // Re-fetch the categories after initialization.
         allCategories = await getCategories(user.$id);
       }
 
-      // Now, build the comprehensive ID-to-name map from the user's categories.
+      // --- Build the primary map from the user's categories.
       allCategories.forEach((cat) => {
         if (cat.$id) {
           categoryIdToNameMap[cat.$id] = cat.name;
         }
       });
+      console.log(
+        "Initial CategoryId to Name Map from user's categories:",
+        categoryIdToNameMap
+      );
 
-      console.log("Pre-populated CategoryId to Name Map:", categoryIdToNameMap);
-      // --- END OF MODIFIED LOGIC ---
-
+      // Iterate through all receipts to aggregate spending and fill in any missing category names.
       allReceipts.forEach((receipt) => {
         let items = receipt.items;
         let parsedItems = [];
@@ -160,7 +199,10 @@ const FinancialInsights = () => {
             if (categoryId && !isNaN(itemPrice) && itemPrice > 0) {
               categorySpendingById[categoryId] =
                 (categorySpendingById[categoryId] || 0) + itemPrice;
-              categoryIdToNameMap[categoryId] = categoryName;
+              // Add a mapping for this category ID if it's not already in the map
+              if (!categoryIdToNameMap[categoryId]) {
+                categoryIdToNameMap[categoryId] = categoryName;
+              }
             } else {
               console.warn(
                 `Item missing category ID or price in receipt ${receipt.$id}:`,
@@ -195,11 +237,13 @@ const FinancialInsights = () => {
         }
       });
 
+      console.log("--- DEBUGGING CATEGORY & BUDGET DATA ---");
+      console.log("Final built CategoryId to Name Map:", categoryIdToNameMap);
+
       console.log(
         "Aggregated categorySpendingById object:",
         categorySpendingById
       );
-      console.log("CategoryId to Name Map:", categoryIdToNameMap);
 
       const safeCategorySpendingById =
         categorySpendingById && typeof categorySpendingById === "object"
@@ -242,38 +286,51 @@ const FinancialInsights = () => {
       const userBudgetsRaw = await getUserBudgets(user.$id);
       console.log("Raw userBudgets from Appwrite:", userBudgetsRaw);
 
-      const budgetPerformance = userBudgetsRaw.map((budget) => {
-        console.log("Processing budget in Advise:", budget);
-        const budgetedAmount = parseFloat(budget.budgetAmount || 0);
-        const categoryId = budget.categoryId;
-        console.log(
-          "Processing budget [budget.categoryId]:",
-          budget.categoryId
-        );
-
-        const categoryName =
-          categoryIdToNameMap[categoryId] || "Unknown Category";
-        console.log(
-          "Processing budget [categoryName]:",
-          categoryIdToNameMap[categoryId]
-        );
-
-        const categoryTotalSpent = categorySpendingById[categoryId] || 0;
-
-        const status =
-          categoryTotalSpent > budgetedAmount
-            ? "over"
-            : categoryTotalSpent < budgetedAmount
-            ? "under"
-            : "on track";
-        return {
-          category: categoryName,
-          categoryId: categoryId,
-          budgeted: budgetedAmount,
-          spent: parseFloat(categoryTotalSpent || 0),
-          status: status,
-        };
+      // Add a temporary mapping for any budget categories that don't exist
+      userBudgetsRaw.forEach((budget) => {
+        if (!categoryIdToNameMap[budget.categoryId]) {
+          console.warn(
+            `Budget found for non-existent category ID: ${budget.categoryId}. Mapping to 'Unknown Category'.`
+          );
+          categoryIdToNameMap[budget.categoryId] = "Unknown Category";
+        }
       });
+      console.log(
+        "Updated CategoryId to Name Map after checking budgets:",
+        categoryIdToNameMap
+      );
+
+      console.log("--- END DEBUGGING ---");
+
+      const budgetPerformance = userBudgetsRaw
+        .map((budget) => {
+          console.log("Processing budget in Advise:", budget);
+          const budgetedAmount = parseFloat(budget.budgetAmount || 0);
+          const categoryId = budget.categoryId;
+
+          const categoryName =
+            categoryIdToNameMap[categoryId] || "Unknown Category";
+
+          console.log("Processing budget [categoryName]:", categoryName);
+
+          const categoryTotalSpent = categorySpendingById[categoryId] || 0;
+
+          const status =
+            categoryTotalSpent > budgetedAmount
+              ? "over"
+              : categoryTotalSpent < budgetedAmount
+              ? "under"
+              : "on track";
+          return {
+            category: categoryName,
+            categoryId: categoryId,
+            budgeted: budgetedAmount,
+            spent: parseFloat(categoryTotalSpent || 0),
+            status: status,
+          };
+        })
+        .filter((budget) => budget.spent > 0); // NEW: Filter out budgets with zero spending
+
       console.log(
         "Processed budgetPerformance array (should have names and correct spent):",
         budgetPerformance
@@ -398,7 +455,7 @@ const FinancialInsights = () => {
         `Your advice should cover different aspects of the financial data provided. Aim for diversity in topics across requests.`
       );
       promptParts.push(
-        `Format your advice clearly using bullet points, e.g., using hyphens or numbered lists. Ensure each point is a distinct piece of advice. Do not output asterisks or other censorship characters or empty responses.`
+        `Format your advice as a JSON array of objects. Each object must have a "header" (a concise, descriptive title for the advice) and a "body" (the detailed advice text). Do not output any text before or after the JSON. Ensure the entire response is a single JSON array.`
       );
 
       promptParts.push(`User's current financial summary:`);
@@ -522,6 +579,20 @@ const FinancialInsights = () => {
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
       const payload = {
         contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                header: { type: "STRING" },
+                body: { type: "STRING" },
+              },
+              propertyOrdering: ["header", "body"],
+            },
+          },
+        },
       };
 
       const response = await fetch(apiUrl, {
@@ -556,7 +627,37 @@ const FinancialInsights = () => {
         result.candidates[0].content.parts.length > 0
       ) {
         const text = result.candidates[0].content.parts[0].text;
-        setAdviceText(text);
+        try {
+          const parsedAdvice = JSON.parse(text);
+          if (Array.isArray(parsedAdvice)) {
+            setAdviceText(parsedAdvice);
+
+            await createNotification({
+              user_id: user.$id,
+              title: t("financialInsights.adviceTitle"),
+              message:
+                parsedAdvice[0]?.header ||
+                t("financialInsights.newInsightAvailable"), // Use the header of the first item
+              type: "insight",
+              expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            });
+          } else {
+            // Handle case where it's not a valid array, maybe set an error state
+            console.error("Parsed advice is not an array:", parsedAdvice);
+            setAdviceText([]);
+            Alert.alert(
+              t("common.error"),
+              t("financialInsights.adviceErrorMessage")
+            );
+          }
+        } catch (e) {
+          console.error("Error parsing advice JSON:", e);
+          setAdviceText([]); // Reset advice on error
+          Alert.alert(
+            t("common.error"),
+            t("financialInsights.adviceErrorMessage")
+          );
+        }
         setLastGeneratedTime(new Date());
 
         if (!isPremiumUser) {
@@ -569,14 +670,6 @@ const FinancialInsights = () => {
             new Date().toDateString()
           );
         }
-
-        await createNotification({
-          user_id: user.$id,
-          title: t("financialInsights.adviceTitle"),
-          message: text.substring(0, 100) + "...",
-          type: "insight",
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        });
       } else {
         console.error(
           "Gemini API returned unexpected structure or no content:",
@@ -715,7 +808,7 @@ const FinancialInsights = () => {
                 // The key prop is here, it should force re-evaluation if these dependencies change
                 key={`advice-button-${dailyFreeRequests}-${isGeneratingAdvice}-${user?.isPremium}`}
                 onPress={generateAdvice}
-                className={`flex-row items-center justify-center p-4 rounded-md mb-3 ${
+                className={`flex-row items-center justify-center p-4 rounded-xl shadow-lg mb-3 ${
                   // Added rounded-xl
                   isGeneratingAdvice ||
                   (user &&
@@ -723,7 +816,7 @@ const FinancialInsights = () => {
                     dailyFreeRequests >=
                       (user?.maxFreeDailyInsights || DEFAULT_MAX_FREE_REQUESTS))
                     ? "bg-gray-400 opacity-70"
-                    : "bg-[#4E17B3]"
+                    : "bg-[#2A9D8F] hover:bg-[#21867A] active:bg-[#1A6F5A"
                 }`}
                 disabled={
                   isGeneratingAdvice ||
@@ -760,10 +853,10 @@ const FinancialInsights = () => {
 
               {/* Display Advice Limit Status */}
               {!user?.isPremium && ( // Only show this if not premium
-                <View className=" bg-transparent mb-8  items-center rounded-xl">
+                <View className=" mb-2   items-center ">
                   <Text
-                    className="text-blue-600 text-lg text-center underline"
-                    style={{ fontFamily: getFontClassName("reular") }}
+                    className="text-slate-700 text-base text-center "
+                    style={{ fontFamily: getFontClassName("regular") }}
                   >
                     {dailyFreeRequests <
                     (user?.maxFreeDailyInsights || DEFAULT_MAX_FREE_REQUESTS)
@@ -783,7 +876,7 @@ const FinancialInsights = () => {
                       className="mt-2"
                     >
                       <Text
-                        className="text-blue-600 text-sm underline"
+                        className="text-[#D03957] text-base underline"
                         style={{ fontFamily: getFontClassName("medium") }}
                       >
                         {t("financialInsights.upgradeToPremiumShort")}
@@ -795,56 +888,79 @@ const FinancialInsights = () => {
 
               {/* AI Advice Display - Only show if adviceText is present */}
               {adviceText ? (
-                <View className="bg-transparent p-6 mb-6 border border-gray-200 rounded-xl">
-                  <Text
-                    className={`text-2xl text-gray-800 mb-4 ${
-                      I18nManager.isRTL ? "text-right" : "text-left"
-                    }`}
-                    style={{ fontFamily: getFontClassName("bold") }}
-                  >
-                    {t("financialInsights.adviceTitle")}
-                  </Text>
-                  <Text
-                    className="text-base text-[#3a393c] leading-relaxed"
-                    style={{
-                      fontFamily: getFontClassName("bold"),
-                      textAlign: I18nManager.isRTL ? "right" : "left",
-                    }}
-                  >
-                    {adviceText}
-                  </Text>
-                  {lastGeneratedTime && (
+                <View className="bg-transparent border border-gray-200 rounded-xl">
+                  {/* Header Section */}
+                  <View className="p-6">
                     <Text
-                      className="text-base text-gray-500 mt-2"
+                      className={`text-2xl text-blue-800 mb-1 ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`}
+                      style={{ fontFamily: getFontClassName("bold") }}
+                    >
+                      {t("financialInsights.adviceTitle")}
+                    </Text>
+                    {lastGeneratedTime && (
+                      <Text
+                        className="text-base text-gray-500 mb-4"
+                        style={{
+                          fontFamily: getFontClassName("regular"),
+                          textAlign: I18nManager.isRTL ? "right" : "left",
+                        }}
+                      >
+                        {t("financialInsights.lastUpdated")}{" "}
+                        {format(lastGeneratedTime, "PPP p", {
+                          locale: currentLanguage.startsWith("ar")
+                            ? arLocale
+                            : undefined,
+                        })}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* Advice Items rendered by mapping over the array */}
+                  {adviceText.map((item, index) => (
+                    <View
+                      key={`advice-${index}`}
+                      className="bg-white p-4 mx-3 rounded-xl mb-4 shadow-md"
+                    >
+                      <Text
+                        className={`text-lg text-black mb-1 ${
+                          I18nManager.isRTL ? "text-right" : "text-left"
+                        }`}
+                        style={{ fontFamily: getFontClassName("bold") }}
+                      >
+                        {item.header}
+                      </Text>
+                      <Text
+                        className={`text-base text-gray-700 ${
+                          I18nManager.isRTL ? "text-right" : "text-left"
+                        }`}
+                        style={{ fontFamily: getFontClassName("regular") }}
+                      >
+                        {item.body}
+                      </Text>
+                    </View>
+                  ))}
+
+                  {/* Footer Section */}
+                  <View className="p-6">
+                    <Text
+                      className="text-base text-gray-700 italic"
                       style={{
-                        fontFamily: getFontClassName("regular"),
+                        fontFamily: getFontClassName("light"),
                         textAlign: I18nManager.isRTL ? "right" : "left",
                       }}
                     >
-                      {t("financialInsights.lastUpdated")}{" "}
-                      {format(lastGeneratedTime, "PPP p", {
-                        locale: currentLanguage.startsWith("ar")
-                          ? arLocale
-                          : undefined,
-                      })}
+                      {t("financialInsights.adviceDisclaimer")}
                     </Text>
-                  )}
-                  <Text
-                    className="text-base text-gray-700 mt-4 italic"
-                    style={{
-                      fontFamily: getFontClassName("light"),
-                      textAlign: I18nManager.isRTL ? "right" : "left",
-                    }}
-                  >
-                    {t("financialInsights.adviceDisclaimer")}
-                  </Text>
+                  </View>
                 </View>
               ) : null}
 
               {/* Data Summary Section - Placed after advice */}
-              <View className="bg-transparent p-6 mb-6 border border-t border-[#4E17B3]">
+              <View className="bg-white rounded-xl p-8 mb-6 shadow-md ">
                 <Text
-                  className={`text-xl text-gray-800 mb-4 ${
+                  className={`text-xl text-[#D03957] mb-4 ${
                     I18nManager.isRTL ? "text-right" : "text-left"
                   }`}
                   style={{ fontFamily: getFontClassName("bold") }}
@@ -863,7 +979,7 @@ const FinancialInsights = () => {
                     {t("manageData.totalReceiptsUploaded")}:
                   </Text>
                   <Text
-                    className="text-lg text-gray-800"
+                    className="text-lg text-[#D03957]"
                     style={{ fontFamily: getFontClassName("semibold") }}
                   >
                     {i18n.language.startsWith("ar")
@@ -883,7 +999,7 @@ const FinancialInsights = () => {
                     {t("manageData.overallSpendingRecorded")}:
                   </Text>
                   <Text
-                    className="text-lg text-gray-800"
+                    className="text-lg text-[#D03957]"
                     style={{ fontFamily: getFontClassName("semibold") }}
                   >
                     {i18n.language.startsWith("ar")
@@ -903,32 +1019,34 @@ const FinancialInsights = () => {
                       }`}
                       style={{ fontFamily: getFontClassName("bold") }}
                     >
-                      {t("financialInsights.topSpendingCategories")}:
+                      {t("financialInsights.topSpendingCategories")}: {" "}
+                      {financialData.topSpendingCategories.map((c, index) => (
+                        <Text
+                          key={index}
+                          className="text-base text-[#D03957]"
+                          style={{
+                            fontFamily: getFontClassName("semibold"),
+                            textAlign: I18nManager.isRTL ? "right" : "left",
+                            marginBottom:
+                              index <
+                              financialData.topSpendingCategories.length - 1
+                                ? 4
+                                : 0,
+                          }}
+                        >
+                          {`${t(
+                            `categories.${mapCategoryNameToI18nKey(c.name)}`
+                          )}: `}
+                          {i18n.language.startsWith("ar")
+                            ? `${convertToArabicNumerals(
+                                c.amount.toFixed(2)
+                              )} ${preferredCurrencySymbol}`
+                            : `${preferredCurrencySymbol}${c.amount.toFixed(
+                                2
+                              )}`}
+                        </Text>
+                      ))}
                     </Text>
-                    {financialData.topSpendingCategories.map((c, index) => (
-                      <Text
-                        key={index}
-                        className="text-lg text-gray-800"
-                        style={{
-                          fontFamily: getFontClassName("semibold"),
-                          textAlign: I18nManager.isRTL ? "right" : "left",
-                          marginBottom:
-                            index <
-                            financialData.topSpendingCategories.length - 1
-                              ? 4
-                              : 0,
-                        }}
-                      >
-                        {`${t(
-                          `categories.${mapCategoryNameToI18nKey(c.name)}`
-                        )}: `}
-                        {i18n.language.startsWith("ar")
-                          ? `${convertToArabicNumerals(
-                              c.amount.toFixed(2)
-                            )} ${preferredCurrencySymbol}`
-                          : `${preferredCurrencySymbol}${c.amount.toFixed(2)}`}
-                      </Text>
-                    ))}
                   </View>
                 )}
                 <View
@@ -943,7 +1061,7 @@ const FinancialInsights = () => {
                     {t("financialInsights.walletBalance")}:
                   </Text>
                   <Text
-                    className="text-lg text-gray-800"
+                    className="text-lg text-[#D03957]"
                     style={{ fontFamily: getFontClassName("semibold") }}
                   >
                     {i18n.language.startsWith("ar")
@@ -959,7 +1077,7 @@ const FinancialInsights = () => {
             </>
           )}
 
-          {/* Upgrade to Premium Call to Action (if not premium) */}
+          {/* Upgrade to Premium Call to Action (if not premium)
           {user && !user.isPremium && (
             <TouchableOpacity
               onPress={() => router.push("/upgrade-premium")}
@@ -979,7 +1097,7 @@ const FinancialInsights = () => {
                 {t("financialInsights.upgradeToPremium")}
               </Text>
             </TouchableOpacity>
-          )}
+          )} */}
 
           {/* Spacer for bottom padding */}
           <View className="h-20" />
@@ -988,5 +1106,7 @@ const FinancialInsights = () => {
     </GradientBackground>
   );
 };
+
+// Create a component that will act as the header for the FlatList
 
 export default FinancialInsights;
