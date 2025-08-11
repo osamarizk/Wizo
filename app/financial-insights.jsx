@@ -58,7 +58,6 @@ const GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"; // Or "gemini-1.5-pro"
 const DEFAULT_MAX_FREE_REQUESTS = 3;
 
 const FinancialInsights = () => {
-
   const navigation = useNavigation();
   const { t } = useTranslation();
   const { user, currentLanguage, preferredCurrencySymbol } = useGlobalContext();
@@ -298,11 +297,24 @@ const FinancialInsights = () => {
       );
 
       const userWallets = await getWalletTransactions(user.$id);
-      const totalWalletBalance = userWallets.reduce(
-        (sum, transaction) => sum + parseFloat(transaction.amount || 0),
-        0
-      );
 
+      const totalWalletBalance = userWallets.reduce(
+        (sum, transaction) => {
+          // Determine if the transaction is an expense or a withdrawal
+          if (
+            transaction.type === "withdrawal" ||
+            transaction.type === "manual_expense"
+          ) {
+            // If it's an expense, subtract the amount
+            return sum - parseFloat(transaction.amount || 0);
+          } else {
+            // Otherwise, assume it's a credit and add the amount
+            // You can add more explicit checks for other types like "deposit" or "cash" here if needed
+            return sum + parseFloat(transaction.amount || 0);
+          }
+        },
+        0 // The initial value of the sum is 0
+      );
       setFinancialData({
         totalReceipts: totalReceipts,
         overallSpending: overallSpending || 0,
@@ -980,7 +992,7 @@ const FinancialInsights = () => {
                       }`}
                       style={{ fontFamily: getFontClassName("bold") }}
                     >
-                      {t("financialInsights.topSpendingCategories")}: {" "}
+                      {t("financialInsights.topSpendingCategories")}:{" "}
                       {financialData.topSpendingCategories.map((c, index) => (
                         <Text
                           key={index}
