@@ -58,45 +58,6 @@ const GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"; // Or "gemini-1.5-pro"
 const DEFAULT_MAX_FREE_REQUESTS = 3;
 
 const FinancialInsights = () => {
-  const ListHeader = () => (
-    <>
-      <Text
-        className={`text-2xl text-blue-800 mb-1 ${
-          I18nManager.isRTL ? "text-right" : "text-left"
-        }`}
-        style={{ fontFamily: getFontClassName("bold") }}
-      >
-        {t("financialInsights.adviceTitle")}
-      </Text>
-      {lastGeneratedTime && (
-        <Text
-          className="text-base text-gray-500 mb-4"
-          style={{
-            fontFamily: getFontClassName("regular"),
-            textAlign: I18nManager.isRTL ? "right" : "left",
-          }}
-        >
-          {t("financialInsights.lastUpdated")}{" "}
-          {format(lastGeneratedTime, "PPP p", {
-            locale: currentLanguage.startsWith("ar") ? arLocale : undefined,
-          })}
-        </Text>
-      )}
-    </>
-  );
-
-  // Create a component that will act as the footer for the FlatList
-  const ListFooter = () => (
-    <Text
-      className="text-base text-gray-700 mt-4 italic"
-      style={{
-        fontFamily: getFontClassName("light"),
-        textAlign: I18nManager.isRTL ? "right" : "left",
-      }}
-    >
-      {t("financialInsights.adviceDisclaimer")}
-    </Text>
-  );
 
   const navigation = useNavigation();
   const { t } = useTranslation();
