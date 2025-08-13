@@ -19,6 +19,7 @@ import { getFontClassName } from "../utils/fontUtils";
 import i18n from "../utils/i18n";
 import GradientBackground from "../components/GradientBackground";
 import icons from "../constants/icons";
+import * as Clipboard from "expo-clipboard";
 
 // --- RevenueCat Imports ---
 import Purchases from "react-native-purchases";
@@ -56,20 +57,47 @@ const UpgradePremium = () => {
   const [isProcessingPurchase, setIsProcessingPurchase] = useState(false);
 
   const [activeSubscription, setActiveSubscription] = useState(null);
+  // --- MODIFIED: Add a state for the `willRenew` flag ---
+  const [willRenew, setWillRenew] = useState(true);
+
+  // --- NEW: State for debug information and panel visibility ---
+  const [debugInfo, setDebugInfo] = useState("");
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+
+  // --- NEW: Helper function to format debug information ---
+  const formatDebugInfo = (customerInfo) => {
+    let debugText = "--- Debug Information ---\n";
+    debugText += `User ID: ${user?.$id || "Anonymous"}\n`;
+    debugText += `Email: ${user?.email || "N/A"}\n`;
+    debugText += `Appwrite Premium Status: ${user?.isPremium}\n`;
+    debugText += "-------------------------\n\n";
+    debugText += "--- RevenueCat Customer Info ---\n";
+    debugText += JSON.stringify(customerInfo, null, 2);
+    return debugText;
+  };
 
   // --- Listener as a stable callback ---
-  // This listener is still required to handle subscription status changes while the app is open.
   const customerInfoUpdateListener = useCallback(
     async (customerInfo) => {
       console.log(
         "RevenueCat: Customer info updated from listener:",
         customerInfo
       );
+
+      // --- NEW: Capture debug info on every update ---
+      if (user?.$id) {
+        setDebugInfo(formatDebugInfo(customerInfo));
+      }
+
       const activeEntitlement =
         customerInfo.entitlements.active[PREMIUM_ENTITLEMENT_ID];
       const isPremium = !!activeEntitlement;
 
-      // We only update Appwrite if there's a difference to avoid unnecessary calls.
+      // --- MODIFIED: Also update the willRenew state here ---
+      if (activeEntitlement) {
+        setWillRenew(activeEntitlement.willRenew);
+      }
+
       if (user?.isPremium === isPremium) {
         console.log("Premium status unchanged. No Appwrite update needed.");
         return;
@@ -77,15 +105,13 @@ const UpgradePremium = () => {
 
       try {
         if (user?.$id) {
-          // --- BEGIN: UPDATED LOGIC ---
-          // Extract the individual values from the activeEntitlement
           const subscriptionType = isPremium
             ? activeEntitlement.productIdentifier.includes("monthly")
               ? "monthly"
               : "yearly"
             : null;
           const renewalDate = isPremium
-            ? activeEntitlement.latestExpirationDate
+            ? activeEntitlement.expirationDate
             : null;
           const premiumStartDate = isPremium
             ? activeEntitlement.purchaseDate
@@ -98,7 +124,6 @@ const UpgradePremium = () => {
             renewalDate,
             premiumStartDate
           );
-          // --- END: UPDATED LOGIC ---
 
           setUser((prevUser) => ({
             ...prevUser,
@@ -130,14 +155,12 @@ const UpgradePremium = () => {
         }
       } catch (err) {
         console.error("Error processing customer info update:", err);
-        // In a real app, you might want to log this or retry
       }
     },
     [user, t, setUser, updateUnreadCount]
   );
 
   useEffect(() => {
-    // 1. Configure RevenueCat and fetch products on component mount
     const configureAndFetchProducts = async () => {
       try {
         Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
@@ -162,28 +185,34 @@ const UpgradePremium = () => {
           console.warn("RevenueCat: User not logged in, using anonymous ID.");
         }
 
-        // This is the core logic to synchronize the state on page load.
-        // Get the latest info from RevenueCat.
         const customerInfo = await Purchases.getCustomerInfo();
+
+        // --- NEW: Capture debug info immediately after fetching ---
+        if (user?.$id) {
+          setDebugInfo(formatDebugInfo(customerInfo));
+        }
+
         const activeEntitlement =
           customerInfo.entitlements.active[PREMIUM_ENTITLEMENT_ID];
         const isPremiumFromRevenueCat = !!activeEntitlement;
 
-        // Compare RevenueCat's status with Appwrite's.
+        // --- MODIFIED: Set the willRenew state from the initial fetch ---
+        if (activeEntitlement) {
+          setWillRenew(activeEntitlement.willRenew);
+        } else {
+          setWillRenew(false);
+        }
+
         if (user?.isPremium !== isPremiumFromRevenueCat) {
           console.log("Appwrite status is out of sync. Updating Appwrite...");
-          // Appwrite is stale, so we update it in the background silently.
-          // We use the RevenueCat data as the source of truth.
           if (user?.$id) {
-            // --- BEGIN: UPDATED LOGIC ---
-            // Extract the individual values from the activeEntitlement
             const subscriptionType = isPremiumFromRevenueCat
               ? activeEntitlement.productIdentifier.includes("monthly")
                 ? "monthly"
                 : "yearly"
               : null;
             const renewalDate = isPremiumFromRevenueCat
-              ? activeEntitlement.latestExpirationDate
+              ? activeEntitlement.expirationDate
               : null;
             const premiumStartDate = isPremiumFromRevenueCat
               ? activeEntitlement.purchaseDate
@@ -196,7 +225,6 @@ const UpgradePremium = () => {
               renewalDate,
               premiumStartDate
             );
-            // --- END: UPDATED LOGIC ---
 
             setUser((prevUser) => ({
               ...prevUser,
@@ -208,11 +236,10 @@ const UpgradePremium = () => {
           }
         }
 
-        // Now, get the subscription details to display if the user is premium.
-        if (isPremiumFromRevenueCat) {
+        if (isPremiumFromRevenueCat && activeEntitlement) {
           setActiveSubscription({
             renewalDate: new Date(
-              activeEntitlement.latestExpirationDate
+              activeEntitlement.expirationDate
             ).toLocaleDateString(),
             subscriptionType: activeEntitlement.productIdentifier.includes(
               "monthly"
@@ -222,7 +249,6 @@ const UpgradePremium = () => {
           });
         }
 
-        // Fetch products for the UI
         const offerings = await Purchases.getOfferings();
         if (
           offerings.current &&
@@ -267,6 +293,17 @@ const UpgradePremium = () => {
       Purchases.removeCustomerInfoUpdateListener(customerInfoUpdateListener);
     };
   }, [user]);
+
+  // --- NEW: Function to copy debug info ---
+  const handleCopyToClipboard = async () => {
+    try {
+      await Clipboard.setStringAsync(debugInfo);
+      Alert.alert("Success", "Debug information copied to clipboard!");
+    } catch (e) {
+      Alert.alert("Error", "Failed to copy to clipboard.");
+      console.error("Clipboard copy error:", e);
+    }
+  };
 
   const handlePurchase = async (productPackage) => {
     if (isProcessingPurchase) return;
@@ -367,7 +404,7 @@ const UpgradePremium = () => {
   const handleManageSubscription = async () => {
     try {
       if (Platform.OS === "ios") {
-        await Purchases.presentCodeRedemptionSheet();
+        await Purchases.showManageSubscriptions();
       } else if (Platform.OS === "android") {
         await Linking.openURL(
           "https://play.google.com/store/account/subscriptions"
@@ -455,26 +492,52 @@ const UpgradePremium = () => {
                     {t("upgradePremium.yourPlan")}:{" "}
                     {activeSubscription.subscriptionType}
                   </Text>
-                  <Text
-                    className="text-base text-gray-700 text-center"
-                    style={{ fontFamily: getFontClassName("regular") }}
-                  >
-                    {t("upgradePremium.nextRenewal")}:{" "}
-                    {activeSubscription.renewalDate}
-                  </Text>
+                  {/* --- MODIFIED: Conditional text based on `willRenew` --- */}
+                  {willRenew ? (
+                    <Text
+                      className="text-base text-gray-700 text-center"
+                      style={{ fontFamily: getFontClassName("regular") }}
+                    >
+                      {t("upgradePremium.nextRenewal")}:{" "}
+                      {activeSubscription.renewalDate}
+                    </Text>
+                  ) : (
+                    <Text
+                      className="text-base text-red-500 text-center"
+                      style={{ fontFamily: getFontClassName("regular") }}
+                    >
+                      {t("upgradePremium.subscriptionExpires")}:{" "}
+                      {activeSubscription.renewalDate}
+                    </Text>
+                  )}
                 </>
               )}
-              <TouchableOpacity
-                onPress={handleManageSubscription}
-                className="mt-4 p-4 rounded-lg bg-blue-600 items-center w-full"
-              >
-                <Text
-                  className="text-white text-lg"
-                  style={{ fontFamily: getFontClassName("semibold") }}
+              {/* --- MODIFIED: Conditional button based on `willRenew` --- */}
+              {willRenew ? (
+                <TouchableOpacity
+                  onPress={handleManageSubscription}
+                  className="mt-4 p-4 rounded-lg bg-blue-600 items-center w-full"
                 >
-                  {t("upgradePremium.manageSubscription")}
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    className="text-white text-lg"
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    {t("upgradePremium.manageSubscription")}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  onPress={handleManageSubscription}
+                  className="mt-4 p-4 rounded-lg bg-red-600 items-center w-full"
+                >
+                  <Text
+                    className="text-white text-lg"
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    {t("upgradePremium.resubscribe")}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <>
@@ -568,6 +631,50 @@ const UpgradePremium = () => {
           >
             {t("upgradePremium.termsDisclaimer")}
           </Text>
+
+          {/* --- NEW: Debug panel and copy button --- */}
+          <View className="mt-8 bg-gray-100 p-4 rounded-xl">
+            <TouchableOpacity
+              onPress={() => setShowDebugPanel(!showDebugPanel)}
+              className="flex-row items-center justify-between"
+            >
+              <Text
+                className="text-lg font-bold text-gray-800"
+                style={{ fontFamily: getFontClassName("bold") }}
+              >
+                {t("upgradePremium.debugInfoToggle")}
+              </Text>
+              <Image
+                source={showDebugPanel ? icons.upArrow : icons.downArrow}
+                className="w-4 h-4"
+                resizeMode="contain"
+                tintColor="#4B5563"
+              />
+            </TouchableOpacity>
+
+            {showDebugPanel && (
+              <View className="mt-4">
+                <Text
+                  className="text-xs text-gray-600"
+                  style={{ fontFamily: getFontClassName("regular") }}
+                >
+                  {debugInfo}
+                </Text>
+                <TouchableOpacity
+                  onPress={handleCopyToClipboard}
+                  className="mt-4 p-3 rounded-lg bg-gray-300 items-center"
+                >
+                  <Text
+                    className="text-gray-800"
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    {t("upgradePremium.copyDebugInfo")}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+          {/* --- END NEW: Debug panel and copy button --- */}
         </ScrollView>
       </SafeAreaView>
     </GradientBackground>

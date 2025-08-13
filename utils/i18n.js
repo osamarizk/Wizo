@@ -1444,6 +1444,16 @@ const resources = {
         alreadySubscribed: "You are already a premium subscriber.",
         subscriptionActive:
           "our subscription is active. Enjoy all the premium benefits!",
+        youArePremium: "You are a Premium Member",
+        manageSubscription: "Manage Subscription",
+        nextRenewal: " Next Renewal",
+        yourPlan: "Your Plan",
+        copyDebugInfo: "Copy Information",
+        subscriptionExpires: "Subscription expires on {expirationDate}.",
+        resubscribe: "Re-subscribe",
+        cancellationInitiatedTitle: "Cancellation Initiated",
+        cancellationInitiatedMessage:
+          "You have been redirected to the store to manage your subscription. Please note that it may take a few minutes for the cancellation status to update in the app.",
       },
       editProfile: {
         editProfileTitle: "Edit Profile",
@@ -3027,6 +3037,16 @@ const resources = {
           "افتح الإيصالات غير المحدودة، والميزانيات المخصصة، وتحليلات الإنفاق المتقدمة.",
         alreadySubscribed: "أنت مشترك بالفعل في الباقة المميزة.",
         subscriptionActive: "اشتراكك نشط. استمتع بجميع الميزات المميزة!",
+        youArePremium: "أنت عضو مميز",
+        manageSubscription: "إدارة الاشتراك",
+        nextRenewal: "التجديد القادم",
+        yourPlan: "خطتك",
+        subscriptionExpires: "الاشتراك ينتهي في {expirationDate}.",
+        resubscribe: "إعادة الاشتراك",
+        "subscriptionExpires": "الاشتراك ينتهي في {expirationDate}.",
+    "resubscribe": "إعادة الاشتراك",
+    "cancellationInitiatedTitle": "بدء الإلغاء",
+    "cancellationInitiatedMessage": "تمت إحالتك إلى المتجر لإدارة اشتراكك. يرجى ملاحظة أن تحديث حالة الإلغاء في التطبيق قد يستغرق بضع دقائق."
       },
       editProfile: {
         editProfileTitle: "تعديل الملف الشخصي",
