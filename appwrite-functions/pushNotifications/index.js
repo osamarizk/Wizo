@@ -63,6 +63,7 @@ module.exports = async function ({ req, res, log, error }) {
     }
 
     // FINAL CORRECTED CALL
+    const currentTime = new Date().toISOString();
     const message = await messaging.createPush(
       sdk.ID.unique(),
       title,
@@ -80,7 +81,8 @@ module.exports = async function ({ req, res, log, error }) {
       1, // badge: Optional badge count (iOS)
       false, // critical: Optional iOS-only parameter for critical alerts
       "high", // priority: Optional priority level ('normal' or 'high')
-      false // draft: Optional boolean to save as draft
+      false, // draft: Optional boolean to save as draft
+      currentTime
     );
 
     // Log the successful response, including the payload you sent
