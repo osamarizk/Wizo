@@ -5,7 +5,7 @@ module.exports = async function ({ req, res, log, error }) {
   log("Starting generic Push Notification function...");
 
   const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
-  const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT;
+  const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT; // Correctly defined as https://cloud.appwrite.io/v1
   const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID;
   const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
   const USERS_COLLECTION_ID = process.env.APPWRITE_USERS_COLLECTION_ID;
@@ -64,14 +64,14 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No device tokens found." });
     }
 
-    // New: Use a direct fetch call with the correct Appwrite API endpoint
-    const apiEndpoint = `${APPWRITE_ENDPOINT}/v1/messaging/messages`;
+    // FINAL FIX: Use the correct Appwrite API endpoint without adding /v1 again
+    const apiEndpoint = `${APPWRITE_ENDPOINT}/messaging/messages`;
 
     const requestPayload = {
       messageId: sdk.ID.unique(),
       title,
       body,
-      targets: deviceTokens, // The key fix is here, sending as a JSON key-value pair
+      targets: deviceTokens,
       data: payload,
       badge: 1,
       priority: "high",
