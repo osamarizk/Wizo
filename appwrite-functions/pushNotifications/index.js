@@ -3,18 +3,20 @@ const sdk = require("node-appwrite");
 module.exports = async function ({ req, res, log, error }) {
   log("Starting generic Push Notification function...");
 
-  const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
-  const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT;
-  const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID;
-  const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
-  const USERS_COLLECTION_ID = process.env.APPWRITE_USERS_COLLECTION_ID;
+  const {
+    APPWRITE_API_KEY,
+    APPWRITE_ENDPOINT,
+    APPWRITE_PROJECT_ID,
+    APPWRITE_DATABASE_ID,
+    APPWRITE_USERS_COLLECTION_ID,
+  } = process.env;
 
   if (
     !APPWRITE_API_KEY ||
     !APPWRITE_ENDPOINT ||
     !APPWRITE_PROJECT_ID ||
-    !DATABASE_ID ||
-    !USERS_COLLECTION_ID
+    !APPWRITE_DATABASE_ID ||
+    !APPWRITE_USERS_COLLECTION_ID
   ) {
     error("Environment variables are not set. Function cannot proceed.");
     return res.json({
@@ -23,8 +25,7 @@ module.exports = async function ({ req, res, log, error }) {
     });
   }
 
-  const client = new sdk.Client();
-  client
+  const client = new sdk.Client()
     .setEndpoint(APPWRITE_ENDPOINT)
     .setProject(APPWRITE_PROJECT_ID)
     .setKey(APPWRITE_API_KEY);
@@ -41,7 +42,7 @@ module.exports = async function ({ req, res, log, error }) {
     return res.json({ success: false, error: "Invalid JSON in request body." });
   }
 
-  const { userId, title, body } = payload;
+  const { userId, title, body, data } = payload;
 
   if (!userId || !title || !body) {
     return res.json({ success: false, error: "Missing required parameters." });
@@ -49,20 +50,18 @@ module.exports = async function ({ req, res, log, error }) {
 
   try {
     const userDoc = await databases.getDocument(
-      DATABASE_ID,
-      USERS_COLLECTION_ID,
+      APPWRITE_DATABASE_ID,
+      APPWRITE_USERS_COLLECTION_ID,
       userId
     );
-    const deviceTokens = userDoc.deviceTokens || [];
 
-    // New logging statement to check the deviceTokens array
-    log("Device tokens from database:", deviceTokens);
+    const deviceIds = userDoc.deviceTokens || [];
 
-    if (deviceTokens.length === 0) {
-      log(
-        `No device tokens found for user ${userId}. Not sending a notification.`
-      );
-      return res.json({ success: true, message: "No device tokens found." });
+    log("Device IDs from database:", deviceIds);
+
+    if (deviceIds.length === 0) {
+      log(`No device IDs found for user ${userId}. Not sending notification.`);
+      return res.json({ success: true, message: "No devices registered." });
     }
 
     const scheduledAt = new Date(Date.UTC(2026, 0, 15, 10, 30, 0))
@@ -71,15 +70,14 @@ module.exports = async function ({ req, res, log, error }) {
 
     log("ScheduledAt being sent:", scheduledAt);
 
-    // FINAL CORRECTED CALL: Pass the populated deviceTokens array to targets
     const message = await messaging.createPush(
-      sdk.ID.unique(),
-      title,
-      body,
+      sdk.ID.unique(), // messageId
+      title, // title
+      body, // body
       [], // topics
       [], // users
-      deviceTokens, // targets
-      payload, // data
+      deviceIds, // targets (Appwrite Device IDs, not raw push tokens)
+      data || {}, // data payload
       null, // action
       null, // image
       null, // icon

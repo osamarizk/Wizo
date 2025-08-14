@@ -77,7 +77,7 @@ const registerForPushNotificationsAsync = async (userId) => {
     console.log("Device Push Token:", token);
 
     // Save the token to Appwrite using the imported function
-    await saveDeviceToken(userId, token);
+    await saveDeviceToken(userId, token, Platform.OS);
     console.log("Token successfully saved to user document in Appwrite.");
   } catch (error) {
     console.error("Error registering and saving push token:", error);
@@ -95,12 +95,6 @@ const SignIn = () => {
     useGlobalContext();
   const [modalVisible, setModalVisible] = useState(false);
 
-  useEffect(() => {
-    if (user && user.$id) {
-      registerForPushNotificationsAsync(user.$id);
-    }
-  }, [user]); // This hook will run whenever the 'user' object changes.
-
   const submit = async () => {
     if (!form.email || !form.password) {
       Alert.alert(t("common.errorTitle"), t("auth.fillAllFieldsError"));
@@ -116,7 +110,12 @@ const SignIn = () => {
     setIsSubmitting(true);
     try {
       await signIn(form.email, form.password);
-      await checkSessionAndFetchUser();
+
+      // Fetch user
+      const loggedInUser = await checkSessionAndFetchUser();
+
+      // Register push token **after** login
+      await registerForPushNotificationsAsync(loggedInUser.$id);
 
       router.replace("/home");
     } catch (error) {
@@ -133,7 +132,6 @@ const SignIn = () => {
       setIsSubmitting(false);
     }
   };
-
   const handleSendPasswordResetEmail = async (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
