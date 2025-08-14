@@ -80,7 +80,7 @@ module.exports = async function ({ req, res, log, error }) {
       null, // tag: Optional tag for the notification (Android)
       1, // badge: Optional badge count (iOS)
       false, // critical: Optional iOS-only parameter for critical alerts
-      "2025-08-11 10:00:00", //Schdule
+      "2025-08-15 10:00:00", //Schdule
       "high" // priority: Optional priority level ('normal' or 'high')
     );
 
