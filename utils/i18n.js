@@ -692,6 +692,12 @@ const resources = {
         premiumDeactivatedMessage:
           "Your premium subscription has ended. Renew to continue enjoying premium features.",
       },
+      pushNotifications: {
+        receiptProcessedTitle: "Receipt Saved!",
+        receiptProcessedMessage:
+          "Your receipt from {{merchant}} for {{total}} has been saved.",
+      },
+
       settings: {
         applicationSettingsTitle: "Application Settings",
         generalPreferences: "General Preferences",
@@ -2290,6 +2296,11 @@ const resources = {
         premiumDeactivatedMessage:
           "انتهى اشتراكك المميز. جدد للاستمرار في الاستمتاع بالميزات المميزة.",
       },
+      pushNotifications: {
+        receiptProcessedTitle: "تم حفظ الفاتورة!",
+        receiptProcessedMessage:
+          "تم حفظ فاتورتك من {{merchant}} بمبلغ {{total}}.",
+      },
       settings: {
         applicationSettingsTitle: "إعدادات التطبيق",
         generalPreferences: "التفضيلات العامة",
@@ -3043,10 +3054,13 @@ const resources = {
         yourPlan: "خطتك",
         subscriptionExpires: "الاشتراك ينتهي في {expirationDate}.",
         resubscribe: "إعادة الاشتراك",
-        "subscriptionExpires": "الاشتراك ينتهي في {expirationDate}.",
-    "resubscribe": "إعادة الاشتراك",
-    "cancellationInitiatedTitle": "بدء الإلغاء",
-    "cancellationInitiatedMessage": "تمت إحالتك إلى المتجر لإدارة اشتراكك. يرجى ملاحظة أن تحديث حالة الإلغاء في التطبيق قد يستغرق بضع دقائق."
+        subscriptionExpires: "الاشتراك ينتهي في {expirationDate}.",
+        resubscribe: "إعادة الاشتراك",
+        cancellationInitiatedTitle: "بدء الإلغاء",
+        cancellationInitiatedMessage:
+          "تمت إحالتك إلى المتجر لإدارة اشتراكك. يرجى ملاحظة أن تحديث حالة الإلغاء في التطبيق قد يستغرق بضع دقائق.",
+        manageSubscriptionError: "خطأ في إدارة الاشتراك",
+        manageSubscriptionError: "Manage Subscription Error",
       },
       editProfile: {
         editProfileTitle: "تعديل الملف الشخصي",

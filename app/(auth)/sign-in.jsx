@@ -22,6 +22,7 @@ import {
   sendOTPToEmail,
   getUserIdbyEmail,
   getAppwriteErrorMessageKey,
+  saveDeviceToken,
 } from "../../lib/appwrite";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import EmailResetModal from "../../components/EmailResetModel";
@@ -31,27 +32,77 @@ import GradientBackground from "../../components/GradientBackground";
 import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../../utils/fontUtils";
 
-const SignIn = () => {
-  const { t } = useTranslation(); // NEW: Initialize useTranslation
+// --- START OF NEW IMPORTS ---
+// IMPORTANT: You'll need to install this package first.
+// In your terminal, run: `npx expo install expo-notifications`
+import * as Notifications from "expo-notifications";
+import * as Device from "expo-device";
 
+// Configure the notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+// --- END OF NEW IMPORTS ---
+
+// --- START OF NEW FUNCTION ---
+// This function registers the device for push notifications and returns the token
+async function registerForPushNotificationsAsync() {
+  let token;
+
+  // Ensure the app is running on a physical device
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("default", {
+      name: "default",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
+  }
+
+  if (Device.isDevice) {
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== "granted") {
+      Alert.alert("Failed to get push token for push notification!");
+      return;
+    }
+
+    // Get the device token
+    token = (await Notifications.getExpoPushTokenAsync()).data;
+    console.log("Device Push Token:", token);
+  } else {
+    Alert.alert("Must use a physical device for Push Notifications");
+  }
+  return token;
+}
+// --- END OF NEW FUNCTION ---
+
+const SignIn = () => {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const { setUser, setIsLogged, checkSessionAndFetchUser } = useGlobalContext();
-
+  const { user, setUser, setIsLogged, checkSessionAndFetchUser } =
+    useGlobalContext();
   const [modalVisible, setModalVisible] = useState(false);
 
   const submit = async () => {
-    // 1- Basic Input Validation
     if (!form.email || !form.password) {
       Alert.alert(t("common.errorTitle"), t("auth.fillAllFieldsError"));
       return;
     }
 
-    // 2- Email Format Validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(form.email)) {
       Alert.alert(t("common.errorTitle"), t("auth.invalidEmailError"));
@@ -62,56 +113,59 @@ const SignIn = () => {
     try {
       await signIn(form.email, form.password);
       await checkSessionAndFetchUser();
+
+      // --- START OF UPDATED CODE ---
+      // 1. Get the push token from the new function
+      const pushToken = await registerForPushNotificationsAsync();
+
+      // 2. Call the saveDeviceToken function with the user ID and the push token
+      if (user?.$id && pushToken) {
+        await saveDeviceToken(user.$id, pushToken);
+      }
+      // --- END OF UPDATED CODE ---
+
       router.replace("/home");
     } catch (error) {
       console.error("Sign In Error:", error);
-      const errorKey = getAppwriteErrorMessageKey(error); // Get the translation key
-      let errorMessage = t(errorKey); // Get the translated message
+      const errorKey = getAppwriteErrorMessageKey(error);
+      let errorMessage = t(errorKey);
 
-      // If it's a generic Appwrite error, include the original message
       if (errorKey === "appwriteErrors.genericAppwriteError") {
         errorMessage = t(errorKey, { message: error.message });
       }
 
-      Alert.alert(
-        t("common.errorTitle"), // Use generic error title
-        errorMessage // Display the translated, user-friendly message
-      );
+      Alert.alert(t("common.errorTitle"), errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleSendPasswordResetEmail = async (email) => {
-    // 1. Validate email format in the modal callback too
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert(t("common.invalidEmailTitle"), t("auth.invalidEmailError"));
       return;
     }
-
     setModalVisible(false);
     setIsSubmitting(true);
-
     try {
-      const REDIRECT_URL = "https://resynq.net/reset-password.html"; // <<< IMPORTANT: MATCH YOUR EXPO DEEP LINK/WEB REDIRECT URL
+      const REDIRECT_URL = "https://resynq.net/reset-password.html";
       console.log("REDIRECT_URL", REDIRECT_URL);
       await requestPasswordReset(email, REDIRECT_URL);
 
-      // SUCCESS MESSAGE (This is for when the email *was* successfully sent)
       Alert.alert(
         t("auth.passwordResetSuccessTitle"),
         t("auth.passwordResetSuccessMessage")
       );
     } catch (error) {
       console.error("Forgot Password Error:", error);
-      console.log("Exact error.message:", error.message); // <-- ADD THIS
-      console.log("Full error object:", JSON.stringify(error, null, 2)); // <-- ADD THIS to see full structure
+      console.log("Exact error.message:", error.message);
+      console.log("Full error object:", JSON.stringify(error, null, 2));
 
       const errorKey = getAppwriteErrorMessageKey(error);
-      console.log("Determined errorKey:", errorKey); // <-- ADD THIS
+      console.log("Determined errorKey:", errorKey);
 
-      let userFacingMessage = t("common.errorTitle"); // Default title for errors
+      let userFacingMessage = t("common.errorTitle");
 
       if (errorKey === "appwriteErrors.userNotFound") {
         userFacingMessage = t("auth.passwordResetGenericConfirmation");
@@ -246,9 +300,7 @@ const SignIn = () => {
               >
                 {t("auth.noAccountQuestion")}
               </Text>
-              <TouchableOpacity
-                onPress={() => router.push("/sign-up")} // Use router.push for programmatic navigation
-              >
+              <TouchableOpacity onPress={() => router.push("/sign-up")}>
                 <Text
                   className={`text-lg text-secondary ${getFontClassName(
                     "bold"

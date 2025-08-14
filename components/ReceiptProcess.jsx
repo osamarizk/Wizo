@@ -30,6 +30,7 @@ import {
   checkAndAwardBadges,
   checkSession,
   getFutureDate,
+  callPushNotificationFunction,
 } from "../lib/appwrite";
 import Checkbox from "expo-checkbox";
 import { useGlobalContext } from "../context/GlobalProvider";
@@ -645,6 +646,25 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           type: "receipt",
           expiresAt: getFutureDate(7),
         });
+
+        try {
+          const payload = {
+            userId: user.$id,
+            title: t("pushNotifications.receiptProcessedTitle"),
+            body: t("pushNotifications.receiptProcessedMessage", {
+              merchant: extractedData.merchant || t("common.unknown"),
+              total: (extractedData.total || 0).toFixed(2),
+            }),
+          };
+
+          // IMPORTANT: Replace 'YOUR_FUNCTION_ID' with the actual ID of your Appwrite Function
+          await callPushNotificationFunction("YOUR_FUNCTION_ID", payload);
+          console.log(
+            "Successfully called Appwrite function to send push notification."
+          );
+        } catch (pushError) {
+          console.warn("Failed to call push notification function:", pushError);
+        }
 
         // const pointsEarned = 0;
         // await updateUserPoints(user.$id, pointsEarned, "receipt_upload");

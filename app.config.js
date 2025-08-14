@@ -53,6 +53,7 @@ export default {
         },
       ],
       "expo-image-picker",
+      "expo-notifications",
     ],
     extra: {
       GEMINI_API_KEY: process.env.GEMINI_API_KEY,

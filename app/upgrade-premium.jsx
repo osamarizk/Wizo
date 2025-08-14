@@ -64,6 +64,9 @@ const UpgradePremium = () => {
   const [debugInfo, setDebugInfo] = useState("");
   const [showDebugPanel, setShowDebugPanel] = useState(false);
 
+  // --- NEW: State to handle "cancellation initiated" state ---
+  const [cancellationInitiated, setCancellationInitiated] = useState(false);
+
   // --- NEW: Helper function to format debug information ---
   const formatDebugInfo = (customerInfo) => {
     let debugText = "--- Debug Information ---\n";
@@ -401,6 +404,7 @@ const UpgradePremium = () => {
     }
   };
 
+  // --- MODIFIED: Handle Manage Subscription with better UX ---
   const handleManageSubscription = async () => {
     try {
       if (Platform.OS === "ios") {
@@ -410,6 +414,23 @@ const UpgradePremium = () => {
           "https://play.google.com/store/account/subscriptions"
         );
       }
+
+      // --- NEW: Provide immediate feedback to the user ---
+      Alert.alert(
+        t("upgradePremium.cancellationInitiatedTitle"),
+        t("upgradePremium.cancellationInitiatedMessage")
+      );
+
+      // --- NEW: Set a flag to indicate cancellation was initiated ---
+      // This can be used to show a different UI state if needed, though a simple navigation
+      // is often enough. For this case, we'll just navigate away.
+      setCancellationInitiated(true);
+
+      // --- NEW: Navigate back after a short delay to prevent the "ghost subscription" view ---
+      // We use a small delay to allow the user to read the alert.
+      setTimeout(() => {
+        router.back();
+      }, 3000); // 3-second delay
     } catch (e) {
       console.error("Error managing subscription:", e);
       Alert.alert(
@@ -418,6 +439,7 @@ const UpgradePremium = () => {
       );
     }
   };
+  // --- END MODIFIED: Handle Manage Subscription with better UX ---
 
   if (globalLoading || isLoadingProducts) {
     return (
