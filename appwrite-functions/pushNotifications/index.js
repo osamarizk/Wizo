@@ -1,7 +1,5 @@
-// Use CommonJS syntax to import the SDK
 const sdk = require("node-appwrite");
 
-// The function receives a context object with req, res, log, and error
 module.exports = async function ({ req, res, log, error }) {
   log("Starting generic Push Notification function...");
 
@@ -50,7 +48,6 @@ module.exports = async function ({ req, res, log, error }) {
   }
 
   try {
-    // 1. Fetch the user's document to get all their device tokens
     const userDoc = await databases.getDocument(
       DATABASE_ID,
       USERS_COLLECTION_ID,
@@ -65,19 +62,31 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No device tokens found." });
     }
 
-    // 2. Loop through each device token and send a notification
+    // New: First, create a message to send to the targets
+    const message = await messaging.createMessage(
+      sdk.ID.unique(),
+      sdk.ID.unique(),
+      "push",
+      null, // Provider ID (null will use all)
+      false, // Scheduled
+      null, // Delivery Time
+      null, // Targets (we'll set this later)
+      title, // Title
+      body, // Body
+      payload, // Custom data
+      "default", // Sound
+      1 // Badge
+    );
+
+    // New: Loop through each device token, create a target, and send the message
     for (const token of deviceTokens) {
       try {
-        await messaging.createPush(
+        await messaging.createPushTarget(
           sdk.ID.unique(),
-          title,
-          body,
-          [token], // Target the specific device token
-          [],
-          payload,
-          "default",
-          "default",
-          1
+          token, // The device token to target
+          message.$id, // The message ID to send
+          [], // Topics (not needed for direct token sending)
+          [`user-${userId}`] // Target IDs
         );
         log(`Push notification sent successfully to token: ${token}`);
       } catch (tokenErr) {
