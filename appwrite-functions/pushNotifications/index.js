@@ -64,9 +64,7 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No devices registered." });
     }
 
-    const scheduledAt = new Date(Date.UTC(2026, 0, 15, 10, 30, 0))
-      .toISOString()
-      .replace(/\.\d{3}Z$/, "Z");
+    const scheduledAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
     log("ScheduledAt being sent:", scheduledAt);
 
