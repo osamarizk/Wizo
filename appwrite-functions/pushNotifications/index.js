@@ -81,7 +81,7 @@ module.exports = async function ({ req, res, log, error }) {
       false, // critical: Optional iOS-only parameter for critical alerts
       "high", // priority: Optional priority level ('normal' or 'high')
       false, // draft: Optional boolean to save as draft
-      "" // scheduledAt: Optional ISO 8601 string for scheduled delivery time
+      null // scheduledAt: Optional ISO 8601 string for scheduled delivery time
     );
 
     // Log the successful response, including the payload you sent
