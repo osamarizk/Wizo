@@ -67,13 +67,21 @@ module.exports = async function ({ req, res, log, error }) {
       sdk.ID.unique(),
       title,
       body,
-      null, // topics
+      [], // topics
+      [], // users
       deviceTokens, // targets
-      null, // users
       payload, // data
-      "default", // action
-      "default", // sound
-      1 // badge
+      "", // action: Optional action for the notification (e.g., deep link)
+      "", // image: Optional image URL (e.g., bucketId:fileId from Appwrite Storage)
+      "", // icon: Optional icon URL (Android/Web)
+      "", // sound: Optional sound file name (Android/iOS)
+      "#4CAF50", // color: Optional color for the notification (Android)
+      "", // tag: Optional tag for the notification (Android)
+      1, // badge: Optional badge count (iOS)
+      false, // critical: Optional iOS-only parameter for critical alerts
+      "high", // priority: Optional priority level ('normal' or 'high')
+      false, // draft: Optional boolean to save as draft
+      "" // scheduledAt: Optional ISO 8601 string for scheduled delivery time
     );
 
     // Log the successful response, including the payload you sent
