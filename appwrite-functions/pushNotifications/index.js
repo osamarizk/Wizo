@@ -10,7 +10,13 @@ module.exports = async function ({ req, res, log, error }) {
   const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
   const USERS_COLLECTION_ID = process.env.APPWRITE_USERS_COLLECTION_ID;
 
-  if (!APPWRITE_API_KEY || !APPWRITE_ENDPOINT || !APPWRITE_PROJECT_ID || !DATABASE_ID || !USERS_COLLECTION_ID) {
+  if (
+    !APPWRITE_API_KEY ||
+    !APPWRITE_ENDPOINT ||
+    !APPWRITE_PROJECT_ID ||
+    !DATABASE_ID ||
+    !USERS_COLLECTION_ID
+  ) {
     error("Environment variables are not set. Function cannot proceed.");
     return res.json({
       success: false,
@@ -25,7 +31,6 @@ module.exports = async function ({ req, res, log, error }) {
     .setKey(APPWRITE_API_KEY);
 
   const databases = new sdk.Databases(client);
-  const messaging = new sdk.Messaging(client);
 
   let payload;
   try {
@@ -43,18 +48,25 @@ module.exports = async function ({ req, res, log, error }) {
   }
 
   try {
-    const userDoc = await databases.getDocument(DATABASE_ID, USERS_COLLECTION_ID, userId);
+    const userDoc = await databases.getDocument(
+      DATABASE_ID,
+      USERS_COLLECTION_ID,
+      userId
+    );
     const deviceTokens = userDoc.deviceTokens || [];
 
     log("Device tokens from database:", deviceTokens);
 
     if (deviceTokens.length === 0) {
-      log(`No device tokens found for user ${userId}. Not sending a notification.`);
+      log(
+        `No device tokens found for user ${userId}. Not sending a notification.`
+      );
       return res.json({ success: true, message: "No device tokens found." });
     }
 
-    // New: Use a direct fetch call to the Appwrite API to bypass SDK issues
-    const apiEndpoint = `${APPWRITE_ENDPOINT}/v1/messaging/messages/push`;
+    // New: Use a direct fetch call with the correct Appwrite API endpoint
+    const apiEndpoint = `${APPWRITE_ENDPOINT}/v1/messaging/messages`;
+
     const requestPayload = {
       messageId: sdk.ID.unique(),
       title,
@@ -92,7 +104,6 @@ module.exports = async function ({ req, res, log, error }) {
         error: errorResult.message || "Unknown API error",
       });
     }
-
   } catch (err) {
     error("Error sending push notification:", err);
     return res.json({ success: false, error: err.message });
