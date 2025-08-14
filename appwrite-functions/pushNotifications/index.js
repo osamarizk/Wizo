@@ -69,33 +69,26 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No devices registered." });
     }
 
-    // Schedule 1 minute in the future to ensure it's valid
-    const scheduledAt = new Date(Date.now() + 60 * 1000)
-      .toISOString()
-      .replace(/\.\d{3}Z$/, "Z"); // Remove milliseconds for consistency
-
-    log("ScheduledAt:", scheduledAt);
-
-    const message = await messaging.createPush({
-      messageId: generateValidMessageId(),
-      title,
-      body,
-      topics: [],
-      users: [],
-      targets: deviceIds,
-      data: data || {},
-      action: null,
-      image: null,
-      icon: null,
-      sound: null,
-      color: null,
-      tag: null,
-      badge: 1,
-      critical: false,
-      priority: "high",
-      draft: false,
-      scheduledAt,
-    });
+    const message = await messaging.createPush(
+      generateValidMessageId(), // messageId
+      title, // title
+      body, // body
+      [], // topics
+      [], // users
+      deviceIds, // targets (device IDs from Appwrite)
+      data || {}, // data payload
+      null, // action
+      null, // image
+      null, // icon
+      null, // sound
+      null, // color
+      null, // tag
+      1, // badge
+      false, // critical
+      "high", // priority
+      false // draft
+      // removed scheduledAt
+    );
 
     log("Push notification sent successfully.");
     log("Message response:", message);
