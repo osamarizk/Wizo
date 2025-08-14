@@ -3,7 +3,6 @@ const sdk = require("node-appwrite");
 module.exports = async function ({ req, res, log, error }) {
   log("Starting generic Push Notification function...");
 
-  // IMPORTANT: Access environment variables using process.env
   const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
   const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT;
   const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID;
@@ -62,44 +61,27 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No device tokens found." });
     }
 
-    // New: First, create a message to send to the targets
-    const message = await messaging.createMessage(
+    // Corrected call: Use `createPush` with the `targets` parameter
+    const message = await messaging.createPush(
       sdk.ID.unique(),
-      sdk.ID.unique(),
-      "push",
-      null, // Provider ID (null will use all)
-      false, // Scheduled
-      null, // Delivery Time
-      null, // Targets (we'll set this later)
-      title, // Title
-      body, // Body
+      title,
+      body,
+      [], // Topics (empty array)
+      deviceTokens, // Targets (pass the array of tokens here)
       payload, // Custom data
+      "default", // Action
       "default", // Sound
       1 // Badge
     );
 
-    // New: Loop through each device token, create a target, and send the message
-    for (const token of deviceTokens) {
-      try {
-        await messaging.createPushTarget(
-          sdk.ID.unique(),
-          token, // The device token to target
-          message.$id, // The message ID to send
-          [], // Topics (not needed for direct token sending)
-          [`user-${userId}`] // Target IDs
-        );
-        log(`Push notification sent successfully to token: ${token}`);
-      } catch (tokenErr) {
-        error(
-          `Failed to send push notification to token ${token}: ${tokenErr.message}`
-        );
-        // Continue to the next token even if one fails
-      }
-    }
+    log(
+      `Push notification sent successfully to user ${userId} with message ID: ${message.$id}`
+    );
 
     return res.json({
       success: true,
-      message: "Push notifications processed for all tokens.",
+      message: "Push notifications sent.",
+      response: message,
     });
   } catch (err) {
     error("Error sending push notification:", err);
