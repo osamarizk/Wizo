@@ -55,6 +55,9 @@ module.exports = async function ({ req, res, log, error }) {
     );
     const deviceTokens = userDoc.deviceTokens || [];
 
+    // New logging statement to check the deviceTokens array
+    log("Device tokens from database:", deviceTokens);
+
     if (deviceTokens.length === 0) {
       log(
         `No device tokens found for user ${userId}. Not sending a notification.`
