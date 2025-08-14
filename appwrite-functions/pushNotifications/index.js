@@ -65,6 +65,10 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No device tokens found." });
     }
 
+    const scheduledAt = new Date(
+      Date.UTC(2026, 0, 15, 10, 30, 0)
+    ).toISOString();
+
     // FINAL CORRECTED CALL: Pass the populated deviceTokens array to targets
     const message = await messaging.createPush(
       sdk.ID.unique(),
@@ -84,7 +88,7 @@ module.exports = async function ({ req, res, log, error }) {
       false, // critical
       "high", // priority
       false, // draft
-      "2026-01-15 10:30:00" // scheduledAt
+      scheduledAt // scheduledAt
     );
 
     log("Push notification sent successfully.");
