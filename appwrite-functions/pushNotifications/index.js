@@ -84,7 +84,7 @@ module.exports = async function ({ req, res, log, error }) {
       false, // critical
       "high", // priority
       false, // draft
-      "2080-01-01 00:00:00" // scheduledAt
+      "2026-01-15 10:30:00" // scheduledAt
     );
 
     log("Push notification sent successfully.");
