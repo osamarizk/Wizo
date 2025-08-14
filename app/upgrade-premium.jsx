@@ -84,7 +84,7 @@ const UpgradePremium = () => {
       );
 
       // --- MODIFIED: Capture debug info on every update if the user is the debug user ---
-      if (user?.email === "osamarizk20@gmail.com") {
+      if (user?.email === "Osamarizk20@gmail.com") {
         setDebugInfo(formatDebugInfo(customerInfo));
       }
 
@@ -436,6 +436,35 @@ const UpgradePremium = () => {
     }
   };
 
+  const handleManageReSubscription = async () => {
+    try {
+      if (Platform.OS === "ios") {
+        await Purchases.showManageSubscriptions();
+      } else if (Platform.OS === "android") {
+        await Linking.openURL(
+          "https://play.google.com/store/account/subscriptions"
+        );
+      }
+
+      // --- This alert is only shown when a user is managing their subscription (i.e., canceling) ---
+      Alert.alert(
+        t("upgradePremium.cancellationInitiatedTitle"),
+        t("upgradePremium.cancellationInitiatedMessage")
+      );
+
+      // Navigate back after a short delay to prevent the "ghost subscription" view
+      setTimeout(() => {
+        router.back();
+      }, 3000); // 3-second delay
+    } catch (e) {
+      console.error("Error managing subscription:", e);
+      Alert.alert(
+        t("common.errorTitle"),
+        t("upgradePremium.manageSubscriptionError")
+      );
+    }
+  };
+
   if (globalLoading || isLoadingProducts) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-primary">
@@ -543,7 +572,7 @@ const UpgradePremium = () => {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  onPress={() => router.back()} // Resubscribe action takes the user back to the list of plans
+                  onPress={{ handleManageReSubscription }} // Resubscribe action takes the user back to the list of plans
                   className="mt-4 p-4 rounded-lg bg-red-600 items-center w-full"
                 >
                   <Text

@@ -1,11 +1,8 @@
-// Use CommonJS syntax to import the SDK
 const sdk = require("node-appwrite");
 
-// The function receives a context object with req, res, log, and error
 module.exports = async function ({ req, res, log, error }) {
-  log("Starting Push Notification function...");
+  log("Starting generic Push Notification function...");
 
-  // IMPORTANT: Access environment variables using process.env
   const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
   const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT;
   const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID;
@@ -22,7 +19,7 @@ module.exports = async function ({ req, res, log, error }) {
   client
     .setEndpoint(APPWRITE_ENDPOINT)
     .setProject(APPWRITE_PROJECT_ID)
-    .setKey(APPWRITE_API_KEY); // Use the key from the environment variable
+    .setKey(APPWRITE_API_KEY);
 
   const messaging = new sdk.Messaging(client);
 
@@ -41,9 +38,19 @@ module.exports = async function ({ req, res, log, error }) {
   }
 
   try {
-    const message = await messaging.createPush(sdk.ID.unique(), title, body, [
-      `user-${userId}`,
-    ]);
+    // The key change: pass the entire `payload` object as the custom data.
+    // This allows the function to be completely generic.
+    const message = await messaging.createPush(
+      sdk.ID.unique(),
+      title,
+      body,
+      [`user-${userId}`],
+      [],
+      payload, // Pass the full payload here
+      "default",
+      "default",
+      1
+    );
 
     log("Push notification sent successfully.");
     return res.json({
