@@ -55,17 +55,13 @@ const UpgradePremium = () => {
   const [products, setProducts] = useState([]);
   const [purchaseError, setPurchaseError] = useState(null);
   const [isProcessingPurchase, setIsProcessingPurchase] = useState(false);
-
   const [activeSubscription, setActiveSubscription] = useState(null);
-  // --- MODIFIED: Add a state for the `willRenew` flag ---
   const [willRenew, setWillRenew] = useState(true);
 
-  // --- NEW: State for debug information and panel visibility ---
+  // --- MODIFIED: State for debug information, panel visibility, and user check ---
   const [debugInfo, setDebugInfo] = useState("");
   const [showDebugPanel, setShowDebugPanel] = useState(false);
-
-  // --- NEW: State to handle "cancellation initiated" state ---
-  const [cancellationInitiated, setCancellationInitiated] = useState(false);
+  const [isOsamaUser, setIsOsamaUser] = useState(false);
 
   // --- NEW: Helper function to format debug information ---
   const formatDebugInfo = (customerInfo) => {
@@ -87,8 +83,8 @@ const UpgradePremium = () => {
         customerInfo
       );
 
-      // --- NEW: Capture debug info on every update ---
-      if (user?.$id) {
+      // --- MODIFIED: Capture debug info on every update if the user is the debug user ---
+      if (user?.email === "osamarizk20@gmail.com") {
         setDebugInfo(formatDebugInfo(customerInfo));
       }
 
@@ -188,10 +184,17 @@ const UpgradePremium = () => {
           console.warn("RevenueCat: User not logged in, using anonymous ID.");
         }
 
+        // --- NEW: Check if the user is the debug user ---
+        if (user?.email === "osamarizk20@gmail.com") {
+          setIsOsamaUser(true);
+        } else {
+          setIsOsamaUser(false);
+        }
+
         const customerInfo = await Purchases.getCustomerInfo();
 
-        // --- NEW: Capture debug info immediately after fetching ---
-        if (user?.$id) {
+        // --- MODIFIED: Capture debug info immediately after fetching if the user is the debug user ---
+        if (isOsamaUser) {
           setDebugInfo(formatDebugInfo(customerInfo));
         }
 
@@ -295,7 +298,7 @@ const UpgradePremium = () => {
     return () => {
       Purchases.removeCustomerInfoUpdateListener(customerInfoUpdateListener);
     };
-  }, [user]);
+  }, [user, isOsamaUser]);
 
   // --- NEW: Function to copy debug info ---
   const handleCopyToClipboard = async () => {
@@ -404,7 +407,6 @@ const UpgradePremium = () => {
     }
   };
 
-  // --- MODIFIED: Handle Manage Subscription with better UX ---
   const handleManageSubscription = async () => {
     try {
       if (Platform.OS === "ios") {
@@ -415,19 +417,13 @@ const UpgradePremium = () => {
         );
       }
 
-      // --- NEW: Provide immediate feedback to the user ---
+      // --- This alert is only shown when a user is managing their subscription (i.e., canceling) ---
       Alert.alert(
         t("upgradePremium.cancellationInitiatedTitle"),
         t("upgradePremium.cancellationInitiatedMessage")
       );
 
-      // --- NEW: Set a flag to indicate cancellation was initiated ---
-      // This can be used to show a different UI state if needed, though a simple navigation
-      // is often enough. For this case, we'll just navigate away.
-      setCancellationInitiated(true);
-
-      // --- NEW: Navigate back after a short delay to prevent the "ghost subscription" view ---
-      // We use a small delay to allow the user to read the alert.
+      // Navigate back after a short delay to prevent the "ghost subscription" view
       setTimeout(() => {
         router.back();
       }, 3000); // 3-second delay
@@ -439,7 +435,6 @@ const UpgradePremium = () => {
       );
     }
   };
-  // --- END MODIFIED: Handle Manage Subscription with better UX ---
 
   if (globalLoading || isLoadingProducts) {
     return (
@@ -514,7 +509,6 @@ const UpgradePremium = () => {
                     {t("upgradePremium.yourPlan")}:{" "}
                     {activeSubscription.subscriptionType}
                   </Text>
-                  {/* --- MODIFIED: Conditional text based on `willRenew` --- */}
                   {willRenew ? (
                     <Text
                       className="text-base text-gray-700 text-center"
@@ -534,7 +528,7 @@ const UpgradePremium = () => {
                   )}
                 </>
               )}
-              {/* --- MODIFIED: Conditional button based on `willRenew` --- */}
+              {/* --- MODIFIED: Conditional button based on `willRenew` to fix the resubscribe issue --- */}
               {willRenew ? (
                 <TouchableOpacity
                   onPress={handleManageSubscription}
@@ -549,7 +543,7 @@ const UpgradePremium = () => {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  onPress={handleManageSubscription}
+                  onPress={() => router.back()} // Resubscribe action takes the user back to the list of plans
                   className="mt-4 p-4 rounded-lg bg-red-600 items-center w-full"
                 >
                   <Text
@@ -654,49 +648,50 @@ const UpgradePremium = () => {
             {t("upgradePremium.termsDisclaimer")}
           </Text>
 
-          {/* --- NEW: Debug panel and copy button --- */}
-          <View className="mt-8 bg-gray-100 p-4 rounded-xl">
-            <TouchableOpacity
-              onPress={() => setShowDebugPanel(!showDebugPanel)}
-              className="flex-row items-center justify-between"
-            >
-              <Text
-                className="text-lg font-bold text-gray-800"
-                style={{ fontFamily: getFontClassName("bold") }}
+          {/* --- MODIFIED: Conditional rendering of the entire debug panel --- */}
+          {isOsamaUser && (
+            <View className="mt-8 bg-gray-100 p-4 rounded-xl">
+              <TouchableOpacity
+                onPress={() => setShowDebugPanel(!showDebugPanel)}
+                className="flex-row items-center justify-between"
               >
-                {t("upgradePremium.debugInfoToggle")}
-              </Text>
-              <Image
-                source={showDebugPanel ? icons.upArrow : icons.downArrow}
-                className="w-4 h-4"
-                resizeMode="contain"
-                tintColor="#4B5563"
-              />
-            </TouchableOpacity>
-
-            {showDebugPanel && (
-              <View className="mt-4">
                 <Text
-                  className="text-xs text-gray-600"
-                  style={{ fontFamily: getFontClassName("regular") }}
+                  className="text-lg font-bold text-gray-800"
+                  style={{ fontFamily: getFontClassName("bold") }}
                 >
-                  {debugInfo}
+                  {t("upgradePremium.debugInfoToggle")}
                 </Text>
-                <TouchableOpacity
-                  onPress={handleCopyToClipboard}
-                  className="mt-4 p-3 rounded-lg bg-gray-300 items-center"
-                >
+                <Image
+                  source={showDebugPanel ? icons.upArrow : icons.downArrow}
+                  className="w-4 h-4"
+                  resizeMode="contain"
+                  tintColor="#4B5563"
+                />
+              </TouchableOpacity>
+
+              {showDebugPanel && (
+                <View className="mt-4">
                   <Text
-                    className="text-gray-800"
-                    style={{ fontFamily: getFontClassName("semibold") }}
+                    className="text-xs text-gray-600"
+                    style={{ fontFamily: getFontClassName("regular") }}
                   >
-                    {t("upgradePremium.copyDebugInfo")}
+                    {debugInfo}
                   </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-          {/* --- END NEW: Debug panel and copy button --- */}
+                  <TouchableOpacity
+                    onPress={handleCopyToClipboard}
+                    className="mt-4 p-3 rounded-lg bg-gray-300 items-center"
+                  >
+                    <Text
+                      className="text-gray-800"
+                      style={{ fontFamily: getFontClassName("semibold") }}
+                    >
+                      {t("upgradePremium.copyDebugInfo")}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     </GradientBackground>

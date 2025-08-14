@@ -1455,7 +1455,7 @@ const resources = {
         nextRenewal: " Next Renewal",
         yourPlan: "Your Plan",
         copyDebugInfo: "Copy Information",
-        subscriptionExpires: "Subscription expires on {expirationDate}.",
+        subscriptionExpires: "Subscription expires on ",
         resubscribe: "Re-subscribe",
         cancellationInitiatedTitle: "Cancellation Initiated",
         cancellationInitiatedMessage:
@@ -3052,10 +3052,7 @@ const resources = {
         manageSubscription: "إدارة الاشتراك",
         nextRenewal: "التجديد القادم",
         yourPlan: "خطتك",
-        subscriptionExpires: "الاشتراك ينتهي في {expirationDate}.",
-        resubscribe: "إعادة الاشتراك",
-        subscriptionExpires: "الاشتراك ينتهي في {expirationDate}.",
-        resubscribe: "إعادة الاشتراك",
+        subscriptionExpires: "الاشتراك ينتهي في ",
         cancellationInitiatedTitle: "بدء الإلغاء",
         cancellationInitiatedMessage:
           "تمت إحالتك إلى المتجر لإدارة اشتراكك. يرجى ملاحظة أن تحديث حالة الإلغاء في التطبيق قد يستغرق بضع دقائق.",

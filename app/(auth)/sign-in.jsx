@@ -9,7 +9,7 @@ import {
   Platform,
   I18nManager,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import images from "../../constants/images";
 import FormFiled from "../../components/FormField";
@@ -46,45 +46,43 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
-// --- END OF NEW IMPORTS ---
 
-// --- START OF NEW FUNCTION ---
-// This function registers the device for push notifications and returns the token
-async function registerForPushNotificationsAsync() {
-  let token;
-
-  // Ensure the app is running on a physical device
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "default",
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#FF231F7C",
-    });
+const registerForPushNotificationsAsync = async (userId) => {
+  if (!userId) {
+    console.warn("User ID is not available, skipping push token registration.");
+    return;
   }
 
-  if (Device.isDevice) {
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== "granted") {
-      Alert.alert("Failed to get push token for push notification!");
-      return;
-    }
+  // Check if it's a physical device
+  if (!Device.isDevice) {
+    console.warn("Push notifications require a physical device.");
+    return;
+  }
 
-    // Get the device token
-    token = (await Notifications.getExpoPushTokenAsync()).data;
+  // Request permissions
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== "granted") {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== "granted") {
+    console.warn("Failed to get push token for push notification!");
+    return;
+  }
+
+  try {
+    const tokenObject = await Notifications.getDevicePushTokenAsync();
+    const token = tokenObject.data;
     console.log("Device Push Token:", token);
-  } else {
-    Alert.alert("Must use a physical device for Push Notifications");
+
+    // Save the token to Appwrite using the imported function
+    await saveDeviceToken(userId, token);
+    console.log("Token successfully saved to user document in Appwrite.");
+  } catch (error) {
+    console.error("Error registering and saving push token:", error);
   }
-  return token;
-}
-// --- END OF NEW FUNCTION ---
+};
 
 const SignIn = () => {
   const { t } = useTranslation();
@@ -96,6 +94,12 @@ const SignIn = () => {
   const { user, setUser, setIsLogged, checkSessionAndFetchUser } =
     useGlobalContext();
   const [modalVisible, setModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (user && user.$id) {
+      registerForPushNotificationsAsync(user.$id);
+    }
+  }, [user]); // This hook will run whenever the 'user' object changes.
 
   const submit = async () => {
     if (!form.email || !form.password) {
@@ -113,16 +117,6 @@ const SignIn = () => {
     try {
       await signIn(form.email, form.password);
       await checkSessionAndFetchUser();
-
-      // --- START OF UPDATED CODE ---
-      // 1. Get the push token from the new function
-      const pushToken = await registerForPushNotificationsAsync();
-
-      // 2. Call the saveDeviceToken function with the user ID and the push token
-      if (user?.$id && pushToken) {
-        await saveDeviceToken(user.$id, pushToken);
-      }
-      // --- END OF UPDATED CODE ---
 
       router.replace("/home");
     } catch (error) {
