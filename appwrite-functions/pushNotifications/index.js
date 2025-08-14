@@ -1,17 +1,17 @@
 // Use CommonJS syntax to import the SDK
 const sdk = require("node-appwrite");
 
+// The function receives a context object with req, res, log, and error
 module.exports = async function ({ req, res, log, error }) {
   log("Starting Push Notification function...");
 
-  // Get environment variables from the Appwrite console.
-  // This is the secure way to access your API key.
-  const APPWRITE_API_KEY = req.env.APPWRITE_API_KEY;
-  const APPWRITE_ENDPOINT = req.env.APPWRITE_ENDPOINT;
-  const APPWRITE_PROJECT_ID = req.env.APPWRITE_PROJECT_ID;
+  // IMPORTANT: Access environment variables using process.env
+  const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
+  const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT;
+  const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID;
 
   if (!APPWRITE_API_KEY || !APPWRITE_ENDPOINT || !APPWRITE_PROJECT_ID) {
-    console.warn("Environment variables are not set. Function cannot proceed.");
+    error("Environment variables are not set. Function cannot proceed.");
     return res.json({
       success: false,
       error: "Environment variables not set.",
