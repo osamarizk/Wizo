@@ -61,17 +61,18 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No device tokens found." });
     }
 
-    // Corrected call: Use `createPush` with the `targets` parameter
+    // Corrected call: Pass an empty array for the 'users' parameter
     const message = await messaging.createPush(
       sdk.ID.unique(),
       title,
       body,
-      [], // Topics (empty array)
-      deviceTokens, // Targets (pass the array of tokens here)
-      payload, // Custom data
-      "default", // Action
-      "default", // Sound
-      1 // Badge
+      [], // topics
+      deviceTokens, // targets
+      [], // users (this is the key fix)
+      payload, // data (now correctly positioned)
+      "default", // action
+      "default", // sound
+      1 // badge
     );
 
     log(
