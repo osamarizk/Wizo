@@ -65,9 +65,11 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No device tokens found." });
     }
 
-    const scheduledAt = new Date(
-      Date.UTC(2026, 0, 15, 10, 30, 0)
-    ).toISOString();
+    const scheduledAt = new Date(Date.UTC(2026, 0, 15, 10, 30, 0))
+      .toISOString()
+      .replace(/\.\d{3}Z$/, "Z");
+
+    log("ScheduledAt being sent:", scheduledAt);
 
     // FINAL CORRECTED CALL: Pass the populated deviceTokens array to targets
     const message = await messaging.createPush(
@@ -76,7 +78,7 @@ module.exports = async function ({ req, res, log, error }) {
       body,
       [], // topics
       [], // users
-      ["e53500ea46c76e2c6b25aeecb3baf8edc"], // targets
+      deviceTokens, // targets
       payload, // data
       null, // action
       null, // image
