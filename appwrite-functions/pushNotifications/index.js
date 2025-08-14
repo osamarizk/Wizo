@@ -70,7 +70,7 @@ module.exports = async function ({ req, res, log, error }) {
       body,
       [], // topics (correctly pass an empty array)
       [], // users (correctly pass an empty array)
-      deviceTokens, // targets (correctly pass the device tokens)
+      [], // targets (correctly pass the device tokens)
       payload, // data
       null, // action (optional, safe to pass null)
       null, // image
