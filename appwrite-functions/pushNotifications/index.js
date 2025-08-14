@@ -62,34 +62,35 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No device tokens found." });
     }
 
-    // FINAL CORRECTED CALL
-    const scheduledTime = new Date(Date.now() + 5000).toISOString();
+    // FINAL CORRECTED CALL: Pass the populated deviceTokens array to targets
     const message = await messaging.createPush(
       sdk.ID.unique(),
       title,
       body,
-      [], // topics (correctly pass an empty array)
-      [], // users (correctly pass an empty array)
-      [], // targets (correctly pass the device tokens)
+      [], // topics
+      [], // users
+      deviceTokens, // targets
       payload, // data
-      null, // action (optional, safe to pass null)
+      null, // action
       null, // image
       null, // icon
       null, // sound
       null, // color
       null, // tag
-      1 // badge
+      1, // badge
+      false, // critical
+      "high", // priority
+      false, // draft
+      null // scheduledAt
     );
 
-    // Log the successful response, including the payload you sent
     log("Push notification sent successfully.");
-    log("Payload sent:", payload);
+    log("Message response:", message);
 
     return res.json({
       success: true,
       message: "Push notifications sent.",
       response: message,
-      sent_payload: payload, // Add payload to the function's response body
     });
   } catch (err) {
     error("Error sending push notification:", err);
