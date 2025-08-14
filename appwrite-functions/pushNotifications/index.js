@@ -1,11 +1,10 @@
 const sdk = require("node-appwrite");
-const https = require("https");
 
 module.exports = async function ({ req, res, log, error }) {
   log("Starting generic Push Notification function...");
 
   const APPWRITE_API_KEY = process.env.APPWRITE_API_KEY;
-  const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT; // Correctly defined as https://cloud.appwrite.io/v1
+  const APPWRITE_ENDPOINT = process.env.APPWRITE_ENDPOINT;
   const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID;
   const DATABASE_ID = process.env.APPWRITE_DATABASE_ID;
   const USERS_COLLECTION_ID = process.env.APPWRITE_USERS_COLLECTION_ID;
@@ -31,6 +30,7 @@ module.exports = async function ({ req, res, log, error }) {
     .setKey(APPWRITE_API_KEY);
 
   const databases = new sdk.Databases(client);
+  const messaging = new sdk.Messaging(client);
 
   let payload;
   try {
@@ -55,6 +55,7 @@ module.exports = async function ({ req, res, log, error }) {
     );
     const deviceTokens = userDoc.deviceTokens || [];
 
+    // New logging statement to check the deviceTokens array
     log("Device tokens from database:", deviceTokens);
 
     if (deviceTokens.length === 0) {
@@ -64,46 +65,45 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No device tokens found." });
     }
 
-    // FINAL FIX: Use the correct Appwrite API endpoint without adding /v1 again
-    const apiEndpoint = `${APPWRITE_ENDPOINT}/messaging/messages`;
-
     const requestPayload = {
       messageId: sdk.ID.unique(),
       title,
       body,
-      targets: deviceTokens,
+      targets: deviceTokens, // Explicitly label the targets parameter in the JSON
       data: payload,
       badge: 1,
       priority: "high",
     };
+    // FINAL CORRECTED CALL: Pass the populated deviceTokens array to targets
+    const message = await messaging.createPush(
+      sdk.ID.unique(),
+      title,
+      body,
+      [], // topics
+      [], // users
+      deviceTokens, // targets
+      payload, // data
+      null, // action
+      null, // image
+      null, // icon
+      null, // sound
+      null, // color
+      null, // tag
+      1, // badge
+      false, // critical
+      "high", // priority
+      false, // draft
+      null // scheduledAt
+    );
 
-    const apiResponse = await fetch(apiEndpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Appwrite-Project": APPWRITE_PROJECT_ID,
-        "X-Appwrite-Key": APPWRITE_API_KEY,
-      },
-      body: JSON.stringify(requestPayload),
+    log("Push notification sent successfully.");
+    log("Message response:", message);
+
+    return res.json({
+      success: true,
+      message: "Push notifications sent.",
+      response: message,
     });
-
-    if (apiResponse.ok) {
-      const result = await apiResponse.json();
-      log("Push notification sent successfully.");
-      log("Message response:", result);
-      return res.json({
-        success: true,
-        message: "Push notifications sent.",
-        response: result,
-      });
-    } else {
-      const errorResult = await apiResponse.json();
-      error(`Appwrite API Error: ${JSON.stringify(errorResult)}`);
-      return res.json({
-        success: false,
-        error: errorResult.message || "Unknown API error",
-      });
-    }
   } catch (err) {
     error("Error sending push notification:", err);
     return res.json({ success: false, error: err.message });
