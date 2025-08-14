@@ -35,6 +35,7 @@ module.exports = async function ({ req, res, log, error }) {
   let payload;
   try {
     payload = JSON.parse(req.body);
+    log("Payload received:", payload);
   } catch (parseError) {
     error("Failed to parse request body:", parseError);
     return res.json({ success: false, error: "Invalid JSON in request body." });
@@ -61,7 +62,7 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No device tokens found." });
     }
 
-    // The key fix: Pass null for optional parameters to avoid validation errors
+    // FINAL CORRECTED CALL
     const message = await messaging.createPush(
       sdk.ID.unique(),
       title,
@@ -75,14 +76,15 @@ module.exports = async function ({ req, res, log, error }) {
       1 // badge
     );
 
-    log(
-      `Push notification sent successfully to user ${userId} with message ID: ${message.$id}`
-    );
+    // Log the successful response, including the payload you sent
+    log("Push notification sent successfully.");
+    log("Payload sent:", payload);
 
     return res.json({
       success: true,
       message: "Push notifications sent.",
       response: message,
+      sent_payload: payload, // Add payload to the function's response body
     });
   } catch (err) {
     error("Error sending push notification:", err);
