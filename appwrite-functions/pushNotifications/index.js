@@ -64,9 +64,13 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No devices registered." });
     }
 
-    const scheduledAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const now = new Date();
+    const scheduledAt =
+      new Date(now.getTime() + 60 * 1000) // 1 min ahead
+        .toISOString()
+        .split(".")[0] + "Z"; // removes milliseconds
 
-    log("ScheduledAt being sent:", scheduledAt);
+    console.log("ScheduledAt:", scheduledAt);
 
     const message = await messaging.createPush(
       sdk.ID.unique(), // messageId
