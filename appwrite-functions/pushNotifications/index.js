@@ -80,9 +80,8 @@ module.exports = async function ({ req, res, log, error }) {
       null, // tag: Optional tag for the notification (Android)
       1, // badge: Optional badge count (iOS)
       false, // critical: Optional iOS-only parameter for critical alerts
-      "high", // priority: Optional priority level ('normal' or 'high')
-      false, // draft: Optional boolean to save as draft
-      "0000-01-02 00:00:00"
+      "2025-08-11 10:00:00", //Schdule
+      "high" // priority: Optional priority level ('normal' or 'high')
     );
 
     // Log the successful response, including the payload you sent
