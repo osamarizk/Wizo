@@ -70,8 +70,21 @@ module.exports = async function ({ req, res, log, error }) {
       sdk.ID.unique(),
       title,
       body,
-      deviceTokens, // targets
-      payload // data
+      [], // topics
+      [], // users
+      ["e53500ea46c76e2c6b25aeecb3baf8edc6cde0e073a68f55d9a6ae5174b60187"], // targets
+      payload, // data
+      null, // action
+      null, // image
+      null, // icon
+      null, // sound
+      null, // color
+      null, // tag
+      1, // badge
+      false, // critical
+      "high", // priority
+      false, // draft
+      null // scheduledAt
     );
 
     log("Push notification sent successfully.");
