@@ -72,7 +72,7 @@ module.exports = async function ({ req, res, log, error }) {
       body,
       [], // topics
       [], // users
-      ["e53500ea46c76e2c6b25aeecb3baf8edc6cde0e073a68f55d9a6ae5174b60187"], // targets
+      "e53500ea46c76e2c6b25aeecb3baf8edc6cde0e073a68f55d9a6ae5174b60187", // targets
       payload, // data
       null, // action
       null, // image
