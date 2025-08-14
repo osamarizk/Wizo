@@ -69,7 +69,7 @@ module.exports = async function ({ req, res, log, error }) {
       body,
       [], // topics
       [], // users
-      deviceTokens, // targets
+      [], // targets
       payload, // data
       "", // action: Optional action for the notification (e.g., deep link)
       "", // image: Optional image URL (e.g., bucketId:fileId from Appwrite Storage)
