@@ -71,7 +71,7 @@ module.exports = async function ({ req, res, log, error }) {
       [], // users
       [], // targets
       payload, // data
-      "", // action: Optional action for the notification (e.g., deep link)
+      null, // action: Optional action for the notification (e.g., deep link)
       "", // image: Optional image URL (e.g., bucketId:fileId from Appwrite Storage)
       "", // icon: Optional icon URL (Android/Web)
       "", // sound: Optional sound file name (Android/iOS)
