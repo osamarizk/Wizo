@@ -72,11 +72,11 @@ module.exports = async function ({ req, res, log, error }) {
       [], // targets
       payload, // data
       null, // action: Optional action for the notification (e.g., deep link)
-      "", // image: Optional image URL (e.g., bucketId:fileId from Appwrite Storage)
-      "", // icon: Optional icon URL (Android/Web)
-      "", // sound: Optional sound file name (Android/iOS)
+      null, // image: Optional image URL (e.g., bucketId:fileId from Appwrite Storage)
+      null, // icon: Optional icon URL (Android/Web)
+      null, // sound: Optional sound file name (Android/iOS)
       "#4CAF50", // color: Optional color for the notification (Android)
-      "", // tag: Optional tag for the notification (Android)
+      null, // tag: Optional tag for the notification (Android)
       1, // badge: Optional badge count (iOS)
       false, // critical: Optional iOS-only parameter for critical alerts
       "high", // priority: Optional priority level ('normal' or 'high')
