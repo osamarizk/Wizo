@@ -1,5 +1,10 @@
 const sdk = require("node-appwrite");
 
+function generateValidMessageId() {
+  // Ensure it's short, valid, and doesn't start with a special char
+  return "msg_" + Math.random().toString(36).substring(2, 14);
+}
+
 module.exports = async function ({ req, res, log, error }) {
   log("Starting generic Push Notification function...");
 
@@ -64,13 +69,15 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No devices registered." });
     }
 
-    const scheduledAt = new Date(Date.now() + 5 * 60 * 1000) // +5 minutes
-      .toISOString(); // Includes milliseconds like 2025-08-14T18:03:00.000Z
+    // Schedule 1 minute in the future to ensure it's valid
+    const scheduledAt = new Date(Date.now() + 60 * 1000)
+      .toISOString()
+      .replace(/\.\d{3}Z$/, "Z"); // Remove milliseconds for consistency
 
-    console.log("ScheduledAt:", scheduledAt);
+    log("ScheduledAt:", scheduledAt);
 
     const message = await messaging.createPush({
-      messageId: sdk.ID.unique(),
+      messageId: generateValidMessageId(),
       title,
       body,
       topics: [],
