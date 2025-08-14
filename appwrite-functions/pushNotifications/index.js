@@ -65,21 +65,12 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No device tokens found." });
     }
 
-    const requestPayload = {
-      messageId: sdk.ID.unique(),
-      title,
-      body,
-      targets: deviceTokens, // Explicitly label the targets parameter in the JSON
-      data: payload,
-      badge: 1,
-      priority: "high",
-    };
     // FINAL CORRECTED CALL: Pass the populated deviceTokens array to targets
     const message = await messaging.createPush(
-      (messageId = sdk.ID.unique()),
-      (title = title),
+      sdk.ID.unique(),
+      title,
       body,
-      (topics = []), // topics
+      [], // topics
       [], // users
       deviceTokens, // targets
       payload, // data
