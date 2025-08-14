@@ -1,39 +1,40 @@
-import { Client, Databases, Query, Messaging } from "node-appwrite";
+// Use CommonJS syntax to import the SDK
+const sdk = require("node-appwrite");
 
-export const config = {
-  endpoint: "https://cloud.appwrite.io/v1",
-  platform: "com.o7.rn1",
-  projectId: "67e3491900328f083bc0",
-  databaseId: "67e34bb5003c3f91afd3",
-  userCollectionId: "67e34c5e002496cf2424",
-  videoCollectionId: "67e34cd00033f6e902e3",
-  storageId: "681b497d002dd1bf94c5",
-  notificationCollectionId: "681e22a10030e2d94363",
-  receiptCollectionId: "receipt_id",
-  budgetCollectionId: "682335b2002ee5519599", // ADD THIS LINE with your actual budget collection ID
-  categoryCollectionId: "categoryId",
-  subcategoryCollectionId: "subcategoryId",
-  userPointsCollectionId: "682e97f80010fe717763",
-  badgesCollectionId: "682e9a590014484dd922",
-  userBadgesCollectionId: "682e9b1f0030cc63b31e",
-  userwalletTransactions: "68438f07003b8d6951f6",
-  appWriteKey:
-    "standard_78f5c63c97744a04e0a9bf9e6a8a229151411cc57590c7d597161d5c7f04676cb4658950a84d5b3a94920c8aadfef0aa04b8977e600c5b206018952a562b1b82ab821a443fa57a588173f56f9fbe2bb549dd036e1f8ef1883ef5d13d0fdfb2f72ea639e8cb70a3cf53ee810cca22f6914f01c2d2bb7cc338f0245e9df3b95c87",
-};
-
-const { endpoint, appWriteKey, projectId } = config;
-export default async ({ req, res, log, error }) => {
+module.exports = async function ({ req, res, log, error }) {
   log("Starting Push Notification function...");
 
-  const client = new Client();
+  // Get environment variables from the Appwrite console.
+  // This is the secure way to access your API key.
+  const APPWRITE_API_KEY = req.env.APPWRITE_API_KEY;
+  const APPWRITE_ENDPOINT = req.env.APPWRITE_ENDPOINT;
+  const APPWRITE_PROJECT_ID = req.env.APPWRITE_PROJECT_ID;
+
+  if (!APPWRITE_API_KEY || !APPWRITE_ENDPOINT || !APPWRITE_PROJECT_ID) {
+    console.warn("Environment variables are not set. Function cannot proceed.");
+    return res.json({
+      success: false,
+      error: "Environment variables not set.",
+    });
+  }
+
+  const client = new sdk.Client();
   client
-    .setEndpoint(endpoint) // Appwrite endpoint is usually available as env var
-    .setProject(projectId) // Appwrite project ID is usually available as env var
-    .setKey(appWriteKey); // Your API key with write permissions
+    .setEndpoint(APPWRITE_ENDPOINT)
+    .setProject(APPWRITE_PROJECT_ID)
+    .setKey(APPWRITE_API_KEY); // Use the key from the environment variable
 
-  const messaging = new Messaging(client);
+  const messaging = new sdk.Messaging(client);
 
-  const { userId, title, body } = JSON.parse(req.body);
+  let payload;
+  try {
+    payload = JSON.parse(req.body);
+  } catch (parseError) {
+    error("Failed to parse request body:", parseError);
+    return res.json({ success: false, error: "Invalid JSON in request body." });
+  }
+
+  const { userId, title, body } = payload;
 
   if (!userId || !title || !body) {
     return res.json({ success: false, error: "Missing required parameters." });
@@ -43,14 +44,15 @@ export default async ({ req, res, log, error }) => {
     const message = await messaging.createPush(sdk.ID.unique(), title, body, [
       `user-${userId}`,
     ]);
-    console.log("Push notification sent successfully.");
+
+    log("Push notification sent successfully.");
     return res.json({
       success: true,
       message: "Push notification sent.",
       response: message,
     });
-  } catch (error) {
-    console.error("Error sending push notification:", error);
-    return res.json({ success: false, error: error.message });
+  } catch (err) {
+    error("Error sending push notification:", err);
+    return res.json({ success: false, error: err.message });
   }
 };

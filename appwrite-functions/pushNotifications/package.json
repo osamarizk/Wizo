@@ -1,9 +1,8 @@
 {
     "name": "appwrite-push-notification",
     "version": "1.0.0",
-    "description": "Appwrite Function to push-notification",
     "main": "index.js",
     "dependencies": {
-        "node-appwrite": "^11.0.0"
+        "node-appwrite": "latest"
     }
 }
