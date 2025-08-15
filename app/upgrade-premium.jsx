@@ -775,6 +775,15 @@ const SubscriptionOption = ({
 
   const serviceDescription = t("upgradePremium.serviceDescription");
 
+  // --- NEW: Calculate the monthly equivalent price for the yearly plan ---
+  let monthlyEquivalentPrice = "";
+  if (isBestValue && product.product.price && product.product.currencyCode) {
+    const pricePerMonth = (product.product.price / 12).toFixed(2);
+    // Use Intl.NumberFormat for better formatting if needed, but this is a quick fix
+    monthlyEquivalentPrice = `${pricePerMonth} ${product.product.currencyCode}`;
+  }
+
+
   return (
     <TouchableOpacity
       onPress={() => onPress(product)}
@@ -821,7 +830,7 @@ const SubscriptionOption = ({
           }`}
           style={{ fontFamily: getFontClassName("regular") }}
         >
-          {t("upgradePremium.pricePerMonthYearly")}
+          {t("upgradePremium.pricePerMonthYearly", { price: monthlyEquivalentPrice })}
         </Text>
       )}
 

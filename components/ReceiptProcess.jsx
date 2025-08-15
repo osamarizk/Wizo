@@ -618,7 +618,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           };
 
           // IMPORTANT: Replace 'YOUR_FUNCTION_ID' with the actual ID of your Appwrite Function
-          await callPushNotificationFunction("689d463f0037952397ab", payload);
+          await callPushNotificationFunction("689f5b7d0012fbcfb027", payload);
           console.log(
             "Successfully called Appwrite function to send push notification."
           );

@@ -70,24 +70,25 @@ module.exports = async function ({ req, res, log, error }) {
     }
 
     const message = await messaging.createPush(
-      generateValidMessageId(), // messageId
-      title, // title
-      body, // body
-      [], // topics
-      [], // users
-      deviceIds, // targets (device IDs from Appwrite)
-      data || {}, // data payload
-      null, // action
-      null, // image
-      null, // icon
-      null, // sound
-      null, // color
-      null, // tag
-      1, // badge
-      false, // critical
-      "high", // priority
-      false // draft
-      // removed scheduledAt
+      sdk.ID.unique(), // messageId 1
+      title, // title 2
+      body, // body 3
+      [], // topics 4
+      [], // users 5
+      deviceIds, // targets (device IDs from Appwrite) 6
+      data || {}, // data payload 7
+      null, // action 8
+      null, // image 9
+      null, // icon 10
+      null, // sound 11
+      null, // color 12
+      null, // tag 13
+      1, // badge 14
+      false, // draft 15
+      "", //scheduledAt 16
+      false, // contentAvailable 17
+      false, // critical 18
+      sdk.MessagePriority.Normal // priority 19
     );
 
     log("Push notification sent successfully.");
