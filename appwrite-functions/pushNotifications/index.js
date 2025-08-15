@@ -17,6 +17,7 @@ module.exports = async function ({ req, res, log, error }) {
     .setKey(APPWRITE_API_KEY);
 
   const databases = new sdk.Databases(client);
+  const users = new sdk.Users(client);
   const messaging = new sdk.Messaging(client);
 
   let payload;
@@ -49,20 +50,24 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No devices registered." });
     }
 
-    // 2. Register each raw token with Appwrite Messaging to get the target IDs.
+    // 2. Create a user target for each raw token to get the targetId.
+    // The "pushToken" will be the "identifier" for the target.
     const targetIdPromises = rawDeviceTokens.map(async (token) => {
       try {
-        // You'll need to know the platform (e.g., 'ios', 'android').
-        // This example assumes iOS for simplicity.
-        const device = await messaging.createDevice(
-          sdk.ID.unique(),
-          "ios",
-          token
+        // Appwrite requires a provider type; we'll assume FCM for this example.
+        // The providerId is optional.
+        const target = await users.createTarget(
+          userId,
+          "unique()", // The targetId is not needed for the push token. Use a placeholder.
+          sdk.MessagingProviderType.FCM, // Assuming FCM for mobile push
+          token, // The raw push token is the identifier
+          null, // providerId
+          "My App Device" // A descriptive name
         );
-        return device.$id;
+        return target.$id;
       } catch (err) {
-        // Log the error for this specific token but don't fail the whole operation.
-        error(`Failed to create device for token ${token}: ${err.message}`);
+        error(`Failed to create target for token ${token}: ${err.message}`);
+        // Log the error but continue with the next token.
         return null;
       }
     });
