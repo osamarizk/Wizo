@@ -58,7 +58,7 @@ module.exports = async function ({ req, res, log, error }) {
         // The providerId is optional.
         const target = await users.createTarget(
           userId,
-          "unique()", // The targetId is not needed for the push token. Use a placeholder.
+          sdk.ID.unique(), // The targetId is not needed for the push token. Use a placeholder.
           sdk.MessagingProviderType.push, // Assuming FCM for mobile push
           token, // The raw push token is the identifier
           null, // providerId
