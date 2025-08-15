@@ -49,10 +49,11 @@ Notifications.setNotificationHandler({
 
 const registerForPushNotificationsAsync = async (userId) => {
   if (!userId) {
+    console.log("User ID is not available, skipping push token registration.");
     console.warn("User ID is not available, skipping push token registration.");
     return;
   }
-
+  console.log("User ID for push token registration>>>>>>.", userId);
   // Check if it's a physical device
   if (!Device.isDevice) {
     console.warn("Push notifications require a physical device.");
@@ -95,6 +96,19 @@ const SignIn = () => {
     useGlobalContext();
   const [modalVisible, setModalVisible] = useState(false);
 
+  // --- START OF NEW USE EFFECT ---
+  // This effect will run whenever the 'user' object changes.
+  useEffect(() => {
+    // Check if the user object has been set and has a valid ID.
+    if (user && user.$id) {
+      console.log(
+        "User state is now set, attempting to register push token..."
+      );
+      registerForPushNotificationsAsync(user.$id);
+    }
+  }, [user]); // The dependency array ensures this effect runs only when 'user' changes.
+  // --- END OF NEW USE EFFECT ---
+
   const submit = async () => {
     if (!form.email || !form.password) {
       Alert.alert(t("common.errorTitle"), t("auth.fillAllFieldsError"));
@@ -111,10 +125,9 @@ const SignIn = () => {
     try {
       await signIn(form.email, form.password);
 
+      // We no longer need to await the user object here.
+      // The useEffect hook will handle the token registration.
       await checkSessionAndFetchUser();
-
-      // Register push token **after** login
-      await registerForPushNotificationsAsync(user.$id);
 
       router.replace("/home");
     } catch (error) {

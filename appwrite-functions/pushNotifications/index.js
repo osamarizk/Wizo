@@ -1,10 +1,5 @@
 const sdk = require("node-appwrite");
 
-function generateValidMessageId() {
-  // Ensure it's short, valid, and doesn't start with a special char
-  return "msg_" + Math.random().toString(36).substring(2, 14);
-}
-
 module.exports = async function ({ req, res, log, error }) {
   log("Starting generic Push Notification function...");
 
@@ -15,20 +10,6 @@ module.exports = async function ({ req, res, log, error }) {
     APPWRITE_DATABASE_ID,
     APPWRITE_USERS_COLLECTION_ID,
   } = process.env;
-
-  if (
-    !APPWRITE_API_KEY ||
-    !APPWRITE_ENDPOINT ||
-    !APPWRITE_PROJECT_ID ||
-    !APPWRITE_DATABASE_ID ||
-    !APPWRITE_USERS_COLLECTION_ID
-  ) {
-    error("Environment variables are not set. Function cannot proceed.");
-    return res.json({
-      success: false,
-      error: "Environment variables not set.",
-    });
-  }
 
   const client = new sdk.Client()
     .setEndpoint(APPWRITE_ENDPOINT)
@@ -41,9 +22,7 @@ module.exports = async function ({ req, res, log, error }) {
   let payload;
   try {
     payload = JSON.parse(req.body);
-    log("Payload received:", payload);
   } catch (parseError) {
-    error("Failed to parse request body:", parseError);
     return res.json({ success: false, error: "Invalid JSON in request body." });
   }
 
@@ -54,46 +33,78 @@ module.exports = async function ({ req, res, log, error }) {
   }
 
   try {
+    // 1. Fetch the user document to get the stored raw device tokens.
     const userDoc = await databases.getDocument(
       APPWRITE_DATABASE_ID,
       APPWRITE_USERS_COLLECTION_ID,
       userId
     );
 
-    const deviceIds = userDoc.deviceTokens || [];
+    const rawDeviceTokens = userDoc.deviceTokens || [];
 
-    log("Device IDs from database:", deviceIds);
-
-    if (deviceIds.length === 0) {
-      log(`No device IDs found for user ${userId}. Not sending notification.`);
+    if (rawDeviceTokens.length === 0) {
+      log(
+        `No raw device tokens found for user ${userId}. Not sending notification.`
+      );
       return res.json({ success: true, message: "No devices registered." });
     }
 
+    // 2. Register each raw token with Appwrite Messaging to get the target IDs.
+    const targetIdPromises = rawDeviceTokens.map(async (token) => {
+      try {
+        // You'll need to know the platform (e.g., 'ios', 'android').
+        // This example assumes iOS for simplicity.
+        const device = await messaging.createDevice(
+          sdk.ID.unique(),
+          "ios",
+          token
+        );
+        return device.$id;
+      } catch (err) {
+        // Log the error for this specific token but don't fail the whole operation.
+        error(`Failed to create device for token ${token}: ${err.message}`);
+        return null;
+      }
+    });
+
+    const appwriteTargetIds = (await Promise.all(targetIdPromises)).filter(
+      Boolean
+    );
+
+    if (appwriteTargetIds.length === 0) {
+      log(
+        "No valid Appwrite target IDs were generated. Not sending notification."
+      );
+      return res.json({
+        success: true,
+        message: "No valid devices to send to.",
+      });
+    }
+
+    // 3. Use the newly created target IDs to send the push notification.
     const message = await messaging.createPush(
-      sdk.ID.unique(), // messageId 1
-      title, // title 2
-      body, // body 3
-      [], // topics 4
-      [], // users 5
-      deviceIds, // targets (device IDs from Appwrite) 6
-      data || {}, // data payload 7
-      null, // action 8
-      null, // image 9
-      null, // icon 10
-      null, // sound 11
-      null, // color 12
-      null, // tag 13
-      1, // badge 14
-      false, // draft 15
-      "", //scheduledAt 16
-      false, // contentAvailable 17
-      false, // critical 18
-      sdk.MessagePriority.Normal // priority 19
+      sdk.ID.unique(),
+      title,
+      body,
+      [],
+      [],
+      appwriteTargetIds, // The final, correct array of targets.
+      data || {},
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      1,
+      false,
+      "",
+      false,
+      false,
+      sdk.MessagePriority.Normal
     );
 
     log("Push notification sent successfully.");
-    log("Message response:", message);
-
     return res.json({
       success: true,
       message: "Push notifications sent.",
