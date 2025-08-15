@@ -95,6 +95,8 @@ const UpgradePremium = () => {
       // --- MODIFIED: Also update the willRenew state here ---
       if (activeEntitlement) {
         setWillRenew(activeEntitlement.willRenew);
+      } else {
+        setWillRenew(false);
       }
 
       if (user?.isPremium === isPremium) {
@@ -407,7 +409,8 @@ const UpgradePremium = () => {
     }
   };
 
-  const handleManageSubscription = async () => {
+  // --- REVISED: A single, generic function to open the native subscription management screen ---
+  const handleOpenSubscriptionSettings = async () => {
     try {
       if (Platform.OS === "ios") {
         await Purchases.showManageSubscriptions();
@@ -416,46 +419,6 @@ const UpgradePremium = () => {
           "https://play.google.com/store/account/subscriptions"
         );
       }
-
-      // --- This alert is only shown when a user is managing their subscription (i.e., canceling) ---
-      Alert.alert(
-        t("upgradePremium.cancellationInitiatedTitle"),
-        t("upgradePremium.cancellationInitiatedMessage")
-      );
-
-      // Navigate back after a short delay to prevent the "ghost subscription" view
-      setTimeout(() => {
-        router.back();
-      }, 3000); // 3-second delay
-    } catch (e) {
-      console.error("Error managing subscription:", e);
-      Alert.alert(
-        t("common.errorTitle"),
-        t("upgradePremium.manageSubscriptionError")
-      );
-    }
-  };
-
-  const handleManageReSubscription = async () => {
-    try {
-      if (Platform.OS === "ios") {
-        await Purchases.showManageSubscriptions();
-      } else if (Platform.OS === "android") {
-        await Linking.openURL(
-          "https://play.google.com/store/account/subscriptions"
-        );
-      }
-
-      // --- This alert is only shown when a user is managing their subscription (i.e., canceling) ---
-      Alert.alert(
-        t("upgradePremium.cancellationInitiatedTitle"),
-        t("upgradePremium.cancellationInitiatedMessage")
-      );
-
-      // Navigate back after a short delay to prevent the "ghost subscription" view
-      setTimeout(() => {
-        router.back();
-      }, 3000); // 3-second delay
     } catch (e) {
       console.error("Error managing subscription:", e);
       Alert.alert(
@@ -484,29 +447,35 @@ const UpgradePremium = () => {
       <SafeAreaView className="flex-1">
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
-          className="p-4 mt-6"
+          className="p-4 mt-2"
         >
           <View
-            className={`flex-row items-center justify-between mb-8 mt-4 ${
+            className={`flex-row items-center justify-between mb-8 mt-1 ${
               I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
             }`}
           >
             <TouchableOpacity onPress={() => router.back()} className="p-2">
               <Text
-                className="text-blue-600 text-lg"
+                className="text-blue-800 text-lg"
                 style={{ fontFamily: getFontClassName("medium") }}
               >
                 {t("common.back")}
               </Text>
             </TouchableOpacity>
-            <Text
+            {/* <Text
               className="text-3xl text-black"
               style={{ fontFamily: getFontClassName("bold") }}
             >
               {t("upgradePremium.upgradeToPremiumTitle")}
-            </Text>
-            <View className="w-10" />
+            </Text> */}
+            <Image
+              source={icons.resynq}
+              className="w-32 h-32 self-center"
+              tintColor="#9F54B6"
+            />
+            <View className="w-8" />
           </View>
+
           {purchaseError && (
             <Text
               className="text-red-500 text-center mb-4"
@@ -520,11 +489,11 @@ const UpgradePremium = () => {
               <Image
                 source={icons.check}
                 className="w-10 h-10 mb-4"
-                tintColor="#2A9D8F"
+                // tintColor="#2A9D8F"
                 resizeMode="contain"
               />
               <Text
-                className="text-2xl text-black text-center mb-2"
+                className="text-2xl text-[#082eef] text-center mb-2"
                 style={{ fontFamily: getFontClassName("bold") }}
               >
                 {t("upgradePremium.youArePremium")}
@@ -557,10 +526,9 @@ const UpgradePremium = () => {
                   )}
                 </>
               )}
-              {/* --- MODIFIED: Conditional button based on `willRenew` to fix the resubscribe issue --- */}
               {willRenew ? (
                 <TouchableOpacity
-                  onPress={handleManageSubscription}
+                  onPress={handleOpenSubscriptionSettings}
                   className="mt-4 p-4 rounded-lg bg-blue-600 items-center w-full"
                 >
                   <Text
@@ -572,7 +540,7 @@ const UpgradePremium = () => {
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  onPress={{ handleManageReSubscription }} // Resubscribe action takes the user back to the list of plans
+                  onPress={handleOpenSubscriptionSettings} // Now uses the same function, as it's a UI action
                   className="mt-4 p-4 rounded-lg bg-red-600 items-center w-full"
                 >
                   <Text
@@ -586,6 +554,23 @@ const UpgradePremium = () => {
             </View>
           ) : (
             <>
+              {/* START of New UI section */}
+              {/* Using the new `notPremiumYet` and `benefitsDescription` keys */}
+              <View className="mb-6">
+                <Text
+                  className="text-2xl text-[#082eef] text-center mb-1 -mt-6"
+                  style={{ fontFamily: getFontClassName("bold") }}
+                >
+                  {t("upgradePremium.notPremiumYet")}
+                </Text>
+                <Text
+                  className="text-base text-slate-600 text-center"
+                  style={{ fontFamily: getFontClassName("regular") }}
+                >
+                  {t("upgradePremium.benefitsDescription")}
+                </Text>
+              </View>
+
               <View className="bg-white rounded-xl p-6 mb-6 border border-gray-200">
                 <Text
                   className={`text-xl text-black mb-4 ${
@@ -593,7 +578,8 @@ const UpgradePremium = () => {
                   }`}
                   style={{ fontFamily: getFontClassName("bold") }}
                 >
-                  {t("upgradePremium.unlockPremiumBenefits")}
+                  {/* Using the new `featuresListTitle` key */}
+                  {t("upgradePremium.featuresListTitle")}
                 </Text>
                 <BenefitItem
                   text={t("upgradePremium.unlimitedReceipts")}
@@ -618,7 +604,7 @@ const UpgradePremium = () => {
               </View>
 
               <Text
-                className={`text-2xl text-black mb-4 ${
+                className={`text-2xl text-[#082eef] p-2 ${
                   I18nManager.isRTL ? "text-right" : "text-left"
                 }`}
                 style={{ fontFamily: getFontClassName("bold") }}
@@ -642,6 +628,9 @@ const UpgradePremium = () => {
                     product={product}
                     onPress={handlePurchase}
                     isProcessing={isProcessingPurchase}
+                    isBestValue={
+                      product.packageType === Purchases.PACKAGE_TYPE.ANNUAL
+                    } // Pass a new prop
                     t={t}
                   />
                 ))
@@ -649,7 +638,7 @@ const UpgradePremium = () => {
 
               <TouchableOpacity
                 onPress={handleRestorePurchases}
-                className={`mt-6 p-4 rounded-lg items-center justify-center border border-blue-600 ${
+                className={` bg-white mt-6 p-4 rounded-lg items-center justify-center  ${
                   isProcessingPurchase ? "opacity-70" : ""
                 }`}
                 disabled={isProcessingPurchase}
@@ -658,13 +647,14 @@ const UpgradePremium = () => {
                   <ActivityIndicator size="small" color="#264653" />
                 ) : (
                   <Text
-                    className="text-blue-600 text-lg"
+                    className="text-[#082eef] text-lg"
                     style={{ fontFamily: getFontClassName("semibold") }}
                   >
                     {t("upgradePremium.restorePurchases")}
                   </Text>
                 )}
               </TouchableOpacity>
+              {/* END of New UI section */}
             </>
           )}
 
@@ -677,7 +667,6 @@ const UpgradePremium = () => {
             {t("upgradePremium.termsDisclaimer")}
           </Text>
 
-          {/* --- MODIFIED: Conditional rendering of the entire debug panel --- */}
           {isOsamaUser && (
             <View className="mt-8 bg-gray-100 p-4 rounded-xl">
               <TouchableOpacity
@@ -756,7 +745,13 @@ const BenefitItem = ({ text, icon }) => {
   );
 };
 
-const SubscriptionOption = ({ product, onPress, isProcessing, t }) => {
+const SubscriptionOption = ({
+  product,
+  onPress,
+  isProcessing,
+  isBestValue,
+  t,
+}) => {
   const { I18nManager } = require("react-native");
   const { getFontClassName } = require("../utils/fontUtils");
 
@@ -783,11 +778,23 @@ const SubscriptionOption = ({ product, onPress, isProcessing, t }) => {
   return (
     <TouchableOpacity
       onPress={() => onPress(product)}
-      className={`bg-white rounded-xl p-6 mb-4 border border-gray-200 ${
-        isProcessing ? "opacity-70" : ""
-      }`}
+      className={`relative bg-white rounded-xl p-6 mb-4 border-2 ${
+        isBestValue ? "border-blue-600" : "border-gray-200"
+      } ${isProcessing ? "opacity-70" : ""}`}
       disabled={isProcessing}
     >
+      {/* Use the new `bestValue` key to create a badge for the yearly plan */}
+      {isBestValue && (
+        <View className="absolute top-0 right-0 -mt-2 -mr-2 bg-blue-600 px-3 py-1 rounded-full">
+          <Text
+            className="text-white text-xs"
+            style={{ fontFamily: getFontClassName("semibold") }}
+          >
+            {t("upgradePremium.bestValue")}
+          </Text>
+        </View>
+      )}
+
       <Text
         className={`text-xl text-black mb-2 ${
           I18nManager.isRTL ? "text-right" : "text-left"
@@ -796,6 +803,7 @@ const SubscriptionOption = ({ product, onPress, isProcessing, t }) => {
       >
         {title} ({price})
       </Text>
+
       <Text
         className={`text-base text-gray-700 mb-1 ${
           I18nManager.isRTL ? "text-right" : "text-left"
@@ -804,6 +812,19 @@ const SubscriptionOption = ({ product, onPress, isProcessing, t }) => {
       >
         {subscriptionLengthText}
       </Text>
+
+      {/* Use the new `pricePerMonthYearly` key for the yearly plan */}
+      {isBestValue && (
+        <Text
+          className={`text-sm text-gray-500 mb-2 ${
+            I18nManager.isRTL ? "text-right" : "text-left"
+          }`}
+          style={{ fontFamily: getFontClassName("regular") }}
+        >
+          {t("upgradePremium.pricePerMonthYearly")}
+        </Text>
+      )}
+
       <Text
         className={`text-base text-gray-700 ${
           I18nManager.isRTL ? "text-right" : "text-left"

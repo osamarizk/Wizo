@@ -115,7 +115,7 @@ const SignIn = () => {
       const loggedInUser = await checkSessionAndFetchUser();
 
       // Register push token **after** login
-      await registerForPushNotificationsAsync(loggedInUser.$id);
+      // await registerForPushNotificationsAsync(loggedInUser.$id);
 
       router.replace("/home");
     } catch (error) {
