@@ -261,7 +261,56 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
     try {
       setIsProcessing(true);
       const data = await extractReceiptData(imageUri);
+      console.log("Returned data from extravtedDate receipt", data.data);
+      console.log(
+        "Returned data.data.date from extravtedDate receipt",
+        data.data.date
+      );
+      // --- BEGIN: AMBIGUOUS DATE FORMAT CHECK & CORRECTION (FINAL) ---
+      if (data.data && data.data.datetime) {
+        const today = new Date();
 
+        // Split the ISO datetime string to get the date part (e.g., "2025-12-08")
+        const datePart = data.data.datetime.split("T")[0];
+        const [originalYear, originalMonth, originalDay] = datePart
+          .split("-")
+          .map(Number);
+
+        // Create a date object based on the extracted format (MM/DD/YYYY)
+        // We must subtract 1 from the month because Date objects are 0-indexed for months.
+        const extractedDate = new Date(
+          originalYear,
+          originalMonth - 1,
+          originalDay
+        );
+
+        // Create a date object with the swapped format (DD/MM/YYYY)
+        const swappedDate = new Date(
+          originalYear,
+          originalDay - 1,
+          originalMonth
+        );
+
+        // Check if the extracted date is in the future but the swapped date is in the past or today.
+        // This is the key heuristic for correcting the date.
+        if (extractedDate > today && swappedDate <= today) {
+          console.log("Found an ambiguous date. Correcting it now...");
+
+          // Use the swapped values to create a new, corrected datetime string
+          // Remember to pad single-digit numbers with a leading zero.
+          const correctedDatePart = `${originalYear}-${String(
+            originalDay
+          ).padStart(2, "0")}-${String(originalMonth).padStart(2, "0")}`;
+          const correctedTimePart = data.data.datetime.split("T")[1];
+
+          // Update the datetime field with the corrected value
+          data.data.datetime = `${correctedDatePart}T${correctedTimePart}`;
+          console.log(
+            `Date format corrected. New datetime: ${data.data.datetime}`
+          );
+        }
+      }
+      // --- END: AMBIGUOUS DATE FORMAT CHECK & CORRECTION (FINAL) ---
       // Check if it's not a receipt
       if (!data.isReceipt) {
         const displayMessage = data.message

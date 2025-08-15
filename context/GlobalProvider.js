@@ -152,6 +152,7 @@ const GlobalProvider = ({ children }) => {
     setGlobalLoading(true);
     try {
       const res = await getCurrentUser();
+      console.log("Global Provider: Fetched user:", res);
       if (res) {
         setIsLogged(true);
         setUser(res);

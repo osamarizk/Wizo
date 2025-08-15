@@ -111,11 +111,10 @@ const SignIn = () => {
     try {
       await signIn(form.email, form.password);
 
-      // Fetch user
-      const loggedInUser = await checkSessionAndFetchUser();
+      await checkSessionAndFetchUser();
 
       // Register push token **after** login
-      await registerForPushNotificationsAsync(loggedInUser.$id);
+      await registerForPushNotificationsAsync(user.$id);
 
       router.replace("/home");
     } catch (error) {
