@@ -51,71 +51,72 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No devices registered." });
     }
 
-    const targetIdPromises = rawDeviceTokens.map(async (token) => {
-      try {
-        log(`Attempting to create target for token: ${token}`);
-        const target = await users.createTarget(
-          userId,
-          sdk.ID.unique(),
-          sdk.MessagingProviderType.Push,
-          token,
-          "689ccad400125f85a03e",
-          "My App Device"
-        );
+    // const targetIdPromises = rawDeviceTokens.map(async (token) => {
+    //   try {
+    //     log(`Attempting to create target for token: ${token}`);
+    //     const target = await users.createTarget(
+    //       userId,
+    //       sdk.ID.unique(),
+    //       sdk.MessagingProviderType.Push,
+    //       token,
+    //       "689ccad400125f85a03e",
+    //       "My App Device"
+    //     );
 
-        log(`Successfully created new target with ID: ${target.$id}`);
-        return target.$id;
-      } catch (err) {
-        log(`Failed to create target for token ${token}:`, err);
+    //     log(`Successfully created new target with ID: ${target.$id}`);
+    //     return target.$id;
+    //   } catch (err) {
+    //     log(`Failed to create target for token ${token}:`, err);
 
-        // Check if the error is a conflict (code 409).
-        if (err.code === 409) {
-          log(`Conflict detected. Attempting to find existing target.`);
-          try {
-            // Corrected: Use users.listTargets to find the existing target.
-            const response = await users.listTargets(userId, [
-              sdk.Query.equal("identifier", token),
-              sdk.Query.equal("providerId", "689ccad400125f85a03e"),
-            ]);
+    //     // Check if the error is a conflict (code 409).
+    //     if (err.code === 409) {
+    //       log(`Conflict detected. Attempting to find existing target.`);
+    //       try {
+    //         // Corrected: Use users.listTargets to find the existing target.
+    //         const response = await users.listTargets(userId, [
+    //           sdk.Query.equal("identifier", token),
+    //           sdk.Query.equal("providerId", "689ccad400125f85a03e"),
+    //         ]);
 
-            if (response.targets.length > 0) {
-              const existingTargetId = response.targets[0].$id;
-              log(`Found existing target with ID: ${existingTargetId}`);
-              return existingTargetId;
-            }
-          } catch (listErr) {
-            error(`Failed to list targets for token ${token}:`, listErr);
-          }
-        }
+    //         if (response.targets.length > 0) {
+    //           const existingTargetId = response.targets[0].$id;
+    //           log(`Found existing target with ID: ${existingTargetId}`);
+    //           return existingTargetId;
+    //         }
+    //       } catch (listErr) {
+    //         error(`Failed to list targets for token ${token}:`, listErr);
+    //       }
+    //     }
 
-        return null;
-      }
-    });
+    //     return null;
+    //   }
+    // });
 
-    const appwriteTargetIds = (await Promise.all(targetIdPromises)).filter(
-      Boolean
-    );
+    // const appwriteTargetIds = (await Promise.all(targetIdPromises)).filter(
+    //   Boolean
+    // );
 
-    log(`Generated ${appwriteTargetIds.length} valid Appwrite target IDs.`);
+    // log(`Generated ${appwriteTargetIds.length} valid Appwrite target IDs.`);
 
-    if (appwriteTargetIds.length === 0) {
-      log(
-        "No valid Appwrite target IDs were generated. Not sending notification."
-      );
-      return res.json({
-        success: true,
-        message: "No valid devices to send to.",
-      });
-    }
+    // if (appwriteTargetIds.length === 0) {
+    //   log(
+    //     "No valid Appwrite target IDs were generated. Not sending notification."
+    //   );
+    //   return res.json({
+    //     success: true,
+    //     message: "No valid devices to send to.",
+    //   });
+    // }
 
     // Now you can safely use appwriteTargetIds to send the push notification
+    
     const message = await messaging.createPush(
       sdk.ID.unique(),
       title,
       body,
       [],
       [],
-      appwriteTargetIds,
+      "68a0627e003531f94840",
       data || {},
       null,
       null,
@@ -138,7 +139,7 @@ module.exports = async function ({ req, res, log, error }) {
       response: message,
     });
   } catch (err) {
-    error("Error sending push notification:", err);
+    error("Error sending push notification:", err.message);
     return res.json({ success: false, error: err.message });
   }
 };
