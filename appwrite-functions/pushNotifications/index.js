@@ -18,7 +18,7 @@ module.exports = async function ({ req, res, log, error }) {
 
   const databases = new sdk.Databases(client);
   const users = new sdk.Users(client);
-  const messaging = new sdk.Messaging(client);
+  const messaging = new sdk.Messaging(client); // Needed to list targets
 
   let payload;
   try {
@@ -34,7 +34,6 @@ module.exports = async function ({ req, res, log, error }) {
   }
 
   try {
-    // 1. Fetch the user document to get the stored raw device tokens.
     const userDoc = await databases.getDocument(
       APPWRITE_DATABASE_ID,
       APPWRITE_USERS_COLLECTION_ID,
@@ -52,36 +51,48 @@ module.exports = async function ({ req, res, log, error }) {
       return res.json({ success: true, message: "No devices registered." });
     }
 
-    // 2. Create a user target for each raw token to get the targetId.
-    // The "pushToken" will be the "identifier" for the target.
     const targetIdPromises = rawDeviceTokens.map(async (token) => {
       try {
         log(`Attempting to create target for token: ${token}`);
-        // Appwrite requires a provider type; we'll assume FCM for this example.
-        // The providerId is optional.
         const target = await users.createTarget(
           userId,
-          sdk.ID.unique(), // The targetId is not needed for the push token. Use a placeholder.
-          sdk.MessagingProviderType.Push, // Assuming FCM for mobile push
-          token, // The raw push token is the identifier
+          sdk.ID.unique(),
+          sdk.MessagingProviderType.Push,
+          token,
           "689ccad400125f85a03e", // providerId
-          "My App Device" // A descriptive name
+          "My App Device"
         );
 
-        log(`Created target...  :${target}`);
-        log(`Successfully created target with ID: ${target.$id}`);
-
+        log(`Successfully created new target with ID: ${target.$id}`);
         return target.$id;
       } catch (err) {
-        error(`Failed to create target for token ${token}: ${err}`);
-        // Log the error but continue with the next token.
+        log(`Failed to create target for token ${token}:`, err);
+
+        // Check if the error is a conflict (code 409).
+        if (err.code === 409) {
+          log(`Conflict detected for token. Attempting to find existing target.`);
+          try {
+            // Find the existing target by the token identifier
+            const response = await messaging.listTargets([
+              sdk.Query.equal("identifier", token),
+            ]);
+            
+            if (response.targets.length > 0) {
+              const existingTargetId = response.targets[0].$id;
+              log(`Found existing target with ID: ${existingTargetId}`);
+              return existingTargetId;
+            }
+          } catch (listErr) {
+            error(`Failed to list targets for token ${token}:`, listErr);
+          }
+        }
+        
+        // Return null for any other errors.
         return null;
       }
     });
 
-    const appwriteTargetIds = (await Promise.all(targetIdPromises)).filter(
-      Boolean
-    );
+    const appwriteTargetIds = (await Promise.all(targetIdPromises)).filter(Boolean);
 
     log(`Generated ${appwriteTargetIds.length} valid Appwrite target IDs.`);
 
@@ -95,14 +106,14 @@ module.exports = async function ({ req, res, log, error }) {
       });
     }
 
-    // 3. Use the newly created target IDs to send the push notification.
+    // Now you can safely use appwriteTargetIds to send the push notification
     const message = await messaging.createPush(
       sdk.ID.unique(),
       title,
       body,
       [],
       [],
-      appwriteTargetIds, // The final, correct array of targets.
+      appwriteTargetIds,
       data || {},
       null,
       null,
