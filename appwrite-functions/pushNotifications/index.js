@@ -56,19 +56,21 @@ module.exports = async function ({ req, res, log, error }) {
     // The "pushToken" will be the "identifier" for the target.
     const targetIdPromises = rawDeviceTokens.map(async (token) => {
       try {
+        log(`Attempting to create target for token: ${token}`);
         // Appwrite requires a provider type; we'll assume FCM for this example.
         // The providerId is optional.
         const target = await users.createTarget(
           userId,
           sdk.ID.unique(), // The targetId is not needed for the push token. Use a placeholder.
-          "push", // Assuming FCM for mobile push
+          sdk.MessagingProviderType.Push, // Assuming FCM for mobile push
           token, // The raw push token is the identifier
           null, // providerId
           "My App Device" // A descriptive name
         );
 
         log(`Created target...  :${target}`);
-        log(`Created target for token ${token}:${target.$id}`);
+        log(`Successfully created target with ID: ${target.$id}`);
+
         return target.$id;
       } catch (err) {
         error(`Failed to create target for token ${token}: ${err.message}`);
@@ -80,6 +82,8 @@ module.exports = async function ({ req, res, log, error }) {
     const appwriteTargetIds = (await Promise.all(targetIdPromises)).filter(
       Boolean
     );
+
+    log(`Generated ${appwriteTargetIds.length} valid Appwrite target IDs.`);
 
     if (appwriteTargetIds.length === 0) {
       log(
