@@ -18,7 +18,7 @@ module.exports = async function ({ req, res, log, error }) {
 
   const databases = new sdk.Databases(client);
   const users = new sdk.Users(client);
-  const messaging = new sdk.Messaging(client); // Needed to list targets
+  const messaging = new sdk.Messaging(client);
 
   let payload;
   try {
@@ -59,7 +59,7 @@ module.exports = async function ({ req, res, log, error }) {
           sdk.ID.unique(),
           sdk.MessagingProviderType.Push,
           token,
-          "689ccad400125f85a03e", // providerId
+          "689ccad400125f85a03e",
           "My App Device"
         );
 
@@ -70,13 +70,14 @@ module.exports = async function ({ req, res, log, error }) {
 
         // Check if the error is a conflict (code 409).
         if (err.code === 409) {
-          log(`Conflict detected for token. Attempting to find existing target.`);
+          log(`Conflict detected. Attempting to find existing target.`);
           try {
-            // Find the existing target by the token identifier
-            const response = await messaging.listTargets([
+            // Corrected: Use users.listTargets to find the existing target.
+            const response = await users.listTargets(userId, [
               sdk.Query.equal("identifier", token),
+              sdk.Query.equal("providerId", "689ccad400125f85a03e"),
             ]);
-            
+
             if (response.targets.length > 0) {
               const existingTargetId = response.targets[0].$id;
               log(`Found existing target with ID: ${existingTargetId}`);
@@ -86,13 +87,14 @@ module.exports = async function ({ req, res, log, error }) {
             error(`Failed to list targets for token ${token}:`, listErr);
           }
         }
-        
-        // Return null for any other errors.
+
         return null;
       }
     });
 
-    const appwriteTargetIds = (await Promise.all(targetIdPromises)).filter(Boolean);
+    const appwriteTargetIds = (await Promise.all(targetIdPromises)).filter(
+      Boolean
+    );
 
     log(`Generated ${appwriteTargetIds.length} valid Appwrite target IDs.`);
 
