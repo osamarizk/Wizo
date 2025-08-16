@@ -70,7 +70,6 @@ module.exports = async function ({ req, res, log, error }) {
 
         // Check if the error is a conflict (code 409).
 
-      
         try {
           // Corrected: Use users.listTargets to find the existing target.
           const response = await users.listTargets(userId, [
@@ -108,34 +107,40 @@ module.exports = async function ({ req, res, log, error }) {
     }
 
     // Now you can safely use appwriteTargetIds to send the push notification
-    const message = await messaging.createPush(
-      sdk.ID.unique(),
-      title,
-      body,
-      [],
-      [],
-      appwriteTargetIds,
-      data || {},
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      1,
-      false,
-      "2025-08-17 00:00:00",
-      false,
-      false,
-      sdk.MessagePriority.Normal
-    );
+    // --- NEW: Add a try-catch specifically for the createPush call ---
+    try {
+      const message = await messaging.createPush(
+        sdk.ID.unique(),
+        title,
+        body,
+        [],
+        [],
+        appwriteTargetIds,
+        data || {},
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        1,
+        false,
+        "2025-08-17 00:00:00",
+        false,
+        false,
+        sdk.MessagePriority.Normal
+      );
 
-    log("Push notification sent successfully.");
-    return res.json({
-      success: true,
-      message: "Push notifications sent.",
-      response: message,
-    });
+      log("Push notification sent successfully.");
+      return res.json({
+        success: true,
+        message: "Push notifications sent.",
+        response: message,
+      });
+    } catch (pushErr) {
+      error("Error sending push notification:", pushErr);
+      return res.json({ success: false, error: pushErr.message });
+    }
   } catch (err) {
     error("Error sending push notification:", err.message);
     return res.json({ success: false, error: err.message });
