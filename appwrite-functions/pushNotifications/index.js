@@ -126,7 +126,7 @@ module.exports = async function ({ req, res, log, error }) {
         null,
         1,
         false,
-        "2025-08-17 00:00:00",
+        null,
         false,
         false,
         sdk.MessagePriority.Normal
