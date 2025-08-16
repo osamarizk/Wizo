@@ -126,7 +126,7 @@ module.exports = async function ({ req, res, log, error }) {
         null,
         1,
         false,
-        null,
+        "",
         false,
         false,
         sdk.MessagePriority.Normal
