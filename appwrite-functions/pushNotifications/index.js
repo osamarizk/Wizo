@@ -63,7 +63,7 @@ module.exports = async function ({ req, res, log, error }) {
           sdk.ID.unique(), // The targetId is not needed for the push token. Use a placeholder.
           "push", // Assuming FCM for mobile push
           token, // The raw push token is the identifier
-          "", // providerId
+          null, // providerId
           "My App Device" // A descriptive name
         );
 
