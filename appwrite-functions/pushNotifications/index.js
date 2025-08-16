@@ -73,7 +73,7 @@ module.exports = async function ({ req, res, log, error }) {
 
         return target.$id;
       } catch (err) {
-        error(`Failed to create target for token ${token}: ${err.message}`);
+        error(`Failed to create target for token ${token}: ${err}`);
         // Log the error but continue with the next token.
         return null;
       }
