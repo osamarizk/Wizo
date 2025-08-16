@@ -42,7 +42,9 @@ module.exports = async function ({ req, res, log, error }) {
     );
 
     const rawDeviceTokens = userDoc.deviceTokens || [];
-
+    log(
+      `device tokens found for user ${userId}. is . ${rawDeviceTokens.length} tokens`
+    );
     if (rawDeviceTokens.length === 0) {
       log(
         `No raw device tokens found for user ${userId}. Not sending notification.`
@@ -61,9 +63,12 @@ module.exports = async function ({ req, res, log, error }) {
           sdk.ID.unique(), // The targetId is not needed for the push token. Use a placeholder.
           "push", // Assuming FCM for mobile push
           token, // The raw push token is the identifier
-          null, // providerId
+          "", // providerId
           "My App Device" // A descriptive name
         );
+
+        log(`Created target...  :${target}`);
+        log(`Created target for token ${token}:${target.$id}`);
         return target.$id;
       } catch (err) {
         error(`Failed to create target for token ${token}: ${err.message}`);
