@@ -4,6 +4,7 @@
     "main": "index.js",
     "dependencies": {
         "node-appwrite": "latest",
-        "apn": "latest"
+        "apn": "latest",
+        "firebase-admin": "latest"
     }
 }
