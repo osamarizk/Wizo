@@ -116,7 +116,7 @@ module.exports = async function ({ req, res, log, error }) {
         body,
         [],
         [],
-        ["68a0627e003531f94840"],
+        appwriteTargetIds,
         data || {},
         null,
         null,
@@ -139,6 +139,7 @@ module.exports = async function ({ req, res, log, error }) {
         response: message,
       });
     } catch (pushErr) {
+      log(`Detailed error : ${JSON.stringify(pushErr)}`);
       error("Error sending push notification:", pushErr);
       return res.json({ success: false, error: pushErr.message });
     }
