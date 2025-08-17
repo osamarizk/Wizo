@@ -29,9 +29,9 @@ module.exports = async function ({ req, res, log, error }) {
     return res.json({ success: false, error: "Invalid JSON in request body." });
   }
 
-  const { userId, title, body, data, deviceToken } = payload;
+  const { userId, title, body, data } = payload;
 
-  if (!userId || !title || !body || !deviceToken) {
+  if (!userId || !title || !body) {
     return res.json({ success: false, error: "Missing required parameters." });
   }
 
@@ -47,45 +47,64 @@ module.exports = async function ({ req, res, log, error }) {
   });
 
   try {
-    log(`Attempting to send notification to token: ${deviceToken}`);
+    // Step 1: Fetch the user document to get the device tokens.
+    const userDoc = await databases.getDocument(
+      APPWRITE_DATABASE_ID,
+      APPWRITE_USERS_COLLECTION_ID,
+      userId
+    );
 
-    // Create the notification payload
-    const notification = new apn.Notification();
-    notification.alert = {
-      title: title,
-      body: body,
-    };
-    notification.topic = "com.o7.rn1"; // From your screenshot
-    notification.badge = 1;
-    notification.payload = data || {};
+    const deviceTokens = userDoc.deviceTokens || [];
+    log(`Found ${deviceTokens.length} device tokens for user ${userId}.`);
 
-    // Send the notification directly to APNs
-    const result = await provider.send(notification, deviceToken);
-
-    // Check for success or errors
-    if (result.failed.length > 0) {
-      const failed = result.failed[0];
-      error(
-        `APNs failed to send: reason=${
-          failed.response.reason || "No reason provided"
-        }, error=${failed.error || "No error provided"}`
-      );
-      return res.json({
-        success: false,
-        message: "Failed to send notification via APNs.",
-        details: failed.response.reason || failed.error,
-      });
+    if (deviceTokens.length === 0) {
+      log("No device tokens found. Not sending notification.");
+      provider.shutdown();
+      return res.json({ success: true, message: "No devices registered." });
     }
 
-    log("Push notification sent successfully via direct APNs connection.");
+    // Step 2: Iterate through each token and send the push notification.
+    const promises = deviceTokens.map(async (token) => {
+      log(`Attempting to send notification to token: ${token}`);
+
+      const notification = new apn.Notification();
+      notification.alert = {
+        title: title,
+        body: body,
+      };
+      notification.topic = "com.o7.rn1";
+      notification.badge = 1;
+      notification.payload = data || {};
+
+      const result = await provider.send(notification, token);
+
+      if (result.failed.length > 0) {
+        const failed = result.failed[0];
+        error(
+          `APNs failed to send: reason=${
+            failed.response.reason || "No reason provided"
+          }, error=${failed.error || "No error provided"}`
+        );
+        return {
+          success: false,
+          details: failed.response.reason || failed.error,
+        };
+      }
+
+      log(`Successfully sent to token ${token}.`);
+      return { success: true };
+    });
+
+    await Promise.all(promises);
+
     provider.shutdown();
     return res.json({
       success: true,
       message: "Push notifications sent.",
-      response: result,
     });
   } catch (err) {
     error("Error sending push notification via APNs:", err);
+    provider.shutdown();
     return res.json({ success: false, error: err.message });
   }
 };
