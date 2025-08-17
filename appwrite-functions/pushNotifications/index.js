@@ -10,7 +10,10 @@ module.exports = async function ({ req, res, log, error }) {
     APPWRITE_PROJECT_ID,
     APPWRITE_DATABASE_ID,
     APPWRITE_USERS_COLLECTION_ID,
-    APNS_KEY_BASE64, // New environment variable name
+    APNS_KEY_BASE64, // Base64-encoded key content
+    APNS_KEY_ID,    // New Key ID from your Apple account
+    APNS_TEAM_ID,   // Team ID from your Apple account
+    APNS_BUNDLE_ID, // Bundle ID of your app
   } = process.env;
 
   const client = new sdk.Client()
@@ -37,21 +40,19 @@ module.exports = async function ({ req, res, log, error }) {
   // Decode the Base64 string back into the key file content
   let apnsKey = null;
   try {
-    apnsKey = Buffer.from(APNS_KEY_BASE64, "base64").toString("utf-8");
+    apnsKey = Buffer.from(APNS_KEY_BASE64, 'base64').toString('utf-8');
   } catch (decodeErr) {
     error("Error decoding APNS_KEY_BASE64:", decodeErr);
-    return res.json({
-      success: false,
-      error: "Invalid APNS_KEY_BASE64 environment variable.",
-    });
+    return res.json({ success: false, error: "Invalid APNS_KEY_BASE64 environment variable." });
   }
 
   const provider = new apn.Provider({
     token: {
-      key: apnsKey, // This is the fix. It must be the decoded content, not the variable name.
-      keyId: "RJBRA6J6GY",
-      teamId: "R3YHRSZ7T2",
+      key: apnsKey,
+      keyId: APNS_KEY_ID, // Using the environment variable now
+      teamId: APNS_TEAM_ID, // Using the environment variable now
     },
+    // Set to 'false' for sandbox as per your Appwrite provider settings
     production: false,
   });
 
@@ -78,7 +79,7 @@ module.exports = async function ({ req, res, log, error }) {
         title: title,
         body: body,
       };
-      notification.topic = "com.o7.rn1";
+      notification.topic = APNS_BUNDLE_ID;
       notification.badge = 1;
       notification.payload = data || {};
 
@@ -86,15 +87,8 @@ module.exports = async function ({ req, res, log, error }) {
 
       if (result.failed.length > 0) {
         const failed = result.failed[0];
-        error(
-          `APNs failed to send: reason=${
-            failed.response.reason || "No reason provided"
-          }, error=${failed.error || "No error provided"}`
-        );
-        return {
-          success: false,
-          details: failed.response.reason || failed.error,
-        };
+        error(`APNs failed to send: reason=${failed.response.reason || 'No reason provided'}, error=${failed.error || 'No error provided'}`);
+        return { success: false, details: failed.response.reason || failed.error };
       }
 
       log(`Successfully sent to token ${token}.`);
@@ -108,6 +102,7 @@ module.exports = async function ({ req, res, log, error }) {
       success: true,
       message: "Push notifications sent.",
     });
+    
   } catch (err) {
     error("Error sending push notification via APNs:", err);
     provider.shutdown();
