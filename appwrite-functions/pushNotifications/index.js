@@ -1,14 +1,17 @@
 const sdk = require("node-appwrite");
+const apn = require("apn");
 
 module.exports = async function ({ req, res, log, error }) {
-  log("Starting generic Push Notification function...");
+  log("Starting direct APNs push notification function...");
 
+  // IMPORTANT: Ensure these environment variables are set in Appwrite.
   const {
     APPWRITE_API_KEY,
     APPWRITE_ENDPOINT,
     APPWRITE_PROJECT_ID,
     APPWRITE_DATABASE_ID,
     APPWRITE_USERS_COLLECTION_ID,
+    APNS_KEY_FILE, // The content of your .p8 key file
   } = process.env;
 
   const client = new sdk.Client()
@@ -18,7 +21,6 @@ module.exports = async function ({ req, res, log, error }) {
 
   const databases = new sdk.Databases(client);
   const users = new sdk.Users(client);
-  const messaging = new sdk.Messaging(client);
 
   let payload;
   try {
@@ -27,124 +29,63 @@ module.exports = async function ({ req, res, log, error }) {
     return res.json({ success: false, error: "Invalid JSON in request body." });
   }
 
-  const { userId, title, body, data } = payload;
+  const { userId, title, body, data, deviceToken } = payload;
 
-  if (!userId || !title || !body) {
+  if (!userId || !title || !body || !deviceToken) {
     return res.json({ success: false, error: "Missing required parameters." });
   }
 
+  // Use the configuration details from your Appwrite provider
+  const provider = new apn.Provider({
+    token: {
+      key: APNS_KEY_FILE,
+      keyId: "RJBRA6J6GY", // From your screenshot
+      teamId: "R3YHRSZ7T2", // From your screenshot
+    },
+    // Set to 'false' for sandbox as per your Appwrite provider settings
+    production: false,
+  });
+
   try {
-    const userDoc = await databases.getDocument(
-      APPWRITE_DATABASE_ID,
-      APPWRITE_USERS_COLLECTION_ID,
-      userId
-    );
+    log(`Attempting to send notification to token: ${deviceToken}`);
 
-    const rawDeviceTokens = userDoc.deviceTokens || [];
-    log(
-      `device tokens found for user ${userId}. is . ${rawDeviceTokens.length} tokens`
-    );
+    // Create the notification payload
+    const notification = new apn.Notification();
+    notification.alert = {
+      title: title,
+      body: body,
+    };
+    notification.topic = "com.o7.rn1"; // From your screenshot
+    notification.badge = 1;
+    notification.payload = data || {};
 
-    if (rawDeviceTokens.length === 0) {
-      log(
-        `No raw device tokens found for user ${userId}. Not sending notification.`
-      );
-      return res.json({ success: true, message: "No devices registered." });
-    }
+    // Send the notification directly to APNs
+    const result = await provider.send(notification, deviceToken);
 
-    const appwriteTargetIds = [];
-
-    // Iterate through each raw token
-    for (const token of rawDeviceTokens) {
-      log(`Processing token: ${token}`);
-
-      let targetId = null;
-
-      try {
-        // Step 1: Check if a target already exists for this token.
-        const existingTargets = await users.listTargets(userId, [
-          sdk.Query.equal("identifier", token),
-          sdk.Query.equal("providerId", "689ccad400125f85a03e"),
-          sdk.Query.equal("providerType", "push"),
-        ]);
-
-        if (existingTargets.targets.length > 0) {
-          // If a target is found, use its ID.
-          targetId = existingTargets.targets[0].$id;
-          log(`Found existing target with ID: ${targetId}`);
-        } else {
-          // Step 2: If no target is found, create a new one.
-          log(`No existing target found. Attempting to create a new one.`);
-          const newTarget = await users.createTarget(
-            userId,
-            sdk.ID.unique(),
-            sdk.MessagingProviderType.Push,
-            token,
-            "689ccad400125f85a03e",
-            "My App Device"
-          );
-          targetId = newTarget.$id;
-          log(`Successfully created new target with ID: ${targetId}`);
-        }
-
-        if (targetId) {
-          appwriteTargetIds.push(targetId);
-        }
-      } catch (err) {
-        error(`Failed to process token ${token}:`, err);
-        // Continue to the next token on failure.
-      }
-    }
-
-    log(`Generated ${appwriteTargetIds.length} valid Appwrite target IDs.`);
-
-    if (appwriteTargetIds.length === 0) {
-      log(
-        "No valid Appwrite target IDs were generated. Not sending notification."
+    // Check for success or errors
+    if (result.failed.length > 0) {
+      const failed = result.failed[0];
+      error(
+        `APNs failed to send: reason=${
+          failed.response.reason || "No reason provided"
+        }, error=${failed.error || "No error provided"}`
       );
       return res.json({
-        success: true,
-        message: "No valid devices to send to.",
+        success: false,
+        message: "Failed to send notification via APNs.",
+        details: failed.response.reason || failed.error,
       });
     }
 
-    // Now you can safely use appwriteTargetIds to send the push notification
-    try {
-      const message = await messaging.createPush(
-        sdk.ID.unique(),
-        title,
-        body,
-        [],
-        [],
-        appwriteTargetIds,
-        data || {},
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        1,
-        false,
-        null,
-        false,
-        false,
-        sdk.MessagePriority.Normal
-      );
-
-      log("Push notification sent successfully.");
-      return res.json({
-        success: true,
-        message: "Push notifications sent.",
-        response: message,
-      });
-    } catch (pushErr) {
-      log(`Detailed error : ${JSON.stringify(pushErr)}`);
-      error("Error sending push notification:", pushErr);
-      return res.json({ success: false, error: pushErr.message });
-    }
+    log("Push notification sent successfully via direct APNs connection.");
+    provider.shutdown();
+    return res.json({
+      success: true,
+      message: "Push notifications sent.",
+      response: result,
+    });
   } catch (err) {
-    error("An unexpected error occurred:", err);
+    error("Error sending push notification via APNs:", err);
     return res.json({ success: false, error: err.message });
   }
 };
