@@ -116,7 +116,7 @@ module.exports = async function ({ req, res, log, error }) {
         body,
         [],
         [],
-        appwriteTargetIds,
+        "68a0627e003531f94840",
         data || {},
         null,
         null,
