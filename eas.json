@@ -11,13 +11,19 @@
       },
       "ios": {
         "buildConfiguration": "Debug"
+      },
+      "cache": {
+        "disabled": true
       }
     },
     "preview": {
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "cache": {
+        "disabled": true
+      }
     }
   },
   "submit": {

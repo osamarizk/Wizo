@@ -110,16 +110,24 @@ const convertToArabicNumerals = (num) => {
 
 const generateTranslationKey = (originalName) => {
   if (!originalName) return "";
-  // Convert "Food & Dining" -> "foodDining", "Health & Wellness" -> "healthWellness"
-  return originalName
+  const cleanName = originalName
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, "") // Remove non-alphanumeric except spaces
-    .replace(/(?:^\w|[A-Z]|\b\w)/g, (word, index) => {
-      return index === 0 ? word.toLowerCase() : word.toUpperCase();
-    })
-    .replace(/\s+/g, ""); // Remove all spaces after capitalization
-};
+    .replace(/[^a-z0-9\s]/g, "") // Remove special characters
+    .trim(); // Remove leading/trailing spaces
 
+  // Split by spaces and capitalize subsequent words
+  const words = cleanName.split(/\s+/);
+  const camelCaseName = words
+    .map((word, index) => {
+      if (index === 0) {
+        return word;
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join("");
+
+  return camelCaseName;
+};
 const Home = () => {
   // const isConnected = useInternetConnection(); // <-- Add this line
 

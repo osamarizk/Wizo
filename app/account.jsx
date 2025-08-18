@@ -145,8 +145,7 @@ const Account = () => {
       id: "privacyPolicy",
       title: t("account.privacyPolicy"),
       icon: icons.privacy,
-      onPress: () =>
-        openUrl("https://wizo-app-auth.web.app/privacy-policy.html"), // Use openUrl for external link
+      onPress: () => openUrl("https://resynq.net/privacy-policy.html"), // Use openUrl for external link
     },
     {
       id: "termsOfService",

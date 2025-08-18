@@ -36,7 +36,7 @@ export default {
       supportsRTL: true,
       edgeToEdge: true,
       adaptiveIcon: {
-        foregroundImage: "./assets/icons/resynq.png",
+        foregroundImage: "./assets/icons/ResynQ-logo.png",
         backgroundColor: "#ffffff",
       },
       versionCode: 1,
