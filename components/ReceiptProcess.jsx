@@ -773,7 +773,10 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       }
     } catch (error) {
       console.error("Save error:", error);
-      Alert.alert(t("common.errorTitle"), t("receiptProcess.generalSaveError"));
+      Alert.alert(
+        t("common.errorTitle"),
+        error.message || t("receiptProcess.generalSaveError")
+      );
       setHasSaved(false);
       try {
         await createNotification({
