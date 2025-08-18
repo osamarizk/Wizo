@@ -648,32 +648,27 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       console.log("Data being sent to createReceipt:", receiptData);
 
       const { receipt: newReceipt, updatedUser: freshUser } =
-        await createReceipt(
-          // NEW: Destructure response
-          receiptData,
-          user.$id,
-          userCurrentReceiptCount
-        );
+        await createReceipt(receiptData, user.$id, userCurrentReceiptCount);
 
       if (newReceipt && newReceipt.$id) {
-        // try {
-        //   const payload = {
-        //     userId: user.$id,
-        //     title: t("pushNotifications.receiptProcessedTitle"),
-        //     body: t("pushNotifications.receiptProcessedMessage", {
-        //       merchant: extractedData.merchant || t("common.unknown"),
-        //       total: (extractedData.total || 0).toFixed(2),
-        //     }),
-        //   };
+        try {
+          const payload = {
+            userId: user.$id,
+            title: t("pushNotifications.receiptProcessedTitle"),
+            body: t("pushNotifications.receiptProcessedMessage", {
+              merchant: extractedData.merchant || t("common.unknown"),
+              total: (extractedData.total || 0).toFixed(2),
+            }),
+          };
 
-        //   // IMPORTANT: Replace 'YOUR_FUNCTION_ID' with the actual ID of your Appwrite Function
-        //   await callPushNotificationFunction("689f5b7d0012fbcfb027", payload);
-        //   console.log(
-        //     "Successfully called Appwrite function to send push notification."
-        //   );
-        // } catch (pushError) {
-        //   console.warn("Failed to call push notification function:", pushError);
-        // }
+          // IMPORTANT: Replace 'YOUR_FUNCTION_ID' with the actual ID of your Appwrite Function
+          await callPushNotificationFunction("689f5b7d0012fbcfb027", payload);
+          console.log(
+            "Successfully called Appwrite function to send push notification."
+          );
+        } catch (pushError) {
+          console.warn("Failed to call push notification function:", pushError);
+        }
 
         if (freshUser) {
           setTimeout(() => {
@@ -714,35 +709,6 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           type: "receipt",
           expiresAt: getFutureDate(7),
         });
-
-        // const pointsEarned = 0;
-        // await updateUserPoints(user.$id, pointsEarned, "receipt_upload");
-
-        // const earnedBadges = await checkAndAwardBadges(user.$id);
-        // if (earnedBadges.length > 0) {
-        //   const badgeNames = earnedBadges.map((badge) => badge.name).join(", ");
-        //   const pointsExtra = earnedBadges
-        //     .map((badge) => badge.points_reward)
-        //     .join(", ");
-        //   Alert.alert(
-        //     t("notifications.achievementUnlockedTitle"), // Translated "Achievement Unlocked!"
-        //     t("notifications.achievementUnlockedMessage", {
-        //       badgeNames,
-        //       pointsExtra,
-        //     }) // Translated with interpolation
-        //   );
-
-        //   await createNotification({
-        //     user_id: user.$id,
-        //     title: t("notifications.achievementUnlockedTitle"), // Translated
-        //     message: t("notifications.achievementUnlockedMessage", {
-        //       badgeNames,
-        //       pointsExtra,
-        //     }), // Translated with interpolation
-        //     type: "points_award",
-        //     expiresAt: getFutureDate(7),
-        //   });
-        // }
 
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
         updateUnreadCount(updatedUnreadCount);
