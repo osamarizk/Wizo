@@ -122,7 +122,7 @@ const TabsLayout = () => {
             height: Platform.select({
               // <--- Use Platform.select here
               ios: 84, // Height for iOS
-              android: 100, // Height for Android
+              android: 90, // Height for Android
             }),
             borderRadius: 10,
             borderCurve: 90,
