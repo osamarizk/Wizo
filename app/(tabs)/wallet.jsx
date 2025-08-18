@@ -508,7 +508,7 @@ const Wallet = () => {
 
   return (
     <GradientBackground>
-      <SafeAreaView className="flex-1">
+      <SafeAreaView className="flex-1 mt-6">
         {/* {isConnected === false && (
           <View className="bg-red-500 p-2 items-center">
             <Text

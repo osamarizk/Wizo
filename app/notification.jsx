@@ -494,7 +494,7 @@ const NotificationPage = () => {
       const isFinancialAdvice = item.type === "financial_advice"; // NEW: Flag for financial advice type
 
       return (
-        <View className="bg-white mx-4 mb-2 rounded-lg overflow-hidden border-t border-[#9F54B6]">
+        <View className="bg-white  mb-4 rounded-lg overflow-hidden ">
           <TouchableOpacity
             onPress={() =>
               handleNotificationPress(item.$id, item.receipt_id, item.budget_id)
@@ -902,10 +902,10 @@ const NotificationPage = () => {
   );
   return (
     <GradientBackground>
-      <SafeAreaView className="flex-1">
+      <SafeAreaView className="flex-1  p-4 mt-8">
         {/* Notification Header */}
         <View
-          className={`flex-row items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shadow-sm ${
+          className={`flex-row items-center justify-between px-4 py-3  bg-transparent border-b border-gray-400 shadow-sm ${
             I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
           }`}
         >
@@ -927,12 +927,12 @@ const NotificationPage = () => {
 
         {/* NEW: Expiry Information Text */}
         <View
-          className={`px-4 py-2 bg-gray-50 border-b border-gray-100 ${
+          className={`px-4 py-2 bg-transparent  ${
             I18nManager.isRTL ? "items-end" : "items-start"
           }`}
         >
           <Text
-            className={`text-sm text-gray-600 ${getFontClassName("regular")}`} // NEW: Apply font class
+            className={`text-sm text-blue-600 ${getFontClassName("regular")}`} // NEW: Apply font class
             style={{
               fontFamily: getFontClassName("regular"),
               textAlign: I18nManager.isRTL ? "right" : "left",
@@ -963,7 +963,7 @@ const NotificationPage = () => {
                 tintColor="#9F54B6"
               />
             }
-            contentContainerStyle={{ paddingVertical: 10 }}
+            contentContainerStyle={{   paddingTop:20 }}
             ListEmptyComponent={
               !refreshing && (
                 <View className="flex-1 justify-center items-center h-40">

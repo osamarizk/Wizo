@@ -462,7 +462,7 @@ const Spending = () => {
 
   return (
     <GradientBackground>
-      <SafeAreaView className=" flex-1">
+      <SafeAreaView className=" flex-1 ">
         {/* {isConnected === false && (
           <View className="bg-red-500 p-2 items-center">
             <Text
@@ -474,7 +474,7 @@ const Spending = () => {
           </View>
         )} */}
         <ScrollView
-          className="w-full h-full p-2"
+          className="w-full h-full p-4 mt-6"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }

@@ -615,20 +615,20 @@ const BudgetSetupModal = ({
         onPress={onClose}
       >
         <View
-          className="bg-primary   p-6 w-11/12 max-w-md max-h-[90%]"
+          className="bg-primary   p-8 w-11/12 max-w-md max-h-[90%] rounded-lg shadow-lg"
           onStartShouldSetResponder={() => true}
         >
           <TouchableOpacity onPress={onClose} className="p-2">
             <Image
               source={icons.close}
               resizeMode="contain"
-              className="w-6 h-6 "
+              className="w-8 h-8 "
               tintColor="#333"
             />
           </TouchableOpacity>
           <Text
-            className={`text-3xl text-[#1a2471] mb-6 text-center `}
-            style={{ fontFamily: getFontClassName("semibold") }}
+            className={`text-2xl text-[#1a2471] mb-6 text-center `}
+            style={{ fontFamily: getFontClassName("bold") }}
           >
             {isExistingBudget
               ? t("budget.updateYourBudgetTitle")
@@ -636,7 +636,7 @@ const BudgetSetupModal = ({
           </Text>
 
           {loading && (
-            <View className="absolute inset-0 bg-white/70 justify-center items-center z-20 rounded-lg">
+            <View className="  bg-white justify-center items-center  rounded-lg">
               <ActivityIndicator size="large" color="#9F54B6" />
               <Text
                 className="mt-2 text-gray-700"
@@ -651,7 +651,7 @@ const BudgetSetupModal = ({
             {/* Budget Amount Input */}
             <View className="mb-3">
               <Text
-                className={`text-lg text-[#1a2471]  mb-1 text-center ${
+                className={`text-base text-[#1a2471]  mb-1 text-center ${
                   I18nManager.isRTL ? "text-right" : "text-left"
                 }`}
                 style={{ fontFamily: getFontClassName("semibold") }}
@@ -659,7 +659,7 @@ const BudgetSetupModal = ({
                 {t("budget.budgetAmountTitle")}
               </Text>
               <TextInput
-                className={`w-full h-12.5 bg-white  p-3  border-2 border-[#9F54B6] text-lg text-black ${
+                className={`w-full h-12.5 bg-white  p-3  border-2 rounded-md border-[#9F54B6] text-md text-black ${
                   I18nManager.isRTL ? "text-right" : "text-left"
                 }`}
                 style={{
@@ -706,7 +706,7 @@ const BudgetSetupModal = ({
             {/* Category Dropdown */}
             <View className="mb-4">
               <Text
-                className={`text-lg text-[#1a2471]  mb-1 ${
+                className={`text-base text-[#1a2471]  mb-1 ${
                   I18nManager.isRTL ? "text-right" : "text-left"
                 }`}
                 style={{ fontFamily: getFontClassName("semibold") }}
@@ -714,7 +714,7 @@ const BudgetSetupModal = ({
                 {t("budget.categoryTitle")}
               </Text>
               <Dropdown
-                className="h-12.5 bg-white p-3 border-2 border-[#9F54B6]"
+                className="h-12.5 bg-white p-3 border-2 rounded-md border-[#9F54B6]"
                 placeholderStyle={{
                   fontSize: 16,
                   color: "#7b7b8b",
@@ -729,7 +729,7 @@ const BudgetSetupModal = ({
                 }}
                 inputSearchStyle={{
                   height: 40,
-                  fontSize: 16,
+                  fontSize: 14,
                   textAlign: I18nManager.isRTL ? "right" : "left",
                   fontFamily: getFontClassName("regular"),
                 }}
@@ -765,7 +765,7 @@ const BudgetSetupModal = ({
             {/* Subcategory Dropdown */}
             <View className="mb-4">
               <Text
-                className={`text-lg text-[#1a2471]  mb-1 ${
+                className={`text-base text-[#1a2471]  mb-1 ${
                   I18nManager.isRTL ? "text-right" : "text-left"
                 }`}
                 style={{ fontFamily: getFontClassName("semibold") }}
@@ -773,7 +773,7 @@ const BudgetSetupModal = ({
                 {t("budget.subcategoryTitle")}
               </Text>
               <Dropdown
-                className="h-12.5 bg-white  p-3  border-2 border-[#9F54B6]"
+                className="h-12.5 bg-white  p-3  border-2 rounded-md border-[#9F54B6]"
                 placeholderStyle={{
                   fontSize: 16,
                   color: "#7b7b8b",
@@ -827,7 +827,7 @@ const BudgetSetupModal = ({
             {/* Start Date Picker */}
             <View className="mb-4">
               <Text
-                className={`text-lg text-[#1a2471]  mb-1 ${
+                className={`text-base text-[#1a2471]  mb-1 ${
                   I18nManager.isRTL ? "text-right" : "text-left"
                 }`}
                 style={{ fontFamily: getFontClassName("semibold") }}
@@ -836,7 +836,7 @@ const BudgetSetupModal = ({
               </Text>
               <TouchableOpacity
                 onPress={() => setShowStartDatePicker(true)}
-                className="w-full border-2 border-[#9F54B6]  p-4"
+                className="w-full border-2 rounded-md border-[#9F54B6]  p-4"
               >
                 <Text
                   className={`text-base text-gray-800 ${
@@ -973,7 +973,7 @@ const BudgetSetupModal = ({
             {/* End Date Picker */}
             <View className="mb-4">
               <Text
-                className={`text-lg text-[#1a2471]  mb-1 ${
+                className={`text-base text-[#1a2471]  mb-1 ${
                   I18nManager.isRTL ? "text-right" : "text-left"
                 }`}
                 style={{ fontFamily: getFontClassName("semibold") }}
@@ -982,7 +982,7 @@ const BudgetSetupModal = ({
               </Text>
               <TouchableOpacity
                 onPress={() => setShowEndDatePicker(true)}
-                className="w-full border-2 border-[#9F54B6]  p-4"
+                className="w-full border-2 rounded-md border-[#9F54B6]  p-4"
               >
                 <Text
                   className={`text-base text-gray-800 ${
@@ -1122,7 +1122,7 @@ const BudgetSetupModal = ({
             {/* Save/Update Button */}
             <TouchableOpacity
               onPress={handleSaveBudget}
-              className={`mt-4 py-3 items-center justify-center ${
+              className={`mt-4 p-4 items-center justify-center rounded-xl ${
                 loading ? "bg-gray-400" : "bg-[#264653]"
               }`}
               disabled={loading}

@@ -684,7 +684,7 @@ const Budget = () => {
 
   return (
     <GradientBackground>
-      <SafeAreaView className="flex-1">
+      <SafeAreaView className="flex-1 mt-6">
         {/* {isConnected === false && (
           <View className="bg-red-500 p-2 items-center">
             <Text
@@ -696,7 +696,7 @@ const Budget = () => {
           </View>
         )} */}
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, width: "100%", padding: 20 }}
+          className="w-full h-full p-4 mt-6"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }

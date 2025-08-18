@@ -1080,8 +1080,7 @@ const resources = {
         endDateTitle: "End Date", // Reusing from setup modal, if applicable
         updateYourBudgetTitle: "Update Your Budget", // Reusing for the button
         setUpYourBudgetTitle: "Set Up Your Budget", // Reusing for the button
-        noSubcategoriesAvailable:
-          "No subcategories available for this category.",
+        noSubcategoriesAvailable: "No subcategories available.",
       },
       account: {
         accountSettingsTitle: "Account Settings",
@@ -1464,8 +1463,7 @@ const resources = {
         pricePerMonthYearly: "{{price}} / month, billed annually",
         featuresListTitle: "What you'll get:",
         notPremiumYet: "Not a Premium Member yet.",
-        benefitsDescription:
-          "Enhance your finances with ResynQ Premium.",
+        benefitsDescription: "Enhance your finances with ResynQ Premium.",
       },
       editProfile: {
         editProfileTitle: "Edit Profile",
@@ -2699,7 +2697,7 @@ const resources = {
         endDateTitle: "تاريخ الانتهاء",
         updateYourBudgetTitle: "تعديل ميزانيتك",
         setUpYourBudgetTitle: "إعداد ميزانيتك",
-        noSubcategoriesAvailable: "لا توجد فئات فرعية متاحة لهذه الفئة.",
+        noSubcategoriesAvailable: "لا توجد فئات فرعية متاحة .",
       },
       account: {
         accountSettingsTitle: "إعدادات الحساب",
