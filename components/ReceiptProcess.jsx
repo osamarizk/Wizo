@@ -30,7 +30,6 @@ import {
   checkAndAwardBadges,
   checkSession,
   getFutureDate,
-  callPushNotificationFunction,
 } from "../lib/appwrite";
 import Checkbox from "expo-checkbox";
 import { useGlobalContext } from "../context/GlobalProvider";
@@ -42,7 +41,6 @@ import * as ImageManipulator from "expo-image-manipulator";
 import GradientBackground from "./GradientBackground";
 import { ar } from "date-fns/locale";
 import { format } from "date-fns";
-// import useInternetConnection from "../lib/useInternetConnection";
 
 const convertToArabicNumerals = (num) => {
   const numString = String(num);
@@ -77,7 +75,6 @@ const generateTranslationKey = (originalName) => {
 };
 const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   const { t } = useTranslation();
-  // const isConnected = useInternetConnection();
   const [showFullImage, setShowFullImage] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -125,11 +122,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           "aiMessages.geminiEmptyResponse",
         "The model is overloaded. Please try again later.":
           "aiMessages.modelOverloaded",
-
-        // Add more mappings here as you discover exact English messages from your AI API
       };
 
-      // Debugging log: show what message is being looked up and what keyMap contains
       console.log(
         "DEBUG: getTranslatedAiMessage - Looking up message:",
         `"${cleanedEnglishMessage}"`
@@ -261,56 +255,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
     try {
       setIsProcessing(true);
       const data = await extractReceiptData(imageUri);
-      console.log("Returned data from extravtedDate receipt", data.data);
-      console.log(
-        "Returned data.data.date from extravtedDate receipt",
-        data.data.date
-      );
-      // --- BEGIN: AMBIGUOUS DATE FORMAT CHECK & CORRECTION (FINAL) ---
-      if (data.data && data.data.datetime) {
-        const today = new Date();
 
-        // Split the ISO datetime string to get the date part (e.g., "2025-12-08")
-        const datePart = data.data.datetime.split("T")[0];
-        const [originalYear, originalMonth, originalDay] = datePart
-          .split("-")
-          .map(Number);
-
-        // Create a date object based on the extracted format (MM/DD/YYYY)
-        // We must subtract 1 from the month because Date objects are 0-indexed for months.
-        const extractedDate = new Date(
-          originalYear,
-          originalMonth - 1,
-          originalDay
-        );
-
-        // Create a date object with the swapped format (DD/MM/YYYY)
-        const swappedDate = new Date(
-          originalYear,
-          originalDay - 1,
-          originalMonth
-        );
-
-        // Check if the extracted date is in the future but the swapped date is in the past or today.
-        // This is the key heuristic for correcting the date.
-        if (extractedDate > today && swappedDate <= today) {
-          console.log("Found an ambiguous date. Correcting it now...");
-
-          // Use the swapped values to create a new, corrected datetime string
-          // Remember to pad single-digit numbers with a leading zero.
-          const correctedDatePart = `${originalYear}-${String(
-            originalDay
-          ).padStart(2, "0")}-${String(originalMonth).padStart(2, "0")}`;
-          const correctedTimePart = data.data.datetime.split("T")[1];
-
-          // Update the datetime field with the corrected value
-          data.data.datetime = `${correctedDatePart}T${correctedTimePart}`;
-          console.log(
-            `Date format corrected. New datetime: ${data.data.datetime}`
-          );
-        }
-      }
-      // --- END: AMBIGUOUS DATE FORMAT CHECK & CORRECTION (FINAL) ---
       // Check if it's not a receipt
       if (!data.isReceipt) {
         const displayMessage = data.message
@@ -645,31 +590,15 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
       const userCurrentReceiptCount = user.currentMonthReceiptCount || 0; // Get current count from global user object
 
-      console.log("Data being sent to createReceipt:", receiptData);
-
       const { receipt: newReceipt, updatedUser: freshUser } =
-        await createReceipt(receiptData, user.$id, userCurrentReceiptCount);
+        await createReceipt(
+          // NEW: Destructure response
+          receiptData,
+          user.$id,
+          userCurrentReceiptCount
+        );
 
       if (newReceipt && newReceipt.$id) {
-        // try {
-        //   const payload = {
-        //     userId: user.$id,
-        //     title: t("pushNotifications.receiptProcessedTitle"),
-        //     body: t("pushNotifications.receiptProcessedMessage", {
-        //       merchant: extractedData.merchant || t("common.unknown"),
-        //       total: (extractedData.total || 0).toFixed(2),
-        //     }),
-        //   };
-
-        //   // IMPORTANT: Replace 'YOUR_FUNCTION_ID' with the actual ID of your Appwrite Function
-        //   await callPushNotificationFunction("689f5b7d0012fbcfb027", payload);
-        //   console.log(
-        //     "Successfully called Appwrite function to send push notification."
-        //   );
-        // } catch (pushError) {
-        //   console.warn("Failed to call push notification function:", pushError);
-        // }
-
         if (freshUser) {
           setTimeout(() => {
             setUser(freshUser);
@@ -710,6 +639,35 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           expiresAt: getFutureDate(7),
         });
 
+        const pointsEarned = 0;
+        await updateUserPoints(user.$id, pointsEarned, "receipt_upload");
+
+        const earnedBadges = await checkAndAwardBadges(user.$id);
+        if (earnedBadges.length > 0) {
+          const badgeNames = earnedBadges.map((badge) => badge.name).join(", ");
+          const pointsExtra = earnedBadges
+            .map((badge) => badge.points_reward)
+            .join(", ");
+          Alert.alert(
+            t("notifications.achievementUnlockedTitle"), // Translated "Achievement Unlocked!"
+            t("notifications.achievementUnlockedMessage", {
+              badgeNames,
+              pointsExtra,
+            }) // Translated with interpolation
+          );
+
+          await createNotification({
+            user_id: user.$id,
+            title: t("notifications.achievementUnlockedTitle"), // Translated
+            message: t("notifications.achievementUnlockedMessage", {
+              badgeNames,
+              pointsExtra,
+            }), // Translated with interpolation
+            type: "points_award",
+            expiresAt: getFutureDate(7),
+          });
+        }
+
         const updatedUnreadCount = await countUnreadNotifications(user.$id);
         updateUnreadCount(updatedUnreadCount);
         onCancel();
@@ -739,10 +697,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       }
     } catch (error) {
       console.error("Save error:", error);
-      Alert.alert(
-        t("common.errorTitle"),
-        error.message || t("receiptProcess.generalSaveError")
-      );
+      Alert.alert(t("common.errorTitle"), t("receiptProcess.generalSaveError"));
       setHasSaved(false);
       try {
         await createNotification({
@@ -787,7 +742,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
   };
 
   return (
-    <View className=" px-2 pt-10 pb-2  max-h-[90vh] bg-[#cccccd]">
+    <View className=" px-5 pt-10 pb-2  max-h-[92vh] bg-[#cccccc]">
       {!extractedData &&
         !isProcessing &&
         !hasSaved && ( // Ensure it only shows when relevant
@@ -801,7 +756,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                 <Image
                   source={images.cancel}
                   resizeMode="contain"
-                  className="w-[45px] h-[45px] rounded-full p-1 border-2 border-red-600 opacity-90"
+                  className="w-[40px] h-[40] rounded-full p-1 border-2 border-red-600 opacity-90"
                 />
               </View>
             </TouchableOpacity>
@@ -810,8 +765,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
       {extractedData && (
         <View
-          className={`absolute z-10 top-4 ${
-            I18nManager.isRTL ? "left-4" : "right-4"
+          className={`absolute z-10 top-3 ${
+            I18nManager.isRTL ? "left-3" : "right-3"
           }`}
         >
           <TouchableOpacity onPress={onCancel}>
@@ -819,7 +774,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
               <Image
                 source={images.cancel}
                 resizeMode="contain"
-                className="w-[45px] h-[45px] rounded-full p-1 border-2 border-red-600 opacity-90"
+                className="w-[40px] h-[40px] rounded-full p-1 border-2 border-red-600 "
               />
             </View>
           </TouchableOpacity>
@@ -832,12 +787,12 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
           paddingBottom: 1,
           flexGrow: 1,
         }}
-        showsVerticalScrollIndicator={true}
+        showsVerticalScrollIndicator={false}
       >
         {extractedData && (
           <>
             <Text
-              className={`text-xl text-black text-center mb-2 mt-4 ${getFontClassName(
+              className={`text-lg text-black text-center mb-1 mt-2 ${getFontClassName(
                 "bold"
               )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
               style={{ fontFamily: getFontClassName("bold") }}
@@ -873,7 +828,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                 } bg-black/70 px-2 py-1 rounded`}
               >
                 <Text
-                  className={`text-base text-white ${getFontClassName(
+                  className={`text-sm text-white ${getFontClassName(
                     "semibold"
                   )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
                   style={{ fontFamily: getFontClassName("semibold") }}
@@ -884,7 +839,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             </TouchableOpacity>
 
             {isProcessing ? (
-              <View className="items-center mt-2 mb-2">
+              <View className="items-center mt-6 mb-6">
                 <ActivityIndicator size="large" color="#ef6969" />
                 <Text
                   className={`mt-2 text-black/70 text-center ${getFontClassName(
@@ -896,13 +851,13 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                 </Text>
               </View>
             ) : (
-              <View className="flex-row justify-center items-center gap-6 mt-2 mb-4">
+              <View className="flex-row justify-center items-center gap-6 mt-2 mb-6">
                 <TouchableOpacity onPress={handleProcessReceipt}>
                   <View className="items-center">
                     <Image
                       source={images.confirm}
                       resizeMode="contain"
-                      className="w-[57px] h-[57px] rounded-full p-1 border-2 border-green-800 "
+                      className="w-[40px] h-[40px] rounded-full p-1 border-2 border-green-800 opacity-90"
                     />
                     <Text
                       className={`mt-1 text-sm text-black/80 ${getFontClassName(
@@ -922,20 +877,20 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         {/* Extracted Data Display - Hidden when hasSaved is true */}
         {extractedData && !hasSaved && (
           <>
-            <View className="w-full mt-2 px-8 py-1 rounded-xl mb-2">
+            <View className="w-full mt-2 px-4 py-1 rounded-xl mb-1">
               {/* Merchant Display */}
               {extractedData.merchant && !showAllItems && (
                 <Text
-                  className={`text-blue-900 mb-3 text-base ${getFontClassName(
+                  className={`text-blue-900 mb-3 text-sm ${getFontClassName(
                     "semibold"
                   )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
                   style={{ fontFamily: getFontClassName("semibold") }}
                 >
                   <Text
-                    className={`text-black text-base ${getFontClassName(
-                      "bold"
+                    className={`text-black text-md ${getFontClassName(
+                      "semibold"
                     )}`}
-                    style={{ fontFamily: getFontClassName("bold") }}
+                    style={{ fontFamily: getFontClassName("semibold") }}
                   >
                     🏪 {t("receiptProcess.merchant")}
                     {" : "}
@@ -950,16 +905,16 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                   extractedData.location.city ||
                   extractedData.location.country) && (
                   <Text
-                    className={`text-blue-900 mb-3 text-base ${getFontClassName(
+                    className={`text-blue-900 mb-3 text-sm ${getFontClassName(
                       "semibold"
                     )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
                     style={{ fontFamily: getFontClassName("semibold") }}
                   >
                     <Text
-                      className={`text-black text-base ${getFontClassName(
-                        "bold"
+                      className={`text-black text-sm ${getFontClassName(
+                        "semibold"
                       )}`}
-                      style={{ fontFamily: getFontClassName("bold") }}
+                      style={{ fontFamily: getFontClassName("semibold") }}
                     >
                       📍 {t("receiptProcess.location")}
                       {" : "}
@@ -979,16 +934,16 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
               {/* Date & Time Display */}
               {extractedData.datetime && !showAllItems && (
                 <Text
-                  className={`text-blue-900 mb-3 text-base ${getFontClassName(
+                  className={`text-blue-900 mb-3 text-sm ${getFontClassName(
                     "semibold"
                   )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
                   style={{ fontFamily: getFontClassName("semibold") }}
                 >
                   <Text
-                    className={`text-black text-base ${getFontClassName(
-                      "bold"
+                    className={`text-black text-sm ${getFontClassName(
+                      "semibold"
                     )}`}
-                    style={{ fontFamily: getFontClassName("bold") }}
+                    style={{ fontFamily: getFontClassName("semibold") }}
                   >
                     📅 {t("receiptProcess.date")}
                     {" : "}
@@ -1052,42 +1007,42 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                   }`}
                 >
                   <Text
-                    className={`text-base text-black mb-1 ${getFontClassName(
+                    className={`text-sm text-black mb-1 ${getFontClassName(
                       "bold"
-                    )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
-                    style={{ fontFamily: getFontClassName("bold") }}
-                  >
-                    🗂️ {t("receiptProcess.category")}:
-                  </Text>
-                  <Text
-                    className={`text-base text-green-900 ml-4 mb-2 ${getFontClassName(
-                      "semibold"
                     )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
                     style={{ fontFamily: getFontClassName("semibold") }}
                   >
-                    {t(
-                      `categories.${generateTranslationKey(
-                        extractedData.items[0].category || t("common.unknown")
-                      )}`,
-                      {
-                        defaultValue:
-                          extractedData.items[0].category ||
-                          t("common.unknown"),
-                      }
-                    )}
-                    {" : "}
+                    🗂️ {t("receiptProcess.category")}:{" "}
+                    <Text
+                      className={`text-sm text-red-900 ml-4 mb-2 ${getFontClassName(
+                        "semibold"
+                      )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
+                      style={{ fontFamily: getFontClassName("semibold") }}
+                    >
+                      {t(
+                        `categories.${generateTranslationKey(
+                          extractedData.items[0].category || t("common.unknown")
+                        )}`,
+                        {
+                          defaultValue:
+                            extractedData.items[0].category ||
+                            t("common.unknown"),
+                        }
+                      )}
+                      {" : "}
 
-                    {t(
-                      `subcategories.${generateTranslationKey(
-                        extractedData.items[0].subcategory ||
-                          t("common.uncategorized")
-                      )}`,
-                      {
-                        defaultValue:
+                      {t(
+                        `subcategories.${generateTranslationKey(
                           extractedData.items[0].subcategory ||
-                          t("common.uncategorized"),
-                      }
-                    )}
+                            t("common.uncategorized")
+                        )}`,
+                        {
+                          defaultValue:
+                            extractedData.items[0].subcategory ||
+                            t("common.uncategorized"),
+                        }
+                      )}
+                    </Text>
                   </Text>
                 </View>
               )}
@@ -1103,28 +1058,35 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                     }`}
                   >
                     <Text
-                      className={`text-base text-blue-700 ${getFontClassName(
+                      className={`text-sm text-blue-700 ${getFontClassName(
                         "bold"
                       )}`}
-                      style={{ fontFamily: getFontClassName("bold") }}
+                      style={{ fontFamily: getFontClassName("semibold") }}
                     >
                       🛒 {t("receiptProcess.items")}:
                     </Text>
                     {extractedData.items.length > 2 && ( // Default showing 2 items initially
-                      <TouchableOpacity onPress={toggleItems}>
-                        <Text
-                          className={`text-base text-blue-700 ${
-                            I18nManager.isRTL ? "mr-1" : "ml-1"
-                          } ${getFontClassName("bold")} ${
-                            I18nManager.isRTL ? "text-right" : "text-left"
-                          }`}
-                          style={{ fontFamily: getFontClassName("bold") }}
-                        >
-                          {showAllItems
-                            ? t("receiptProcess.showLess")
-                            : t("receiptProcess.showMore")}{" "}
-                        </Text>
-                      </TouchableOpacity>
+                      <ScrollView
+                        className="flex-1"
+                        horizontal={I18nManager.isRTL} // Scroll horizontally in RTL if needed for "Show more" text
+                        showsHorizontalScrollIndicator={false}
+                        showsVerticalScrollIndicator={false}
+                      >
+                        <TouchableOpacity onPress={toggleItems}>
+                          <Text
+                            className={`text-sm text-blue-700 ${
+                              I18nManager.isRTL ? "mr-1" : "ml-1"
+                            } ${getFontClassName("semibold")} ${
+                              I18nManager.isRTL ? "text-right" : "text-left"
+                            }`}
+                            style={{ fontFamily: getFontClassName("semibold") }}
+                          >
+                            {showAllItems
+                              ? t("receiptProcess.showLess")
+                              : t("receiptProcess.showMore")}{" "}
+                          </Text>
+                        </TouchableOpacity>
+                      </ScrollView>
                     )}
                   </View>
 
@@ -1139,7 +1101,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                       }`}
                     >
                       <Text
-                        className={`text-blue-900 text-base ${getFontClassName(
+                        className={`text-blue-900 text-sm ${getFontClassName(
                           "semibold"
                         )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
                         style={{ fontFamily: getFontClassName("semibold") }}
@@ -1147,11 +1109,11 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                         • {item.name || t("receiptProcess.unnamedItem")}
                         {" : "}
                         <Text
-                          className={`text-red-900 text-base ${getFontClassName(
-                            "bold"
+                          className={`text-red-900 text-sm ${getFontClassName(
+                            "semibold"
                           )}`}
                           style={{
-                            fontFamily: getFontClassName("bold"),
+                            fontFamily: getFontClassName("semibold"),
                             textAlign: i18n.language.startsWith("ar")
                               ? "right"
                               : "left",
@@ -1174,7 +1136,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                       }`}
                     >
                       <Text
-                        className={`text-blue-700 mt-1 text-base ${getFontClassName(
+                        className={`text-blue-700 mt-1 text-sm ${getFontClassName(
                           "bold"
                         )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
                         style={{ fontFamily: getFontClassName("bold") }}
@@ -1194,13 +1156,13 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                 extractedData.subtotal !== 0 &&
                 !showAllItems && (
                   <Text
-                    className={`text-red-900 text-base mb-1 ${getFontClassName(
+                    className={`text-red-900 text-sm mb-1 ${getFontClassName(
                       "semibold"
                     )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
                     style={{ fontFamily: getFontClassName("semibold") }}
                   >
                     <Text
-                      className={`text-black text-base ${getFontClassName(
+                      className={`text-black text-sm ${getFontClassName(
                         "bold"
                       )}`}
                       style={{ fontFamily: getFontClassName("bold") }}
@@ -1222,13 +1184,13 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                 extractedData.vat !== 0 &&
                 !showAllItems && (
                   <Text
-                    className={`text-red-900 text-base mb-1 ${getFontClassName(
+                    className={`text-red-900 text-sm mb-1 ${getFontClassName(
                       "semibold"
                     )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
                     style={{ fontFamily: getFontClassName("semibold") }}
                   >
                     <Text
-                      className={`text-black text-base ${getFontClassName(
+                      className={`text-black text-sm ${getFontClassName(
                         "bold"
                       )}`}
                       style={{ fontFamily: getFontClassName("bold") }}
@@ -1250,15 +1212,13 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
               extractedData.total !== 0 &&
               !showAllItems && (
                 <Text
-                  className={`text-red-900 text-base mb-4 ${getFontClassName(
+                  className={`text-red-900 text-sm mb-4 ${getFontClassName(
                     "semibold"
                   )} ${I18nManager.isRTL ? "text-right" : "text-left"}`}
                   style={{ fontFamily: getFontClassName("bold") }}
                 >
                   <Text
-                    className={`text-black text-base ${getFontClassName(
-                      "bold"
-                    )}`}
+                    className={`text-black text-sm ${getFontClassName("bold")}`}
                     style={{ fontFamily: getFontClassName("bold") }}
                   >
                     💰 {t("receiptProcess.total")}
@@ -1273,7 +1233,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
             {/* Consent checkbox */}
             <View
-              className={`flex-row items-center mt-6 mb-4 px-4 gap-2 ${
+              className={`flex-row items-center mt-6 mb-2 px-1 gap-2 ${
                 I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
               }`}
             >
@@ -1290,7 +1250,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
                 } text-gray-700 text-sm ${getFontClassName("regular")} ${
                   I18nManager.isRTL ? "text-right" : "text-left"
                 }`}
-                style={{ fontFamily: getFontClassName("semibold") }}
+                style={{ fontFamily: getFontClassName("regular") }}
               >
                 {" "}
                 {t("receiptProcess.consentMessage")}
@@ -1300,7 +1260,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             {/* Save Button */}
             <TouchableOpacity
               onPress={handleSave}
-              className={`bg-[#4E17B3] py-3 rounded-md w-full mt-4 mb-8 ${
+              className={`bg-[#621562] py-3 rounded-md shadow-md w-full mt-4 mb-8 ${
                 isProcessing && hasSaved ? "opacity-50" : ""
               }`}
               disabled={isProcessing && hasSaved} // Disable if saving
