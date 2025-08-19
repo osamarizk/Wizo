@@ -5,7 +5,6 @@ export default {
     name: "ResynQ",
     slug: "ResynQ",
     scheme: "resynQ",
-    jsEngine: "jsc",
     version: "1.2.2", // Your user-facing app version
     orientation: "portrait",
     icon: "./assets/icons/ResynQ-logo.png",
@@ -35,6 +34,7 @@ export default {
       package: "com.o7.rn1",
       supportsRTL: true,
       edgeToEdge: true,
+      jsEngine: "hermes",
       adaptiveIcon: {
         foregroundImage: "./assets/icons/ResynQ-logo.png",
         backgroundColor: "#ffffff",
