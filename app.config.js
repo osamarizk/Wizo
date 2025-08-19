@@ -5,6 +5,7 @@ export default {
     name: "ResynQ",
     slug: "ResynQ",
     scheme: "resynQ",
+    jsEngine: "hermes",
     version: "1.2.2", // Your user-facing app version
     orientation: "portrait",
     icon: "./assets/icons/ResynQ-logo.png",
