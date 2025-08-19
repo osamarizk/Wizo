@@ -60,7 +60,7 @@ export default {
       REVENUECAT_APPLE_API_KEY: process.env.REVENUECAT_APPLE_API_KEY,
       REVENUECAT_GOOGLE_API_KEY: process.env.REVENUECAT_GOOGLE_API_KEY,
       eas: {
-        projectId: "545243ca-fd5a-492f-8d6f-bf236c9166d5",
+        projectId: "25b09883-da1b-42ae-9e94-c19a6ae209d0",
       },
     },
   },
