@@ -18,6 +18,7 @@ export default {
     ios: {
       supportsRTL: true,
       supportsTablet: false,
+      jsEngine: "jsc",
       bundleIdentifier: "com.o7.rn1",
       buildNumber: "1",
       infoPlist: {
