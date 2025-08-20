@@ -452,6 +452,30 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       setIsProcessing(false);
     }
   };
+
+  const handleReceiptSuccess = async (user, extractedData, newReceipt) => {
+    // Get the user's device token.
+    const deviceToken = user?.deviceToken;
+
+    if (deviceToken) {
+      const notificationTitle = t("notifications.receiptProcessedTitle");
+      const notificationBody = t("notifications.receiptProcessedMessage", {
+        merchant: extractedData.merchant || t("common.unknown"),
+        total: (extractedData.total || 0).toFixed(2),
+      });
+
+      // Send the push notification.
+      await sendPushNotification(
+        deviceToken,
+        notificationTitle,
+        notificationBody,
+        { receiptId: newReceipt.$id }
+      );
+    } else {
+      console.warn("User has no device token. Cannot send push notification.");
+    }
+  };
+
   const handleSave = async () => {
     console.log("extractedData", extractedData);
     if (!consentGiven) {
@@ -651,28 +675,11 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         await createReceipt(receiptData, user.$id, userCurrentReceiptCount);
 
       if (newReceipt && newReceipt.$id) {
-        // try {
-        //   const payload = {
-        //     userId: user.$id,
-        //     title: t("pushNotifications.receiptProcessedTitle"),
-        //     body: t("pushNotifications.receiptProcessedMessage", {
-        //       merchant: extractedData.merchant || t("common.unknown"),
-        //       total: (extractedData.total || 0).toFixed(2),
-        //     }),
-        //   };
-
-        //   // IMPORTANT: Replace 'YOUR_FUNCTION_ID' with the actual ID of your Appwrite Function
-        //   await callPushNotificationFunction("689f5b7d0012fbcfb027", payload);
-        //   console.log(
-        //     "Successfully called Appwrite function to send push notification."
-        //   );
-        // } catch (pushError) {
-        //   console.warn("Failed to call push notification function:", pushError);
-        // }
-
         if (freshUser) {
           setTimeout(() => {
             setUser(freshUser);
+            //Call push Notification Funvtion
+            handleReceiptSuccess(freshUser, extractedData, newReceipt);
           }, 200);
 
           // Check the receipt part of the response
@@ -691,6 +698,8 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         } else {
           setTimeout(async () => {
             await checkSessionAndFetchUser();
+            //Call push Notification Funvtion
+            handleReceiptSuccess(freshUser, extractedData, newReceipt);
           }, 300);
 
           console.warn(

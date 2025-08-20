@@ -30,6 +30,9 @@ import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../../utils/fontUtils";
 import CurrencySelector from "../../components/CurrencySelector";
 
+// NEW: Import the reusable push notification component
+import PushNotificationRegistrar from "../../components/PushNotificationRegistrar";
+
 const SignUp = () => {
   const { t } = useTranslation();
 
@@ -108,22 +111,6 @@ const SignUp = () => {
       setUser(result);
       setIsLogged(true);
 
-      // if (form.preferredCurrency) {
-      //   // Ensure it's not null before saving
-      //   await account.updatePrefs({
-      //     preferredCurrency: form.preferredCurrency, // <-- FIXED: Use form.preferredCurrency
-      //   });
-      // } else {
-      //   // Optional: Handle case where preferredCurrency might still be null
-      //   // (e.g., if you don't make it a mandatory field and user skips selection)
-      //   console.warn(
-      //     "No preferred currency selected, user preferences might not be updated."
-      //   );
-      //   // You could set a default here if needed:
-      //   // const defaultCurrency = countryCodeToCurrencyMap[countryCode?.toUpperCase()]?.code || countryCodeToCurrencyMap.DEFAULT.code;
-      //   // await account.updatePrefs({ preferredCurrency: defaultCurrency });
-      // }
-
       router.replace("/home");
     } catch (error) {
       console.error("Sign Up Error:", error);
@@ -162,11 +149,11 @@ const SignUp = () => {
             />
 
             {/* <Text
-                className={`text-xl text-gray-700 text-center mt-4 ${getFontClassName("extrabold")}`}
-                style={{ fontFamily: getFontClassName("extrabold"), textAlign: I18nManager.isRTL ? 'right' : 'left' }}
-              >
-                {t("auth.registerAccount")}
-              </Text> */}
+              className={`text-xl text-gray-700 text-center mt-4 ${getFontClassName("extrabold")}`}
+              style={{ fontFamily: getFontClassName("extrabold"), textAlign: I18nManager.isRTL ? 'right' : 'left' }}
+            >
+              {t("auth.registerAccount")}
+            </Text> */}
 
             {/* Form Fields */}
             <FormFiled
@@ -295,6 +282,8 @@ const SignUp = () => {
             </View>
           </View>
         </ScrollView>
+        {/* New component added here */}
+        <PushNotificationRegistrar />
       </SafeAreaView>
     </GradientBackground>
   );
