@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
@@ -12,7 +12,6 @@ const PushNotificationRegistrar = () => {
 
   /**
    * Registers a device for push notifications and saves the token to Appwrite.
-   * This function is now self-contained within this component.
    */
   const registerForPushNotificationsAsync = async () => {
     // A user must be logged in to register a token.
@@ -42,24 +41,33 @@ const PushNotificationRegistrar = () => {
       return;
     }
 
+    // This is the CRUCIAL change: use getExpoPushTokenAsync().
     try {
-      // Get the device's push token.
-      const tokenObject = await Notifications.getDevicePushTokenAsync();
+      const tokenObject = await Notifications.getExpoPushTokenAsync();
       const token = tokenObject.data;
-      console.log("Device Push Token:", token);
+      console.log("Expo Push Token:", token);
+
+      // Set up a notification channel for Android.
+      if (Platform.OS === "android") {
+        Notifications.setNotificationChannelAsync("default", {
+          name: "default",
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#FF231F7C",
+        });
+      }
 
       // Save the token to Appwrite.
       await saveDeviceToken(user.$id, token, Platform.OS);
       console.log("Token successfully saved to user document in Appwrite.");
     } catch (error) {
-      console.error("Error registering and saving push token:", error);
+      console.error("Error registering and saving Expo push token:", error);
     }
   };
 
   /**
    * This effect runs whenever the 'user' object changes in the global context.
-   * This ensures the push token is registered as soon as the user object is available,
-   * whether from a fresh sign-in or a session restore.
+   * This ensures the push token is registered as soon as the user object is available.
    */
   useEffect(() => {
     registerForPushNotificationsAsync();

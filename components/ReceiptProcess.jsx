@@ -455,9 +455,11 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
   const handleReceiptSuccess = async (user, extractedData, newReceipt) => {
     // Get the user's device token.
-    const deviceToken = user?.deviceToken;
+    const deviceTokens = user?.deviceTokens;
 
-    if (deviceToken) {
+    console.log("Device Token for Push Notification:----", deviceTokens);
+
+    if (deviceTokens) {
       const notificationTitle = t("notifications.receiptProcessedTitle");
       const notificationBody = t("notifications.receiptProcessedMessage", {
         merchant: extractedData.merchant || t("common.unknown"),
@@ -466,7 +468,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
 
       // Send the push notification.
       await sendPushNotification(
-        deviceToken,
+        deviceTokens,
         notificationTitle,
         notificationBody,
         { receiptId: newReceipt.$id }
@@ -706,6 +708,24 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
             "freshUser was null after createReceipt. Triggering full user refresh."
           );
         }
+
+        // Temporary log for testing push notification data
+        console.log(
+          "--- PUSH NOTIFICATION DATA FOR EXPO.DEV/NOTIFICATIONS ---"
+        );
+        console.log("Token:", user?.deviceTokens);
+        console.log("Title:", t("notifications.receiptProcessedTitle"));
+        console.log(
+          "Body:",
+          t("notifications.receiptProcessedMessage", {
+            merchant: extractedData.merchant || t("common.unknown"),
+            total: (extractedData.total || 0).toFixed(2),
+          })
+        );
+        console.log("Data:", JSON.stringify({ receiptId: newReceipt.$id }));
+        console.log(
+          "---------------------------------------------------------"
+        );
 
         await createNotification({
           user_id: user.$id,
