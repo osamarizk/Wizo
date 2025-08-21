@@ -42,6 +42,8 @@ import * as ImageManipulator from "expo-image-manipulator";
 import GradientBackground from "./GradientBackground";
 import { ar } from "date-fns/locale";
 import { format } from "date-fns";
+
+import sendPushNotification from "./PushNotifier";
 // import useInternetConnection from "../lib/useInternetConnection";
 
 const convertToArabicNumerals = (num) => {
