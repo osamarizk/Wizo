@@ -11,7 +11,7 @@ import * as Notifications from "expo-notifications";
  * @param {string} body - The body/message of the notification.
  * @param {object} data - Optional data payload to send with the notification.
  */
-export const sendPushNotification = async (to, title, body, data = {}) => {
+const sendPushNotification = async (to, title, body, data = {}) => {
   // Check if the recipient token is a valid Expo Push Token.
   // This check is already good, keep it.
   if (!Notifications.isExpoPushToken(to)) {
@@ -65,3 +65,5 @@ export const sendPushNotification = async (to, title, body, data = {}) => {
     alert("An error occurred while sending the notification.");
   }
 };
+
+export default sendPushNotification;
