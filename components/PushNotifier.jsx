@@ -1,10 +1,8 @@
 import * as Notifications from "expo-notifications";
+import { Alert } from "react-native";
 
 /**
  * Sends a push notification to a specific device using its Expo Push Token.
- * This is a client-side function that can be used for development/testing,
- * but in a production app, this logic should be on your backend server
- * to prevent users from sending notifications to each other.
  *
  * @param {string} to - The Expo Push Token of the recipient device.
  * @param {string} title - The title of the notification.
@@ -12,26 +10,21 @@ import * as Notifications from "expo-notifications";
  * @param {object} data - Optional data payload to send with the notification.
  */
 const sendPushNotification = async (to, title, body, data = {}) => {
-  // Check if the recipient token is a valid Expo Push Token.
-  // This check is already good, keep it.
-  if (!Notifications.isExpoPushToken(to)) {
-    console.error("Invalid Expo Push Token provided:", to);
-    // Replace alert with a more user-friendly UI component like a modal in production.
-    alert("Invalid Expo Push Token.");
-    return;
-  }
-
-  // Define the message to be sent.
-  const message = {
-    to: to,
-    sound: "default",
-    title: title,
-    body: body,
-    data: data,
-    _displayInForeground: true, // This is a new addition
-  };
+  // As requested, the isExpoPushToken validation has been removed.
+  // This function now assumes the 'to' token is a valid Expo Push Token.
 
   try {
+    // Define the message to be sent.
+    const message = {
+      to: to,
+      sound: "default",
+      title: title,
+      body: body,
+      data: data,
+      _displayInForeground: true,
+    };
+
+    console.log("Expo Push start fetching....:", message);
     // Send the push notification using Expo's API.
     const response = await fetch("https://exp.host/--/api/v2/push/send", {
       method: "POST",
@@ -43,26 +36,37 @@ const sendPushNotification = async (to, title, body, data = {}) => {
       body: JSON.stringify(message),
     });
 
-    // Check the response from Expo's API for any errors.
     const result = await response.json();
     console.log("Expo Push API Response:", result);
 
+    // Check the response from Expo's API for any errors.
     if (
       result &&
       result.data &&
       result.data[0] &&
       result.data[0].status === "error"
     ) {
-      console.error("Error from Expo Push API:", result.data[0].details.error);
-      alert(`Error from Expo: ${result.data[0].details.error}`);
+      const errorMessage =
+        result.data[0].details?.error || "Unknown error from Expo.";
+      console.error("Error from Expo Push API:", errorMessage);
+      Alert.alert(
+        "Push Notification Error",
+        `Error from Expo: ${errorMessage}`
+      );
     } else {
       console.log("Push notification sent successfully!");
-      // You might not want an alert in a real app, but for testing it's useful.
-      // alert("Push notification sent successfully!");
+      // Optionally, show a success alert for debugging
+      // Alert.alert("Success", "Push notification sent successfully!");
     }
   } catch (error) {
     console.error("Error sending push notification:", error);
-    alert("An error occurred while sending the notification.");
+    // Provide a more detailed error message from the caught error object.
+    Alert.alert(
+      "Push Notification Error",
+      `An error occurred while sending the notification: ${
+        error.message || JSON.stringify(error)
+      }`
+    );
   }
 };
 
