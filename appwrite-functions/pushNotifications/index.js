@@ -58,6 +58,7 @@ export default async ({ req, res, log, error }) => {
 
     // Correctly get the ticket ID from the response's data array
     const ticketId = sendResult.data[0]?.id;
+    console.log("Send Result Data:", sendResult.data[0]);
 
     if (!ticketId) {
       log("No ticket ID returned from Expo.");
@@ -72,14 +73,17 @@ export default async ({ req, res, log, error }) => {
     // Step 2: Check the delivery receipt after a short delay
     await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
 
-    const getResponse = await fetch("https://exp.host/--/api/v2/push/get", {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ ids: [ticketId] }),
-    });
+    const getResponse = await fetch(
+      "https://exp.host/--/api/v2/push/getReceipts",
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ids: [ticketId] }),
+      }
+    );
 
     const getResult = await getResponse.json();
     log("Expo Receipt API Response:", getResult);
