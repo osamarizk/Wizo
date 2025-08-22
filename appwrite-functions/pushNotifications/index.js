@@ -70,7 +70,7 @@ export default async ({ req, res, log, error }) => {
 
     log(`Received ticket ID: ${ticketId}. Now checking for receipt.`);
 
-    // Step 2: Check the delivery receipt after a short delay equal to 5 seconds
+    // Step 2: Check the delivery receipt after a short delay
     await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
 
     const getResponse = await fetch(
@@ -88,23 +88,25 @@ export default async ({ req, res, log, error }) => {
     const getResult = await getResponse.json();
     log("Expo Receipt API Response:", getResult);
 
-    // This section is slightly modified to be more robust
-    const receipt = Object.values(getResult.data)[0];
-
-    if (receipt.status === "ok") {
+    if (
+      getResult &&
+      getResult.data &&
+      getResult.data[0] &&
+      getResult.data[0].status === "ok"
+    ) {
       log("Notification status is 'ok'. APNs received it.");
       return res.json({
         success: true,
         message: "Push notification successfully received by APNs.",
-        details: receipt,
+        details: getResult.data[0],
       });
     } else {
-      const errorDetails = receipt.details?.apns?.reason || "Unknown error.";
-      error(`Receipt status is not 'ok': ${JSON.stringify(receipt)}`);
+      const errorDetails = getResult.data[0]?.details || "Unknown error.";
+      error(`Receipt status is not 'ok': ${JSON.stringify(errorDetails)}`);
       return res.json({
         success: false,
-        message: `Notification failed to deliver: ${receipt.message}`,
-        details: receipt,
+        message: `Notification failed to deliver.`,
+        details: errorDetails,
       });
     }
   } catch (err) {
