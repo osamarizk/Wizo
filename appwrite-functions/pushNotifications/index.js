@@ -1,157 +1,79 @@
-const sdk = require("node-appwrite");
-const apn = require("apn");
-const admin = require("firebase-admin");
+import { Client, Databases } from "node-appwrite";
+import fetch from "node-fetch"; // Required for Node.js environments
 
-module.exports = async function ({ req, res, log, error }) {
-  log("Starting cross-platform push notification function...");
+export default async ({ req, res, log, error }) => {
+  // Extract the necessary data from the request body
+  // Appwrite functions receive the payload in req.body
+  const { to, title, body, data } = JSON.parse(req.body);
 
-  const {
-    APPWRITE_API_KEY,
-    APPWRITE_ENDPOINT,
-    APPWRITE_PROJECT_ID,
-    APPWRITE_DATABASE_ID,
-    APPWRITE_USERS_COLLECTION_ID,
-    APNS_KEY_BASE64,
-    APNS_KEY_ID,
-    APNS_TEAM_ID,
-    APNS_BUNDLE_ID,
-    FCM_SERVICE_ACCOUNT_JSON, // New environment variable
-  } = process.env;
-
-  const client = new sdk.Client()
-    .setEndpoint(APPWRITE_ENDPOINT)
-    .setProject(APPWRITE_PROJECT_ID)
-    .setKey(APPWRITE_API_KEY);
-
-  const databases = new sdk.Databases(client);
-
-  let payload;
-  try {
-    payload = JSON.parse(req.body);
-  } catch (parseError) {
-    return res.json({ success: false, error: "Invalid JSON in request body." });
-  }
-
-  const { userId, title, body, data } = payload;
-
-  if (!userId || !title || !body) {
-    return res.json({ success: false, error: "Missing required parameters." });
-  }
-
-  // Initialize APNs and FCM providers
-  let apnsProvider = null;
-  let fcmApp = null;
-
-  // Initialize APNs provider only if credentials are set
-  if (APNS_KEY_BASE64 && APNS_KEY_ID && APNS_TEAM_ID && APNS_BUNDLE_ID) {
-    try {
-      const apnsKey = Buffer.from(APNS_KEY_BASE64, "base64").toString("utf-8");
-      apnsProvider = new apn.Provider({
-        token: {
-          key: apnsKey,
-          keyId: APNS_KEY_ID,
-          teamId: APNS_TEAM_ID,
-        },
-        production: false,
-      });
-    } catch (decodeErr) {
-      error("Error initializing APNs provider:", decodeErr);
-    }
-  }
-
-  // Initialize FCM provider only if credentials are set
-  if (FCM_SERVICE_ACCOUNT_JSON) {
-    try {
-      const serviceAccount = JSON.parse(FCM_SERVICE_ACCOUNT_JSON);
-      fcmApp = admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    } catch (parseErr) {
-      error("Error initializing FCM provider:", parseErr);
-    }
+  // Best practice: Validate the payload before proceeding
+  if (!to || !title || !body) {
+    return res.json(
+      {
+        success: false,
+        message: "Missing required parameters: to, title, or body.",
+      },
+      400
+    ); // 400 Bad Request
   }
 
   try {
-    const userDoc = await databases.getDocument(
-      APPWRITE_DATABASE_ID,
-      APPWRITE_USERS_COLLECTION_ID,
-      userId
-    );
+    const message = {
+      to: to,
+      sound: "default",
+      title: title,
+      body: body,
+      data: data,
+      _displayInForeground: true, // Used for testing
+    };
 
-    const deviceTokens = userDoc.deviceTokens || [];
-    log(`Found ${deviceTokens.length} device tokens for user ${userId}.`);
+    log("Push notification payload:", message);
 
-    if (deviceTokens.length === 0) {
-      log("No device tokens found. Not sending notification.");
-      if (apnsProvider) apnsProvider.shutdown();
-      if (fcmApp) await fcmApp.delete();
-      return res.json({ success: true, message: "No devices registered." });
-    }
-
-    const promises = deviceTokens.map(async (token) => {
-      // Check if the token is an iOS token (64 hex characters)
-      if (token.length === 64 && /^[0-9a-fA-F]+$/.test(token)) {
-        if (!apnsProvider) {
-          log(
-            `Skipping iOS token as APNs provider is not initialized: ${token}`
-          );
-          return;
-        }
-        log(`Attempting to send iOS notification to token: ${token}`);
-        const notification = new apn.Notification();
-        notification.alert = { title, body };
-        notification.topic = APNS_BUNDLE_ID;
-        notification.badge = 1;
-        notification.payload = data || {};
-
-        const result = await apnsProvider.send(notification, token);
-        if (result.failed.length > 0) {
-          const failed = result.failed[0];
-          error(
-            `APNs failed: reason=${failed.response.reason || "N/A"}, error=${
-              failed.error || "N/A"
-            }`
-          );
-        } else {
-          log(`Successfully sent iOS notification to token ${token}.`);
-        }
-      } else {
-        // Assume it's an Android/FCM token
-        if (!fcmApp) {
-          log(
-            `Skipping Android token as FCM provider is not initialized: ${token}`
-          );
-          return;
-        }
-        log(`Attempting to send Android notification to token: ${token}`);
-        const message = {
-          notification: { title, body },
-          data: data || {},
-          token: token,
-        };
-
-        try {
-          const result = await admin.messaging().send(message);
-          log(`Successfully sent Android notification: ${result}`);
-        } catch (fcmError) {
-          error(`FCM failed to send: ${fcmError.message}`);
-        }
-      }
+    // Send the push notification using Expo's API
+    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Accept-encoding": "gzip, deflate",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(message),
     });
 
-    await Promise.all(promises);
+    const result = await response.json();
+    log("Expo Push API Response:", result);
 
-    if (apnsProvider) apnsProvider.shutdown();
-    if (fcmApp) await fcmApp.delete();
+    // Check the response from Expo's API for any errors
+    if (
+      result &&
+      result.data &&
+      result.data[0] &&
+      result.data[0].status === "error"
+    ) {
+      const errorMessage =
+        result.data[0].details?.error || "Unknown error from Expo.";
+      error(`Error from Expo Push API: ${errorMessage}`);
+      return res.json({
+        success: false,
+        message: `Error from Expo: ${errorMessage}`,
+        details: result.data[0].details,
+      });
+    }
 
+    log("Push notification sent successfully!");
     return res.json({
       success: true,
-      message: "Cross-platform push notifications sent.",
+      message: "Push notification sent successfully!",
+      details: result,
     });
   } catch (err) {
     error("Error sending push notification:", err);
-    if (apnsProvider) apnsProvider.shutdown();
-    if (fcmApp) await fcmApp.delete();
-    return res.json({ success: false, error: err.message });
+    return res.json(
+      {
+        success: false,
+        message: `An error occurred while sending the notification: ${err.message}`,
+      },
+      500
+    ); // 500 Internal Server Error
   }
 };

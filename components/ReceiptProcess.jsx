@@ -31,6 +31,7 @@ import {
   checkSession,
   getFutureDate,
   callPushNotificationFunction,
+  sendPushNotification,
 } from "../lib/appwrite";
 import Checkbox from "expo-checkbox";
 import { useGlobalContext } from "../context/GlobalProvider";
@@ -43,7 +44,6 @@ import GradientBackground from "./GradientBackground";
 import { ar } from "date-fns/locale";
 import { format } from "date-fns";
 
-import sendPushNotification from "./PushNotifier";
 // import useInternetConnection from "../lib/useInternetConnection";
 
 const convertToArabicNumerals = (num) => {
@@ -467,7 +467,7 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
         merchant: extractedData.merchant || t("common.unknown"),
         total: (extractedData.total || 0).toFixed(2),
       });
-            console.log("Start sending Push Notification.....")
+      console.log("Start sending Push Notification.....");
 
       // Send the push notification.
       await sendPushNotification(
