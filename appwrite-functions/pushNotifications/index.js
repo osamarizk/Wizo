@@ -70,7 +70,7 @@ export default async ({ req, res, log, error }) => {
 
     log(`Received ticket ID: ${ticketId}. Now checking for receipt.`);
 
-    // Step 2: Check the delivery receipt after a short delay
+    // Step 2: Check the delivery receipt after a short delay equal to 5 seconds
     await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
 
     const getResponse = await fetch(
