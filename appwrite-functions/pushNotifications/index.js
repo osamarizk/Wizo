@@ -1,12 +1,9 @@
 import { Client, Databases } from "node-appwrite";
-import fetch from "node-fetch"; // Required for Node.js environments
+import fetch from "node-fetch";
 
 export default async ({ req, res, log, error }) => {
-  // Extract the necessary data from the request body
-  // Appwrite functions receive the payload in req.body
   const { to, title, body, data } = JSON.parse(req.body);
 
-  // Best practice: Validate the payload before proceeding
   if (!to || !title || !body) {
     return res.json(
       {
@@ -14,7 +11,7 @@ export default async ({ req, res, log, error }) => {
         message: "Missing required parameters: to, title, or body.",
       },
       400
-    ); // 400 Bad Request
+    );
   }
 
   try {
@@ -24,13 +21,13 @@ export default async ({ req, res, log, error }) => {
       title: title,
       body: body,
       data: data,
-      _displayInForeground: true, // Used for testing
+      _displayInForeground: true,
     };
 
     log("Push notification payload:", message);
 
-    // Send the push notification using Expo's API
-    const response = await fetch("https://exp.host/--/api/v2/push/send", {
+    // Step 1: Send the notification
+    const sendResponse = await fetch("https://exp.host/--/api/v2/push/send", {
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -40,40 +37,79 @@ export default async ({ req, res, log, error }) => {
       body: JSON.stringify(message),
     });
 
-    const result = await response.json();
-    log("Expo Push API Response:", result);
+    const sendResult = await sendResponse.json();
+    log("Expo Push API Response:", sendResult);
 
-    // Check the response from Expo's API for any errors
     if (
-      result &&
-      result.data &&
-      result.data[0] &&
-      result.data[0].status === "error"
+      sendResult &&
+      sendResult.data &&
+      sendResult.data[0] &&
+      sendResult.data[0].status === "error"
     ) {
       const errorMessage =
-        result.data[0].details?.error || "Unknown error from Expo.";
-      error(`Error from Expo Push API: ${errorMessage}`);
+        sendResult.data[0].details?.error || "Unknown error from Expo.";
+      error(`Error from Expo Push API (send): ${errorMessage}`);
       return res.json({
         success: false,
         message: `Error from Expo: ${errorMessage}`,
-        details: result.data[0].details,
+        details: sendResult.data[0].details,
       });
     }
 
-    log("Push notification sent successfully!");
-    return res.json({
-      success: true,
-      message: "Push notification sent successfully!",
-      details: result,
+    // Get the ticket ID from the response
+    const ticketId = sendResult.data[0]?.id;
+    if (!ticketId) {
+      log("No ticket ID returned from Expo.");
+      return res.json({
+        success: false,
+        message: "Failed to get a ticket ID from Expo.",
+      });
+    }
+
+    // Step 2: Check the delivery receipt after a short delay
+    await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
+
+    const getResponse = await fetch("https://exp.host/--/api/v2/push/get", {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ids: [ticketId] }),
     });
+
+    const getResult = await getResponse.json();
+    log("Expo Receipt API Response:", getResult);
+
+    if (
+      getResult &&
+      getResult.data &&
+      getResult.data[0] &&
+      getResult.data[0].status === "ok"
+    ) {
+      log("Notification status is 'ok'. APNs received it.");
+      return res.json({
+        success: true,
+        message: "Push notification successfully received by APNs.",
+        details: getResult.data[0],
+      });
+    } else {
+      const errorDetails = getResult.data[0]?.details || "Unknown error.";
+      error(`Receipt status is not 'ok': ${JSON.stringify(errorDetails)}`);
+      return res.json({
+        success: false,
+        message: `Notification failed to deliver.`,
+        details: errorDetails,
+      });
+    }
   } catch (err) {
     error("Error sending push notification:", err);
     return res.json(
       {
         success: false,
-        message: `An error occurred while sending the notification: ${err.message}`,
+        message: `An error occurred: ${err.message}`,
       },
       500
-    ); // 500 Internal Server Error
+    );
   }
 };
