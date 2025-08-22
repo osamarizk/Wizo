@@ -56,8 +56,9 @@ export default async ({ req, res, log, error }) => {
       });
     }
 
-    // Get the ticket ID from the response
+    // Correctly get the ticket ID from the response's data array
     const ticketId = sendResult.data[0]?.id;
+
     if (!ticketId) {
       log("No ticket ID returned from Expo.");
       return res.json({
@@ -65,6 +66,8 @@ export default async ({ req, res, log, error }) => {
         message: "Failed to get a ticket ID from Expo.",
       });
     }
+
+    log(`Received ticket ID: ${ticketId}. Now checking for receipt.`);
 
     // Step 2: Check the delivery receipt after a short delay
     await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
