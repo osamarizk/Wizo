@@ -459,9 +459,9 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
     // Get the user's device token.
     const deviceTokens = user?.deviceTokens;
 
-    console.log("Device Token for Push Notification:----", deviceTokens);
+    console.log("Device Tokens for Push Notification:----", deviceTokens);
 
-    if (deviceTokens) {
+    if (deviceTokens && deviceTokens.length > 0) {
       const notificationTitle = t("notifications.receiptProcessedTitle");
       const notificationBody = t("notifications.receiptProcessedMessage", {
         merchant: extractedData.merchant || t("common.unknown"),
@@ -469,13 +469,23 @@ const ReceiptProcess = ({ imageUri, onCancel, onProcessComplete }) => {
       });
       console.log("Start sending Push Notification.....");
 
-      // Send the push notification.
-      await sendPushNotification(
-        deviceTokens,
-        notificationTitle,
-        notificationBody,
-        { receiptId: newReceipt.$id }
-      );
+      // Loop through each token and send a notification
+      for (const token of deviceTokens) {
+        try {
+          await sendPushNotification(
+            token, // Pass the single token from the array
+            notificationTitle,
+            notificationBody,
+            { receiptId: newReceipt.$id }
+          );
+        } catch (error) {
+          console.error("Failed to send notification for token:", token, error);
+          Alert.alert(
+            "Notification Error",
+            `Failed to send notification for a device.`
+          );
+        }
+      }
     } else {
       console.warn("User has no device token. Cannot send push notification.");
     }
