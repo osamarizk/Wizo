@@ -88,25 +88,23 @@ export default async ({ req, res, log, error }) => {
     const getResult = await getResponse.json();
     log("Expo Receipt API Response:", getResult);
 
-    if (
-      getResult &&
-      getResult.data &&
-      getResult.data[0] &&
-      getResult.data[0].status === "ok"
-    ) {
+    // This section is slightly modified to be more robust
+    const receipt = Object.values(getResult.data)[0];
+
+    if (receipt.status === "ok") {
       log("Notification status is 'ok'. APNs received it.");
       return res.json({
         success: true,
         message: "Push notification successfully received by APNs.",
-        details: getResult.data[0],
+        details: receipt,
       });
     } else {
-      const errorDetails = getResult.data[0]?.details || "Unknown error.";
-      error(`Receipt status is not 'ok': ${JSON.stringify(errorDetails)}`);
+      const errorDetails = receipt.details?.apns?.reason || "Unknown error.";
+      error(`Receipt status is not 'ok': ${JSON.stringify(receipt)}`);
       return res.json({
         success: false,
-        message: `Notification failed to deliver.`,
-        details: errorDetails,
+        message: `Notification failed to deliver: ${receipt.message}`,
+        details: receipt,
       });
     }
   } catch (err) {
