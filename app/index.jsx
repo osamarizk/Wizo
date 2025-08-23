@@ -24,16 +24,12 @@ import GradientBackground from "../components/GradientBackground";
 import { useTranslation } from "react-i18next"; // NEW: Import useTranslation
 import { getFontClassName } from "../utils/fontUtils"; // NEW: Import font utility
 
-
-
 const Index = () => {
   const { width, height } = Dimensions.get("window");
   const { loading, isLogged } = useGlobalContext();
   const { t } = useTranslation(); // NEW: Initialize useTranslation
 
   if (!loading && isLogged) return <Redirect href="/home" />;
-
-
 
   return (
     <GradientBackground>
@@ -91,12 +87,17 @@ const Index = () => {
             </View>
 
             {/* Slogan Text (if you decide to uncomment it) */}
-            {/* <Text
-              className={`text-secondary text-2xl text-center mt-1 ${getFontClassName("bold")}`}
-              style={{ fontFamily: getFontClassName("bold"), textAlign: I18nManager.isRTL ? 'right' : 'left' }}
+            <Text
+              className={`text-secondary text-2xl text-center mt-1 ${getFontClassName(
+                "bold"
+              )}`}
+              style={{
+                fontFamily: getFontClassName("bold"),
+                textAlign: I18nManager.isRTL ? "right" : "left",
+              }}
             >
               {t("onboarding.slogan")}
-            </Text> */}
+            </Text>
 
             <TouchableOpacity
               onPress={() => {
