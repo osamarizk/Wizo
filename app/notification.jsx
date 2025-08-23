@@ -31,18 +31,12 @@ import { ar as arLocale } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../utils/fontUtils";
 import i18n from "../utils/i18n";
+import * as Notifications from "expo-notifications"; // NEW: Import Notifications
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { format } from "date-fns";
 
-// Enable LayoutAnimation for smooth transitions on Android
-// if (Platform.OS === "android") {
-//   UIManager.setLayoutAnimationEnabledExperimental &&
-//     UIManager.setLayoutAnimationEnabledExperimental(true);
-// }
-
-// NEW: Utility function to convert numbers to Arabic numerals (copied from Home/BudgetSetupModal)
 const convertToArabicNumerals = (num) => {
   const numString = String(num || 0);
   if (typeof numString !== "string") return String(numString);
@@ -61,7 +55,6 @@ const convertToArabicNumerals = (num) => {
   return numString.replace(/\d/g, (digit) => arabicNumeralsMap[digit] || digit);
 };
 
-// NEW: Utility to map category names to i18n keys (copied from Home/BudgetSetupModal)
 const mapCategoryNameToI18nKey = (categoryNameFromDB) => {
   if (!categoryNameFromDB) return "";
   switch (categoryNameFromDB) {
@@ -102,11 +95,9 @@ const mapCategoryNameToI18nKey = (categoryNameFromDB) => {
   }
 };
 
-// NEW: Utility to map subcategory names to i18n keys (copied from Home/BudgetSetupModal)
 const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
   if (!subcategoryNameFromDB) return "";
   switch (subcategoryNameFromDB) {
-    // Food & Dining
     case "Restaurants":
       return "restaurants";
     case "Groceries":
@@ -119,7 +110,6 @@ const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
       return "bars";
     case "Delivery":
       return "delivery";
-    // Transportation
     case "Fuel":
       return "fuel";
     case "Public Transport":
@@ -132,7 +122,6 @@ const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
       return "vehicleMaintenance";
     case "Tolls":
       return "tolls";
-    // Shopping
     case "Clothing":
       return "clothing";
     case "Electronics":
@@ -147,7 +136,6 @@ const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
       return "books";
     case "Furniture":
       return "furniture";
-    // Health & Wellness
     case "Pharmacy":
       return "pharmacy";
     case "Doctor Visits":
@@ -160,7 +148,6 @@ const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
       return "dentalCare";
     case "Vision Care":
       return "visionCare";
-    // Bills & Utilities
     case "Electricity":
       return "electricity";
     case "Water":
@@ -175,7 +162,6 @@ const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
       return "subscriptionServices";
     case "Cable TV":
       return "cableTv";
-    // Entertainment & Leisure
     case "Movies":
       return "movies";
     case "Concerts":
@@ -190,7 +176,6 @@ const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
       return "streamingServices";
     case "Sports":
       return "sports";
-    // Business Expenses
     case "Office Supplies":
       return "officeSupplies";
     case "Business Travel":
@@ -205,7 +190,6 @@ const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
       return "advertising";
     case "Training":
       return "training";
-    // Education
     case "Tuition Fees":
       return "tuitionFees";
     case "Education Books":
@@ -216,7 +200,6 @@ const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
       return "schoolSupplies";
     case "Student Loans":
       return "studentLoans";
-    // Financial Services
     case "Bank Fees":
       return "bankFees";
     case "Loan Payments":
@@ -227,21 +210,18 @@ const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
       return "insurancePremiums";
     case "Credit Card Fees":
       return "creditCardFees";
-    // Gifts & Donations
     case "Charitable Donations":
       return "charitableDonations";
     case "Gifts":
       return "gifts";
     case "Fundraising Events":
       return "fundraisingEvents";
-    // Home Improvement
     case "Plumbing":
       return "plumbing";
     case "Electrician":
       return "electrician";
     case "Gardening":
       return "gardening";
-    // Add any other subcategories you have in your database here
     case "Miscellaneous":
       return "miscellaneous";
     default:
@@ -255,7 +235,8 @@ const mapSubcategoryNameToI18nKey = (subcategoryNameFromDB) => {
 const NotificationPage = () => {
   const { t } = useTranslation();
 
-  const { user, updateUnreadCount,preferredCurrencySymbol } = useGlobalContext();
+  const { user, updateUnreadCount, preferredCurrencySymbol } =
+    useGlobalContext();
   const [notifications, setNotifications] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
@@ -266,11 +247,12 @@ const NotificationPage = () => {
   const navigation = useNavigation();
 
   dayjs.extend(relativeTime);
-  const [timeUpdate, setTimeUpdate] = useState(Date.now()); // For relative time updates
+  const [timeUpdate, setTimeUpdate] = useState(Date.now());
 
   const currentDateFormatLocale = i18n.language.startsWith("ar")
     ? arLocale
     : undefined;
+
   const fetchUserNotifications = useCallback(async () => {
     if (!user?.$id) {
       setNotifications([]);
@@ -279,10 +261,9 @@ const NotificationPage = () => {
     setRefreshing(true);
     try {
       const fetched = await fetchNotifications(user.$id);
-      const fetchedCategories = await getAllCategories(); // NEW: Fetch all categories
-      setAllCategories(fetchedCategories); // NEW: Set categories to state
+      const fetchedCategories = await getAllCategories();
+      setAllCategories(fetchedCategories);
 
-      // Client-side filtering for expired notifications
       const nonExpiredNotifications = fetched.filter(
         (n) => !n.expiresAt || new Date(n.expiresAt) > new Date()
       );
@@ -305,6 +286,14 @@ const NotificationPage = () => {
         if (user?.$id) {
           const newCount = await countUnreadNotifications(user.$id);
           updateUnreadCount(newCount);
+          // NEW: Reset the badge count on the app icon
+          Notifications.setBadgeCountAsync(0)
+            .then(() => {
+              console.log("App icon badge count reset to 0.");
+            })
+            .catch((error) => {
+              console.error("Failed to reset app icon badge count:", error);
+            });
         }
       };
       updateCount();
@@ -332,24 +321,20 @@ const NotificationPage = () => {
       const wasExpanded = expandedId === notificationId;
 
       if (!wasExpanded) {
-        // We are expanding this notification
-        // Determine if we need to fetch new details (i.e., it's the "first time")
         const needsReceiptFetch =
           associatedReceiptId && !receiptDetails[associatedReceiptId];
         const needsBudgetFetch =
           associatedBudgetId && !budgetDetails[associatedBudgetId];
-        const needsDelay = needsReceiptFetch || needsBudgetFetch; // Only delay if we actually need to fetch something
+        const needsDelay = needsReceiptFetch || needsBudgetFetch;
 
-        setLoadingDetailsId(notificationId); // Set loading state for this specific item immediately
+        setLoadingDetailsId(notificationId);
 
         const expandAndFetch = async () => {
-          LayoutAnimation.easeInEaseOut(); // Trigger animation
-          setExpandedId(notificationId); // Expand the item
+          LayoutAnimation.easeInEaseOut();
+          setExpandedId(notificationId);
 
           try {
-            // Fetch receipt details if needed
             if (needsReceiptFetch) {
-              // Use the pre-calculated flag
               try {
                 const receipt = await fetchReceipt(associatedReceiptId);
                 if (receipt) {
@@ -368,13 +353,10 @@ const NotificationPage = () => {
               }
             }
 
-            // Fetch budget details if needed
             if (needsBudgetFetch) {
-              // Use the pre-calculated flag
               const notificationItem = notifications.find(
                 (n) => n.$id === notificationId
               );
-              // Ensure we don't try to fetch a budget that was deleted
               if (
                 notificationItem?.title !==
                 t("notifications.budgetDeletedNotificationTitle")
@@ -398,23 +380,21 @@ const NotificationPage = () => {
               }
             }
           } finally {
-            setLoadingDetailsId(null); // Clear loading state after all fetches (success or failure)
+            setLoadingDetailsId(null);
           }
         };
 
         if (needsDelay) {
-          setTimeout(expandAndFetch, 500); // Use the 400ms delay if fetching
+          setTimeout(expandAndFetch, 500);
         } else {
-          expandAndFetch(); // No delay if data is already cached
+          expandAndFetch();
         }
       } else {
-        // We are collapsing this notification
-        LayoutAnimation.easeInEaseOut(); // Trigger animation for collapsing
-        setExpandedId(null); // Collapse the item
-        setLoadingDetailsId(null); // Ensure loading state is cleared if it somehow was set for a collapsing item
+        LayoutAnimation.easeInEaseOut();
+        setExpandedId(null);
+        setLoadingDetailsId(null);
       }
 
-      // Mark notification as read (this can happen independently of detail fetching/expansion)
       const notificationToMark = notifications.find(
         (n) => n.$id === notificationId
       );
@@ -429,6 +409,14 @@ const NotificationPage = () => {
           if (user?.$id) {
             const newCount = await countUnreadNotifications(user.$id);
             updateUnreadCount(newCount);
+            // NEW: Reset the badge count on the app icon after marking a single notification as read
+            Notifications.setBadgeCountAsync(0)
+              .then(() => {
+                console.log("App icon badge count reset to 0 after read.");
+              })
+              .catch((error) => {
+                console.error("Failed to reset badge count after read:", error);
+              });
           }
         } catch (err) {
           console.error("Error marking notification as read:", err);
@@ -447,7 +435,6 @@ const NotificationPage = () => {
     ]
   );
 
-  // NEW: Helper to get translated category name for budget details
   const getTranslatedCategoryName = useCallback(
     (categoryId) => {
       const category = allCategories.find((cat) => cat.$id === categoryId);
@@ -458,11 +445,8 @@ const NotificationPage = () => {
     [allCategories, t]
   );
 
-  // NEW: Helper to get translated payment method for receipt details
   const getTranslatedPaymentMethod = useCallback(
     (method) => {
-      // Assuming payment methods are stored as simple strings like "Cash", "Card"
-      // and you have corresponding i18n keys like "receipts.paymentMethod_cash"
       switch (method) {
         case "Cash":
           return t("receipts.paymentMethod_cash");
@@ -486,12 +470,12 @@ const NotificationPage = () => {
       const isExpanded = item.$id === expandedId;
       const receipt = item.receipt_id ? receiptDetails[item.receipt_id] : null;
       const budget = item.budget_id ? budgetDetails[item.budget_id] : null;
-      const isLoadingDetails = loadingDetailsId === item.$id; // NEW: Check if this item's details are loading
+      const isLoadingDetails = loadingDetailsId === item.$id;
       const canViewAssociatedDetails =
         (item.receipt_id || item.budget_id) &&
         item.title !== t("notifications.budgetDeletedNotificationTitle");
 
-      const isFinancialAdvice = item.type === "financial_advice"; // NEW: Flag for financial advice type
+      const isFinancialAdvice = item.type === "financial_advice";
 
       return (
         <View className="bg-white  mb-4 rounded-lg overflow-hidden ">
@@ -604,7 +588,6 @@ const NotificationPage = () => {
                     )}
               </Text>
 
-              {/* NEW: Conditional rendering for receipt details based on loading state */}
               {item.receipt_id && (
                 <View className="mb-2">
                   <Text
@@ -618,7 +601,7 @@ const NotificationPage = () => {
                   >
                     {t("notifications.receiptDetails")}
                   </Text>
-                  {isLoadingDetails || !receipt ? ( // Show loading if details are loading OR receipt is null
+                  {isLoadingDetails || !receipt ? (
                     <View
                       className={`flex-row items-center ${
                         I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
@@ -712,7 +695,6 @@ const NotificationPage = () => {
                 </View>
               )}
 
-              {/* NEW: Conditional rendering for budget details based on loading state */}
               {item.budget_id && (
                 <View className="mb-2">
                   <Text
@@ -726,7 +708,7 @@ const NotificationPage = () => {
                   >
                     {t("notifications.budgetDetails")}
                   </Text>
-                  {isLoadingDetails || !budget ? ( // Show loading if details are loading OR budget is null
+                  {isLoadingDetails || !budget ? (
                     <View
                       className={`flex-row items-center ${
                         I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
@@ -834,7 +816,6 @@ const NotificationPage = () => {
                 </View>
               )}
 
-              {/* Display Expiry Date if available and not expired */}
               {item.expiresAt && new Date(item.expiresAt) > new Date() && (
                 <Text
                   className={`text-xs text-red-500 mt-2 ${getFontClassName(
@@ -897,20 +878,19 @@ const NotificationPage = () => {
       currentDateFormatLocale,
       getTranslatedCategoryName,
       getTranslatedPaymentMethod,
-      loadingDetailsId, // NEW: Add loadingDetailsId to dependencies
+      loadingDetailsId,
     ]
   );
   return (
     <GradientBackground>
       <SafeAreaView className="flex-1  p-4 mt-8">
-        {/* Notification Header */}
         <View
           className={`flex-row items-center justify-between px-4 py-3  bg-transparent border-b border-gray-400 shadow-sm ${
             I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
           }`}
         >
           <Text
-            className={`text-2xl text-black ${getFontClassName("bold")}`} // NEW: Apply font class
+            className={`text-2xl text-black ${getFontClassName("bold")}`}
             style={{ fontFamily: getFontClassName("bold") }}
           >
             {t("common.notifications")}
@@ -925,18 +905,17 @@ const NotificationPage = () => {
           </TouchableOpacity>
         </View>
 
-        {/* NEW: Expiry Information Text */}
         <View
           className={`px-4 py-2 bg-transparent  ${
             I18nManager.isRTL ? "items-end" : "items-start"
           }`}
         >
           <Text
-            className={`text-sm text-blue-600 ${getFontClassName("regular")}`} // NEW: Apply font class
+            className={`text-sm text-blue-600 ${getFontClassName("regular")}`}
             style={{
               fontFamily: getFontClassName("regular"),
               textAlign: I18nManager.isRTL ? "right" : "left",
-            }} // NEW: RTL text align
+            }}
           >
             {t("notifications.importantInfo")}
           </Text>
@@ -945,7 +924,7 @@ const NotificationPage = () => {
         {notifications.length === 0 && !refreshing ? (
           <View className="flex-1 justify-center items-center bg-gray-50">
             <Text
-              className={`text-gray-500 text-lg ${getFontClassName("medium")}`} // NEW: Apply font class
+              className={`text-gray-500 text-lg ${getFontClassName("medium")}`}
               style={{ fontFamily: getFontClassName("medium") }}
             >
               {t("notifications.noNotificationsFound")}
@@ -963,14 +942,14 @@ const NotificationPage = () => {
                 tintColor="#9F54B6"
               />
             }
-            contentContainerStyle={{   paddingTop:20 }}
+            contentContainerStyle={{ paddingTop: 20 }}
             ListEmptyComponent={
               !refreshing && (
                 <View className="flex-1 justify-center items-center h-40">
                   <Text
                     className={`text-gray-500 italic text-base ${getFontClassName(
                       "regular"
-                    )}`} // NEW: Apply font class
+                    )}`}
                     style={{ fontFamily: getFontClassName("regular") }}
                   >
                     {t("notifications.noNotificationsYet")}

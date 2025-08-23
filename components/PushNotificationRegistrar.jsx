@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
@@ -6,48 +6,53 @@ import { useGlobalContext } from "../context/GlobalProvider";
 import { saveDeviceToken } from "../lib/appwrite";
 
 // This component handles the logic for registering push notifications.
-// It should be placed in any screen that a user navigates to after a successful login or sign-up.
 const PushNotificationRegistrar = () => {
   const { user } = useGlobalContext();
+  const tokenListener = useRef(null);
 
   /**
    * Registers a device for push notifications and saves the token to Appwrite.
+   * This function can be called on app start or whenever a new token is received.
+   *
+   * @param {string} token - Optional, a new token to be saved. If not provided, it will be fetched.
    */
-  const registerForPushNotificationsAsync = async () => {
-    // A user must be logged in to register a token.
+  const registerForPushNotificationsAsync = async (token = null) => {
     if (!user || !user.$id) {
       console.warn("User is not logged in, skipping push token registration.");
       return;
     }
 
-    console.log("User ID for push token registration:", user.$id);
-
-    // Push notifications only work on physical devices.
     if (!Device.isDevice) {
       console.warn("Push notifications require a physical device.");
       return;
     }
 
-    // Request permissions from the user.
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== "granted") {
-      console.warn("Failed to get push token for push notification!");
-      return;
-    }
-
-    // This is the CRUCIAL change: use getExpoPushTokenAsync().
     try {
-      const tokenObject = await Notifications.getExpoPushTokenAsync();
-      const token = tokenObject.data;
-      console.log("Expo Push Token:", token);
+      let finalToken;
 
-      // Set up a notification channel for Android.
+      if (token) {
+        // Use the token provided by the listener
+        finalToken = token;
+      } else {
+        // Fetch a new token for the initial registration
+        const { status: existingStatus } =
+          await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== "granted") {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+        if (finalStatus !== "granted") {
+          console.warn("Failed to get push token for push notification!");
+          return;
+        }
+
+        const tokenObject = await Notifications.getExpoPushTokenAsync();
+        finalToken = tokenObject.data;
+      }
+
+      console.log("Expo Push Token:", finalToken);
+
       if (Platform.OS === "android") {
         Notifications.setNotificationChannelAsync("default", {
           name: "default",
@@ -58,7 +63,7 @@ const PushNotificationRegistrar = () => {
       }
 
       // Save the token to Appwrite.
-      await saveDeviceToken(user.$id, token, Platform.OS);
+      await saveDeviceToken(user.$id, finalToken, Platform.OS);
       console.log("Token successfully saved to user document in Appwrite.");
     } catch (error) {
       console.error("Error registering and saving Expo push token:", error);
@@ -66,11 +71,28 @@ const PushNotificationRegistrar = () => {
   };
 
   /**
-   * This effect runs whenever the 'user' object changes in the global context.
-   * This ensures the push token is registered as soon as the user object is available.
+   * This effect sets up the initial token registration and the listener.
+   * It ensures that we are always using the latest token.
    */
   useEffect(() => {
-    registerForPushNotificationsAsync();
+    // 1. Initial registration when the user object is available
+    if (user && user.$id) {
+      registerForPushNotificationsAsync();
+    }
+
+    // 2. Add a listener to handle token refreshes automatically
+    tokenListener.current = Notifications.addPushTokenListener((newToken) => {
+      console.log("A new push token was received. Updating Appwrite.");
+      registerForPushNotificationsAsync(newToken.data);
+    });
+
+    // 3. Clean up the listener when the component unmounts
+    return () => {
+      // Use the new, recommended method to remove the listener
+      if (tokenListener.current) {
+        tokenListener.current.remove();
+      }
+    };
   }, [user]);
 
   // This component doesn't render any UI, so it returns null.

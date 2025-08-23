@@ -32,6 +32,7 @@ export default {
       usesIcloudStorage: true,
     },
     android: {
+      googleServicesFile: "./google-services.json",
       package: "com.o7.rn1",
       supportsRTL: true,
       edgeToEdge: true,
