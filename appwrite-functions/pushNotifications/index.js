@@ -58,7 +58,6 @@ export default async ({ req, res, log, error }) => {
 
     // Correctly get the ticket ID from the response's data array
     const ticketId = sendResult.data[0]?.id;
-    console.log("Send Result Data:", sendResult.data[0]);
 
     if (!ticketId) {
       log("No ticket ID returned from Expo.");
@@ -71,6 +70,7 @@ export default async ({ req, res, log, error }) => {
     log(`Received ticket ID: ${ticketId}. Now checking for receipt.`);
 
     // Step 2: Check the delivery receipt after a short delay
+    // This is optional and for debugging purposes. You can remove it for production.
     await new Promise((resolve) => setTimeout(resolve, 5000)); // Wait 5 seconds
 
     const getResponse = await fetch(
@@ -88,22 +88,23 @@ export default async ({ req, res, log, error }) => {
     const getResult = await getResponse.json();
     log("Expo Receipt API Response:", getResult);
 
-    // This section is slightly modified to be more robust
     const receipt = Object.values(getResult.data)[0];
 
-    if (receipt.status === "ok") {
-      log("Notification status is 'ok'. APNs received it.");
+    // Check the receipt status for both platforms
+    if (receipt && receipt.status === "ok") {
+      log("Notification successfully delivered to the device's push service.");
       return res.json({
         success: true,
-        message: "Push notification successfully received by APNs.",
+        message: "Push notification successfully received by APNs/FCM.",
         details: receipt,
       });
     } else {
-      const errorDetails = receipt.details?.apns?.reason || "Unknown error.";
+      // Handle different error messages based on the platform and error type
+      const errorMessage = receipt.message || "Unknown error.";
       error(`Receipt status is not 'ok': ${JSON.stringify(receipt)}`);
       return res.json({
         success: false,
-        message: `Notification failed to deliver: ${receipt.message}`,
+        message: `Notification failed to deliver: ${errorMessage}`,
         details: receipt,
       });
     }
