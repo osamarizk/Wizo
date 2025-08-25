@@ -77,7 +77,7 @@ const getWalletTransactions = async (databases, userId) => {
     const response = await databases.listDocuments(
       DATABASE_ID,
       WALLET_TRANSACTIONS_COLLECTION_ID,
-      [Query.equal("userId", userId), Query.limit(100)]
+      [Query.equal("user_Id", userId), Query.limit(100)]
     );
     return response.documents;
   } catch (error) {
