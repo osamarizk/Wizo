@@ -117,7 +117,7 @@ export default async ({ req, res, log, error }) => {
         [Query.equal("accountid", userId), Query.limit(1)]
       );
 
-      const pushToken = userProfile.documents[0]?.pushToken;
+      const pushToken = userProfile.documents[0]?.deviceTokens;
       const userName = userProfile.documents[0]?.name || "User";
 
       if (!pushToken) {
