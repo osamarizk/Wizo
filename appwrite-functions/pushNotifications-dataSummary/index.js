@@ -298,7 +298,7 @@ async function processUser(user, databases, log) {
       sound: "default",
       title: "Financial Insight 📊",
       body: notificationBody,
-      data: {},
+      data: { page: "spending" },
       _displayInForeground: true,
     };
 

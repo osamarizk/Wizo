@@ -90,27 +90,33 @@ const RootLayout = () => {
   // NEW: Effect to handle notification responses
   useEffect(() => {
     // This listener is crucial for handling notifications that are tapped on.
-    const responseListener = Notifications.addNotificationResponseReceivedListener(response => {
-      console.log("User tapped on a notification.");
-      const notificationData = response.notification.request.content.data;
-      console.log("Notification payload data:", notificationData);
+    const responseListener =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log("User tapped on a notification.");
+        const notificationData = response.notification.request.content.data;
+        console.log("Notification payload data:", notificationData);
 
-      // Check for a receiptId in the data. You should add a 'type' key to be more robust.
-      // If a receiptId exists, navigate to the notification page.
-      if (notificationData.receiptId) {
-        router.push({
-          pathname: "/notification",
-          params: { notificationData: JSON.stringify(notificationData) }
-        });
-      }
-      // You can add more conditions here for other types of notifications
-      // else if (notificationData.budgetId) {
-      //   router.push({
-      //     pathname: "/notification",
-      //     params: { notificationData: JSON.stringify(notificationData) }
-      //   });
-      // }
-    });
+        // Check if there's a specific page to navigate to
+        if (notificationData.page === "spending") {
+          router.push("(tabs)/spending");
+          return; // Exit the function after navigating
+        }
+        // Check for a receiptId in the data. You should add a 'type' key to be more robust.
+        // If a receiptId exists, navigate to the notification page.
+        if (notificationData.receiptId) {
+          router.push({
+            pathname: "/notification",
+            params: { notificationData: JSON.stringify(notificationData) },
+          });
+        }
+        // You can add more conditions here for other types of notifications
+        // else if (notificationData.budgetId) {
+        //   router.push({
+        //     pathname: "/notification",
+        //     params: { notificationData: JSON.stringify(notificationData) }
+        //   });
+        // }
+      });
 
     // Clean up the listener when the component unmounts
     return () => {
