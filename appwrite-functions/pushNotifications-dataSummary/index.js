@@ -18,7 +18,7 @@ const getReceiptStats = async (databases, userId) => {
     const response = await databases.listDocuments(
       DATABASE_ID,
       RECEIPTS_COLLECTION_ID,
-      [Query.equal("user_Id", userId)]
+      [Query.equal("user_id", userId)]
     );
     return {
       totalCount: response.total,
@@ -34,7 +34,7 @@ const fetchUserReceipts = async (databases, userId) => {
     const response = await databases.listDocuments(
       DATABASE_ID,
       RECEIPTS_COLLECTION_ID,
-      [Query.equal("user_Id", userId), Query.limit(50)]
+      [Query.equal("user_id", userId), Query.limit(50)]
     );
     return response.documents;
   } catch (error) {
@@ -76,7 +76,7 @@ const getWalletTransactions = async (databases, userId) => {
     const response = await databases.listDocuments(
       DATABASE_ID,
       WALLET_TRANSACTIONS_COLLECTION_ID,
-      [Query.equal("user_Id", userId), Query.limit(100)]
+      [Query.equal("user_id", userId), Query.limit(100)]
     );
     return response.documents;
   } catch (error) {
