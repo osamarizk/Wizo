@@ -1449,7 +1449,7 @@ const Home = () => {
                     <Image
                       source={icons.notification}
                       className="w-6 h-6"
-                      tintColor="#4E17B3"
+                      tintColor="#6b21a8"
                     />
                     {unreadCount > 0 && (
                       <View className="absolute -top-1 -right-1 bg-red-600 rounded-full w-5 h-5 items-center justify-center">
@@ -1471,7 +1471,7 @@ const Home = () => {
                     <Image
                       source={icons.gear} // Assuming you have a 'profile' icon in your icons.js
                       className="w-7 h-7"
-                      tintColor="#4E17B3" // Adjust tint color as needed
+                      tintColor="#6b21a8" // Adjust tint color as needed
                       resizeMode="contain"
                     />
                   </TouchableOpacity>
@@ -1488,7 +1488,7 @@ const Home = () => {
                       />
                       {/* premium */}
                       <Text
-                        className="text-[#4E17B3]  text-xs mt-1"
+                        className="text-[#6b21a8]  text-xs mt-1"
                         style={{ fontFamily: getFontClassName("bold") }}
                       >
                         {t("settings.premium")}
@@ -1503,12 +1503,12 @@ const Home = () => {
                       <Image
                         source={icons.star}
                         className="w-7 h-7"
-                        tintColor="#4E17B3" // Adjust tint color as needed
+                        tintColor="#6b21a8" // Adjust tint color as needed
                         resizeMode="contain"
                       />
                       {/* premium */}
                       <Text
-                        className="text-[#4E17B3]  text-xs mt-1"
+                        className="text-purple-700  text-xs mt-1"
                         style={{ fontFamily: getFontClassName("bold") }}
                       >
                         {t("settings.bepremium")}
@@ -1744,19 +1744,19 @@ const Home = () => {
                   <TouchableOpacity
                     onPress={() => router.push("/financial-insights")}
                     // MODIFIED CLASSNAMES: Increased padding, larger rounded corners, added shadow
-                    className={`bg-[#2A9D8F] rounded-xl  mx-0 mb-4 shadow-md shadow-red-500  flex-row items-center justify-between ${
+                    className={`bg-purple-700 rounded-xl  w-4/5 mx-auto  mb-4 shadow-md shadow-red-500  flex-row items-center justify-between ${
                       I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
                     }`}
                     style={{ minHeight: 70 }} // Ensure minimum height for consistent appearance
                   >
                     <Image
                       source={icons.sparkles} // Assuming icons.sparkles exists
-                      className={`w-8 h-8 tint-white ml-4 ${
+                      className={`w-6 h-6 tint-white ml-4 ${
                         I18nManager.isRTL ? "ml-4" : "mr-4"
                       }`}
                       resizeMode="contain"
                     />
-                    <View className="flex-1">
+                    <View className="flex-1 ">
                       {/* Remove the console.log if you haven't already */}
                       {/* {console.log("Home Advice Card Debug:", { ... })} */}
 
@@ -1961,7 +1961,7 @@ const Home = () => {
                 user &&
                 !user.isPremium &&
                 applicationSettings && (
-                  <View className=" bg-transparent rounded-xl  mx-4 ">
+                  <View className=" bg-transparent rounded-xl ">
                     {/* <Text className="text-lg font-pbold text-gray-800 mb-2">
                       Your Monthly Usage
                     </Text>

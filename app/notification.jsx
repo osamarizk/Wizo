@@ -31,7 +31,7 @@ import { ar as arLocale } from "date-fns/locale";
 import { useTranslation } from "react-i18next";
 import { getFontClassName } from "../utils/fontUtils";
 import i18n from "../utils/i18n";
-import * as Notifications from "expo-notifications"; // NEW: Import Notifications
+import * as Notifications from "expo-notifications";
 
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -286,13 +286,15 @@ const NotificationPage = () => {
         if (user?.$id) {
           const newCount = await countUnreadNotifications(user.$id);
           updateUnreadCount(newCount);
-          // NEW: Reset the badge count on the app icon
-          Notifications.setBadgeCountAsync(0)
+          // FIX 1: Set the badge count to the actual unread count
+          // This is the key fix. The badge should reflect the current unread count
+          // whenever the user is on the notification screen.
+          Notifications.setBadgeCountAsync(newCount)
             .then(() => {
-              console.log("App icon badge count reset to 0.");
+              console.log("App icon badge count updated to:", newCount);
             })
             .catch((error) => {
-              console.error("Failed to reset app icon badge count:", error);
+              console.error("Failed to update app icon badge count:", error);
             });
         }
       };
@@ -409,13 +411,21 @@ const NotificationPage = () => {
           if (user?.$id) {
             const newCount = await countUnreadNotifications(user.$id);
             updateUnreadCount(newCount);
-            // NEW: Reset the badge count on the app icon after marking a single notification as read
-            Notifications.setBadgeCountAsync(0)
+            // FIX 2: After marking a notification as read, update the badge count
+            // to the new count. This ensures the badge reflects the number of
+            // remaining unread notifications, not a hardcoded 0.
+            Notifications.setBadgeCountAsync(newCount)
               .then(() => {
-                console.log("App icon badge count reset to 0 after read.");
+                console.log(
+                  "App icon badge count updated after read:",
+                  newCount
+                );
               })
               .catch((error) => {
-                console.error("Failed to reset badge count after read:", error);
+                console.error(
+                  "Failed to update badge count after read:",
+                  error
+                );
               });
           }
         } catch (err) {
@@ -643,7 +653,7 @@ const NotificationPage = () => {
                           textAlign: I18nManager.isRTL ? "right" : "left",
                         }}
                       >
-                        💵 {t("notifications.total")}{" "}
+                        � {t("notifications.total")}{" "}
                         {i18n.language.startsWith("ar")
                           ? `${convertToArabicNumerals(
                               parseFloat(receipt.total || 0).toFixed(2)

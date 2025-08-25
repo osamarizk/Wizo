@@ -1,3 +1,5 @@
+// settings/FinancialInsights.jsx
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -181,7 +183,7 @@ const FinancialInsights = () => {
         const receiptDate = new Date(receipt.datetime);
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        if (receiptDate >= thirtyDaysAgo && totalReceiptAmount > 300) {
+        if (receiptDate >= thirtyDaysAgo && totalReceiptAmount > 500) {
           const mainReceiptCategory =
             parsedItems[0]?.category || "Uncategorized";
           recentExpenses.push({
@@ -727,7 +729,7 @@ const FinancialInsights = () => {
         >
           {/* Header */}
           <View
-            className={`flex-row items-center justify-between mb-4 mt-4 ${
+            className={`flex-row items-center justify-between mb-8 mt-4 ${
               I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
             }`}
           >
@@ -743,16 +745,13 @@ const FinancialInsights = () => {
               </Text>
             </TouchableOpacity>
             <Text
-              className="text-2xl text-black text-center flex-1 "
+              className="text-3xl text-black text-center flex-1 "
               style={{ fontFamily: getFontClassName("bold") }}
             >
               {t("financialInsights.pageTitle")}
             </Text>
-            <View className="w-10 " />
+            <View className="w-10" />
           </View>
-          <View className="border border-gray-600 mb-4" />
-
-     
 
           {/* Conditional rendering for no data */}
           {financialData.totalReceipts === 0 && !isLoadingData ? (
@@ -782,15 +781,15 @@ const FinancialInsights = () => {
                 // The key prop is here, it should force re-evaluation if these dependencies change
                 key={`advice-button-${dailyFreeRequests}-${isGeneratingAdvice}-${user?.isPremium}`}
                 onPress={generateAdvice}
-                className={`flex-row items-center justify-center p-4 rounded-full shadow-lg mb-4 w-4/5 mx-auto ${
-                  // Use a more professional color scheme, like a deep purple gradient.
+                className={`flex-row items-center justify-center p-4 rounded-xl shadow-lg mb-3 ${
+                  // Added rounded-xl
                   isGeneratingAdvice ||
                   (user &&
                     !user.isPremium &&
                     dailyFreeRequests >=
                       (user?.maxFreeDailyInsights || DEFAULT_MAX_FREE_REQUESTS))
-                    ? "bg-gray-700 opacity-70"
-                    : "bg-purple-700 active:bg-purple-800"
+                    ? "bg-gray-400 opacity-70"
+                    : "bg-[#2A9D8F] hover:bg-[#21867A] active:bg-[#1A6F5A"
                 }`}
                 disabled={
                   isGeneratingAdvice ||
@@ -816,8 +815,8 @@ const FinancialInsights = () => {
                   />
                 )}
                 <Text
-                  className="text-white text-base"
-                  style={{ fontFamily: getFontClassName("semibold") }}
+                  className="text-white text-xl"
+                  style={{ fontFamily: getFontClassName("extrabold") }}
                 >
                   {isGeneratingAdvice
                     ? t("financialInsights.generatingAdvice")
@@ -866,7 +865,7 @@ const FinancialInsights = () => {
                   {/* Header Section */}
                   <View className="p-6">
                     <Text
-                      className={`text-xl text-blue-800 mb-1 ${
+                      className={`text-2xl text-blue-800 mb-1 ${
                         I18nManager.isRTL ? "text-right" : "text-left"
                       }`}
                       style={{ fontFamily: getFontClassName("bold") }}
@@ -930,305 +929,126 @@ const FinancialInsights = () => {
                   </View>
                 </View>
               ) : null}
+
+              {/* Data Summary Section - Placed after advice */}
+              <View className="bg-white rounded-xl p-8 mb-6 shadow-md ">
+                <Text
+                  className={`text-xl text-[#D03957] mb-4 ${
+                    I18nManager.isRTL ? "text-right" : "text-left"
+                  }`}
+                  style={{ fontFamily: getFontClassName("bold") }}
+                >
+                  {t("manageData.dataSummaryTitle")}
+                </Text>
+                <View
+                  className={`flex-row items-center justify-between py-2 border-t border-[#4E17B3] ${
+                    I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
+                  }`}
+                >
+                  <Text
+                    className="text-lg text-gray-700"
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
+                    {t("manageData.totalReceiptsUploaded")}:
+                  </Text>
+                  <Text
+                    className="text-lg text-[#D03957]"
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    {i18n.language.startsWith("ar")
+                      ? convertToArabicNumerals(financialData.totalReceipts)
+                      : financialData.totalReceipts}
+                  </Text>
+                </View>
+                <View
+                  className={`flex-row items-center justify-between py-2 border-t border-[#4E17B3] ${
+                    I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
+                  }`}
+                >
+                  <Text
+                    className="text-lg text-gray-700"
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
+                    {t("manageData.overallSpendingRecorded")}:
+                  </Text>
+                  <Text
+                    className="text-lg text-[#D03957]"
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    {i18n.language.startsWith("ar")
+                      ? `${convertToArabicNumerals(
+                          financialData.overallSpending.toFixed(2)
+                        )} ${preferredCurrencySymbol}`
+                      : `${preferredCurrencySymbol}${financialData.overallSpending.toFixed(
+                          2
+                        )}`}
+                  </Text>
+                </View>
+                {financialData.topSpendingCategories.length > 0 && (
+                  <View className="py-2 border-t border-[#4E17B3]">
+                    <Text
+                      className={`text-lg text-gray-700 mb-2 ${
+                        I18nManager.isRTL ? "text-right" : "text-left"
+                      }`}
+                      style={{ fontFamily: getFontClassName("bold") }}
+                    >
+                      {t("financialInsights.topSpendingCategories")}:{" "}
+                      {financialData.topSpendingCategories.map((c, index) => (
+                        <Text
+                          key={index}
+                          className="text-base text-[#D03957]"
+                          style={{
+                            fontFamily: getFontClassName("semibold"),
+                            textAlign: I18nManager.isRTL ? "right" : "left",
+                            marginBottom:
+                              index <
+                              financialData.topSpendingCategories.length - 1
+                                ? 4
+                                : 0,
+                          }}
+                        >
+                          {`${t(
+                            `categories.${mapCategoryNameToI18nKey(c.name)}`
+                          )}: `}
+                          {i18n.language.startsWith("ar")
+                            ? `${convertToArabicNumerals(
+                                c.amount.toFixed(2)
+                              )} ${preferredCurrencySymbol}`
+                            : `${preferredCurrencySymbol}${c.amount.toFixed(
+                                2
+                              )}`}
+                        </Text>
+                      ))}
+                    </Text>
+                  </View>
+                )}
+                <View
+                  className={`flex-row items-center justify-between py-2 border-t ${
+                    I18nManager.isRTL ? "flex-row-reverse" : "flex-row"
+                  }`}
+                >
+                  <Text
+                    className="text-lg text-gray-700"
+                    style={{ fontFamily: getFontClassName("bold") }}
+                  >
+                    {t("financialInsights.walletBalance")}:
+                  </Text>
+                  <Text
+                    className="text-lg text-[#D03957]"
+                    style={{ fontFamily: getFontClassName("semibold") }}
+                  >
+                    {i18n.language.startsWith("ar")
+                      ? `${convertToArabicNumerals(
+                          financialData.walletBalance.toFixed(2)
+                        )} ${preferredCurrencySymbol}`
+                      : `${preferredCurrencySymbol}${financialData.walletBalance.toFixed(
+                          2
+                        )}`}
+                  </Text>
+                </View>
+              </View>
             </>
           )}
-
-          <View className="border border-gray-500 mt-2" />
-
-          {/* Data Summary Section - Placed after advice */}
-          <View className="bg-transparent rounded-xl p-4 mb-1 shadow-md flex-1">
-            {/* Main Table Title */}
-            <Text
-              className={`text-xl text-[#020b6e] mb-4 ${
-                I18nManager.isRTL ? "text-right" : "text-left"
-              }`}
-              style={{ fontFamily: getFontClassName("bold") }}
-            >
-              {t("manageData.dataSummaryTitle")}
-            </Text>
-
-            {/* Main Table Container */}
-            <View
-              className={`bg-purple-700 p-6  bg-gradient-to-br border-2 border-white shadow-sm mb-4`}
-              style={{
-                shadowColor: "#000",
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.25,
-                shadowRadius: 3.84,
-                elevation: 5,
-              }}
-            >
-              {/* Table Row: Total Receipts Uploaded */}
-              <View className="flex-row justify-between items-center py-2 border-b border-gray-300">
-                <Text
-                  className="text-base text-gray-200"
-                  style={{ fontFamily: getFontClassName("bold") }}
-                >
-                  {t("manageData.totalReceiptsUploaded")}:
-                </Text>
-                <Text
-                  className="text-base text-[#eaf45e]"
-                  style={{ fontFamily: getFontClassName("semibold") }}
-                >
-                  {i18n.language.startsWith("ar")
-                    ? convertToArabicNumerals(financialData.totalReceipts)
-                    : financialData.totalReceipts}
-                </Text>
-              </View>
-
-              {/* Table Row: Overall Spending Recorded */}
-              <View className="flex-row justify-between items-center py-2 border-b border-gray-200">
-                <Text
-                  className="text-base text-gray-200"
-                  style={{ fontFamily: getFontClassName("bold") }}
-                >
-                  {t("manageData.overallSpendingRecorded")}:
-                </Text>
-                <Text
-                  className="text-base text-[#eaf45e]"
-                  style={{ fontFamily: getFontClassName("semibold") }}
-                >
-                  {i18n.language.startsWith("ar")
-                    ? `${convertToArabicNumerals(
-                        financialData.overallSpending.toFixed(2)
-                      )} ${preferredCurrencySymbol}`
-                    : `${preferredCurrencySymbol}${financialData.overallSpending.toFixed(
-                        2
-                      )}`}
-                </Text>
-              </View>
-
-              {/* Table Row: Wallet Balance */}
-              <View className="flex-row justify-between items-center py-2 border-b border-gray-200">
-                <Text
-                  className="text-base text-gray-200"
-                  style={{ fontFamily: getFontClassName("bold") }}
-                >
-                  {t("financialInsights.walletBalance")}:
-                </Text>
-                <Text
-                  className="text-base text-[#eaf45e]"
-                  style={{ fontFamily: getFontClassName("semibold") }}
-                >
-                  {i18n.language.startsWith("ar")
-                    ? `${convertToArabicNumerals(
-                        financialData.walletBalance.toFixed(2)
-                      )} ${preferredCurrencySymbol}`
-                    : `${preferredCurrencySymbol}${financialData.walletBalance.toFixed(
-                        2
-                      )}`}
-                </Text>
-              </View>
-
-              {/* Top Spending Categories Table */}
-              {financialData.topSpendingCategories.length > 0 && (
-                <View className="flex-col py-2 border-b border-gray-200">
-                  <Text
-                    className={`text-base text-gray-200 mb-2 ${
-                      I18nManager.isRTL ? "text-right" : "text-left"
-                    }`}
-                    style={{ fontFamily: getFontClassName("bold") }}
-                  >
-                    {t("financialInsights.topSpendingCategories")}:
-                  </Text>
-                  {financialData.topSpendingCategories.map((c, index) => (
-                    <View
-                      key={index}
-                      className="flex-row justify-between w-full py-1"
-                    >
-                      <Text
-                        className="text-gray-200 flex-1"
-                        style={{ fontFamily: getFontClassName("regular") }}
-                      >
-                        {t(`categories.${mapCategoryNameToI18nKey(c.name)}`)}
-                      </Text>
-                      <Text
-                        className="text-base text-[#eaf45e]"
-                        style={{ fontFamily: getFontClassName("semibold") }}
-                      >
-                        {i18n.language.startsWith("ar")
-                          ? `${convertToArabicNumerals(
-                              c.amount.toFixed(2)
-                            )} ${preferredCurrencySymbol}`
-                          : `${preferredCurrencySymbol}${c.amount.toFixed(2)}`}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Recent Large Expenses Table */}
-              {financialData.recentLargeExpenses.length > 0 && (
-                <View className="flex-col py-2 border-b border-gray-200">
-                  <Text
-                    className={`text-base text-gray-200 mb-2 ${
-                      I18nManager.isRTL ? "text-right" : "text-left"
-                    }`}
-                    style={{ fontFamily: getFontClassName("bold") }}
-                  >
-                    {t("financialInsights.recentLargeExpenses")}:
-                  </Text>
-                  <View className="flex-row py-1">
-                    <Text
-                      className="text-white text-sm font-bold flex-1"
-                      style={{ fontFamily: getFontClassName("semibold") }}
-                    >
-                      {t("financialInsights.merchant")}
-                    </Text>
-                    <Text
-                      className="text-white text-sm font-bold flex-1 text-center"
-                      style={{ fontFamily: getFontClassName("semibold") }}
-                    >
-                      {t("financialInsights.date")}
-                    </Text>
-                    <Text
-                      className="text-white text-sm font-bold flex-1 text-right"
-                      style={{ fontFamily: getFontClassName("semibold") }}
-                    >
-                      {t("financialInsights.amount")}
-                    </Text>
-                  </View>
-                  {financialData.recentLargeExpenses.map((exp, index) => (
-                    <View key={index} className="flex-row py-1">
-                      <Text
-                        className="text-gray-200 text-xs flex-1"
-                        style={{ fontFamily: getFontClassName("regular") }}
-                      >
-                        {exp.merchant}
-                      </Text>
-                      <Text
-                        className="text-gray-200 text-xs flex-1 text-center"
-                        style={{ fontFamily: getFontClassName("regular") }}
-                      >
-                        {exp.date}
-                      </Text>
-                      <Text
-                        className="text-green-300 text-base flex-1 text-right"
-                        style={{ fontFamily: getFontClassName("regular") }}
-                      >
-                        {i18n.language.startsWith("ar")
-                          ? `${convertToArabicNumerals(
-                              exp.amount.toFixed(2)
-                            )} ${preferredCurrencySymbol}`
-                          : `${preferredCurrencySymbol}${exp.amount.toFixed(
-                              2
-                            )}`}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-              {/* Top Frequent Merchants Table */}
-              {financialData.topFrequentMerchants.length > 0 && (
-                <View className="flex-col py-2 border-b border-gray-200">
-                  <Text
-                    className={`text-base text-gray-200 mb-2 ${
-                      I18nManager.isRTL ? "text-right" : "text-left"
-                    }`}
-                    style={{ fontFamily: getFontClassName("bold") }}
-                  >
-                    {t("financialInsights.topFrequentMerchants")}:
-                  </Text>
-                  {/* Table Header */}
-                  <View className="flex-row py-1">
-                    <Text
-                      className={`text-white text-sm font-bold flex-1 ${
-                        I18nManager.isRTL ? "pl-2" : "pr-2"
-                      }`}
-                      style={{
-                        fontFamily: getFontClassName("semibold"),
-                      }}
-                    >
-                      {t("financialInsights.merchant")}
-                    </Text>
-                    <Text
-                      className="text-white text-sm font-bold flex-1 text-right"
-                      style={{ fontFamily: getFontClassName("semibold") }}
-                    >
-                      {t("financialInsights.visits")}
-                    </Text>
-                  </View>
-                  {/* Table Rows */}
-                  {financialData.topFrequentMerchants.map((merch, index) => (
-                    <View key={index} className="flex-row py-1">
-                      <Text
-                        className={`text-gray-200 text-xs flex-1 ${
-                          I18nManager.isRTL ? "pl-2" : "pr-2"
-                        }`}
-                        style={{
-                          fontFamily: getFontClassName("regular"),
-                        }}
-                      >
-                        {merch.name}
-                      </Text>
-                      <Text
-                        className="text-gray-200 text-xs flex-1 text-right"
-                        style={{ fontFamily: getFontClassName("regular") }}
-                      >
-                        {i18n.language.startsWith("ar")
-                          ? convertToArabicNumerals(merch.count)
-                          : merch.count}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* Top Frequent Items Table */}
-              {financialData.topFrequentItems.length > 0 && (
-                <View className="flex-col py-2 border-b border-gray-200">
-                  <Text
-                    className={`text-base text-gray-200 mb-2 ${
-                      I18nManager.isRTL ? "text-right" : "text-left"
-                    }`}
-                    style={{ fontFamily: getFontClassName("bold") }}
-                  >
-                    {t("financialInsights.topFrequentItems")}:
-                  </Text>
-                  <View className="flex-row py-1">
-                    <Text
-                      className={`text-white text-sm font-bold flex-1 ${
-                        I18nManager.isRTL ? "pl-2" : "pr-2"
-                      }`}
-                      style={{
-                        fontFamily: getFontClassName("semibold"),
-                      }}
-                    >
-                      {t("financialInsights.item")}
-                    </Text>
-                    <Text
-                      className="text-white text-sm font-bold flex-1 text-right"
-                      style={{ fontFamily: getFontClassName("semibold") }}
-                    >
-                      {t("financialInsights.times")}
-                    </Text>
-                  </View>
-                  {financialData.topFrequentItems.map((item, index) => (
-                    <View key={index} className="flex-row py-1">
-                      <Text
-                        className={`text-gray-200 text-xs flex-1 ${
-                          I18nManager.isRTL ? "pl-2" : "pr-2"
-                        }`}
-                        style={{
-                          fontFamily: getFontClassName("regular"),
-                        }}
-                      >
-                        {item.name}
-                      </Text>
-                      <Text
-                        className="text-gray-200 text-xs flex-1 text-right"
-                        style={{ fontFamily: getFontClassName("regular") }}
-                      >
-                        {i18n.language.startsWith("ar")
-                          ? convertToArabicNumerals(item.count)
-                          : item.count}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          </View>
 
           {/* Upgrade to Premium Call to Action (if not premium)
           {user && !user.isPremium && (

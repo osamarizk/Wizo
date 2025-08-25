@@ -87,7 +87,7 @@ const Index = () => {
             </View>
 
             {/* Slogan Text (if you decide to uncomment it) */}
-            <Text
+            {/* <Text
               className={`text-secondary text-2xl text-center mt-1 ${getFontClassName(
                 "bold"
               )}`}
@@ -97,7 +97,7 @@ const Index = () => {
               }}
             >
               {t("onboarding.slogan")}
-            </Text>
+            </Text> */}
 
             <TouchableOpacity
               onPress={() => {

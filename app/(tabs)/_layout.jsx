@@ -66,7 +66,7 @@ const TabsLayout = () => {
           {!hasBudget && (
             <View
               // Tailwind classes for the badge's appearance and positioning
-              className="absolute -top-1.5 -right-1.5 bg-red-500 rounded-full w-5 h-5 items-center justify-center z-10"
+              className="absolute -top-1.5 -right-1.5 bg-purple-700 rounded-full w-5 h-5 items-center justify-center z-10"
               style={{
                 right: I18nManager.isRTL ? undefined : -6, // If RTL, right: auto, left: -6
                 left: I18nManager.isRTL ? -6 : undefined, // If LTR, left: auto, right: -6

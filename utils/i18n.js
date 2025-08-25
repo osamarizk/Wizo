@@ -526,9 +526,8 @@ const resources = {
         downloadImage: "Download Receipt",
         deleteReceipt: "Delete Receipt",
         unlimitedAdviceTitle: "Your Unlimited Financial Insights Await!",
-        newAdviceAvailableTitle: "New Financial Advice Available!",
-        freeAdviceRemainingHome:
-          "You have {{count}} free advises remaining today.",
+        newAdviceAvailableTitle: "New Advice Available!",
+        freeAdviceRemainingHome: "You have {{count}} free advises ",
         checkYourAdvice: "Check Your Daily Advice",
         upgradeToUnlimited: "Upgrade for Unlimited Advice",
         noAdviceYet: "Tap to get your first insight today!",
@@ -1110,6 +1109,7 @@ const resources = {
       manageData: {
         pageTitle: "Manage My Data",
         dataSummaryTitle: "Your Data Summary",
+        topFrequentMerchants: "Top Frequent Merchants",
         totalReceiptsUploaded: "Total Receipts Uploaded",
         overallSpendingRecorded: "Overall Spending Recorded",
         lastReceiptUploaded: "Last Receipt Uploaded",
@@ -1248,6 +1248,16 @@ const resources = {
       },
       financialInsights: {
         pageTitle: "Financial Insights",
+        title: "Financial Insights",
+        topFrequentMerchants: "Top Frequent Merchants",
+        merchant: "Merchant",
+        visits: "Visits",
+        topItem: "Top Item",
+        topFrequentItems: "Top Frequent Items",
+        item: "Item",
+        times: "Times",
+        date: "Date",
+        amount: "Amount",
         getAdviceButton: "Get Financial Advice",
         generatingAdvice: "Generating advice...",
         noDataTitle: "No Data Yet",
@@ -1265,7 +1275,7 @@ const resources = {
           "You've reached your free advice limit for today. Upgrade to Premium for unlimited insights!",
         upgradeToPremium: "Upgrade to Premium",
         loadingData: "Loading your financial data...",
-        topSpendingCategories: "Top Spending ",
+        topSpendingCategories: "Top Spending Categories",
         walletBalance: "Wallet Balance",
         freeAdviceRemaining:
           "You have {{count}} out of {{max}} free advices remaining today.",
@@ -1276,8 +1286,32 @@ const resources = {
         frequentItemPurchases: "Frequent Item Purchases:",
         contentBlockedMessage:
           "The financial advice could not be generated due to a content policy. Please try again or with different data. We aim to keep advice safe and helpful!",
-        contentBlockedMessage:
-          "تعذر إنشاء النصيحة المالية بسبب سياسة المحتوى. يرجى المحاولة مرة أخرى أو ببيانات مختلفة. نهدف إلى تقديم نصائح آمنة ومفيدة!",
+        overallSpending: "Overall Spending",
+        noData:
+          "No data available yet. Start adding receipts to see your insights!",
+        budgetPerformance: "Budget Performance",
+        budgetStatus: {
+          over: "You're {{amount}} over budget!",
+          under: "You're {{amount}} under budget.",
+          "on track": "You're on track with your budget.",
+        },
+        spentOfBudgeted: "spent of budgeted",
+        noBudgets: "No budgets found. Create one to track your spending!",
+        recentLargeExpenses: "Recent Large Receipt",
+        largeExpenseTip:
+          "This section shows individual receipts over $500. Add some large receipts to see them here.",
+        noLargeExpenses: "No large expenses found in the last 30 days.",
+        save: "Save",
+        adviceNoData:
+          "No data available. Add receipts and budgets to get personalized advice!",
+        adviceSuggestion1:
+          "You've recently made {{count}} purchases from {{merchant}}. Consider setting a budget for this merchant.",
+        adviceSuggestion2:
+          "Your top spending is in the '{{category}}' category. Review your purchases to find areas to save.",
+        adviceNoSpecificData:
+          "No specific advice can be generated with your current data. Keep tracking your expenses!",
+        loginRequired: "You must be logged in to view financial insights.",
+        refreshAdvice: "Refresh Advice",
       },
       appwriteErrors: {
         networkRequestFailed:
@@ -2137,8 +2171,8 @@ const resources = {
         downloadImage: "تحميل الايصال",
         deleteReceipt: "حذف الايصال",
         unlimitedAdviceTitle: "نصائحك المالية غير المحدودة في انتظارك!",
-        newAdviceAvailableTitle: "نصيحة مالية جديدة متاحة!",
-        freeAdviceRemainingHome: "لديك {{count}} نصيحة مجانية متبقية اليوم.",
+        newAdviceAvailableTitle: "نصيحة جديدة متاحة!",
+        freeAdviceRemainingHome: "لديك {{count}} نصيحة مجانية.",
         checkYourAdvice: "تحقق من نصيحتك اليومية",
         upgradeToUnlimited: "الترقية للحصول على نصائح غير محدودة",
         noAdviceYet: "   أحصل على أول نصيحة مالية اليوم",
@@ -2859,33 +2893,69 @@ const resources = {
           "إذا كانت لديك أي أسئلة حول هذه الشروط، يرجى الاتصال بنا على: support@o7empower.com",
       },
       financialInsights: {
-        pageTitle: "تحليلات مالية",
+        pageTitle: "الرؤى المالية",
+        title: "الرؤى المالية",
+        topFrequentMerchants: "أكثر التجار تكراراً",
+        merchant: "التاجر",
+        visits: "زيارات",
+        topItem: "أكثر عنصر تكراراً",
+        topFrequentItems: "أكثر العناصر تكراراً",
+        item: "العنصر",
+        times: "مرات",
+        date: "يوم",
         getAdviceButton: "احصل على نصيحة مالية",
         generatingAdvice: "جاري إنشاء النصيحة...",
         noDataTitle: "لا توجد بيانات بعد",
         noDataMessage:
-          "قم بتحميل بعض الإيصالات وإعداد محفظتك/ميزانياتك للحصول على رؤى مخصصة!",
+          "قم بتحميل بعض الفواتير وإعداد محفظتك/ميزانياتك للحصول على رؤى شخصية!",
         adviceDisclaimer:
-          "إخلاء مسؤولية: هذه النصيحة تم إنشاؤها بواسطة الذكاء الاصطناعي لأغراض معلوماتية فقط ولا تشكل نصيحة مالية مهنية. استشر دائمًا مستشارًا ماليًا مؤهلاً للحصول على إرشادات مخصصة.",
+          "إخلاء مسؤولية: هذه النصيحة تم إنشاؤها بواسطة الذكاء الاصطناعي لأغراض إعلامية فقط ولا تشكل نصيحة مالية احترافية. استشر دائمًا مستشارًا ماليًا مؤهلاً للحصول على إرشادات شخصية.",
         adviceTitle: "نصيحتك المالية:",
         lastUpdated: "آخر تحديث:",
         adviceErrorTitle: "خطأ في النصيحة",
         adviceErrorMessage:
-          "فشل الحصول على النصيحة المالية. الرجاء المحاولة مرة أخرى لاحقًا.",
-        rateLimitedTitle: "عدد كبير جدا من الطلبات",
+          "فشل في الحصول على نصيحة مالية. يرجى المحاولة مرة أخرى لاحقًا.",
+        rateLimitedTitle: "العديد من الطلبات",
         rateLimitedMessage:
-          "لقد وصلت إلى حد النصائح المجانية لهذا اليوم. قم بالترقية إلى بريميوم للحصول على رؤى غير محدودة!",
-        upgradeToPremium: "الترقية إلى بريميوم",
+          "لقد وصلت إلى حد النصائح المجانية اليوم. قم بالترقية إلى الإصدار المميز للحصول على رؤى غير محدودة!",
+        upgradeToPremium: "الترقية إلى الإصدار المميز",
         loadingData: "جاري تحميل بياناتك المالية...",
-        topSpendingCategories: "أهم فئات الإنفاق",
+        topSpendingCategories: "أعلى فئات الإنفاق",
         walletBalance: "رصيد المحفظة",
         freeAdviceRemaining:
-          "لديك {{count}} من أصل {{max}} نصائح مجانية متبقية اليوم.",
+          "لديك {{count}} من أصل {{max}} نصيحة مجانية متبقية اليوم.",
         freeAdviceExhausted: "سيتم إعادة تعيين نصائحك المجانية غدًا.",
-        unlimitedAdvice: "نصائح يومية غير محدودة!",
-        upgradeToPremiumShort: "الترقية إلى بريميوم",
-        frequentMerchantVisits: "زيارات المتجر المتكررة:",
-        frequentItemPurchases: "مشتريات العناصر المتكررة:",
+        unlimitedAdvice: "نصيحة يومية غير محدودة!",
+        upgradeToPremiumShort: "الترقية إلى المميز",
+        frequentMerchantVisits: "الزيارات المتكررة للتجار:",
+        frequentItemPurchases: "عمليات الشراء المتكررة للعناصر:",
+        contentBlockedMessage:
+          "تعذر إنشاء النصيحة المالية بسبب سياسة المحتوى. يرجى المحاولة مرة أخرى أو ببيانات مختلفة. نحن نهدف إلى الحفاظ على النصيحة آمنة ومفيدة!",
+        overallSpending: "الإنفاق الإجمالي",
+        noData: "لا توجد بيانات متاحة بعد. ابدأ بإضافة الفواتير لرؤية رؤاك!",
+        budgetPerformance: "أداء الميزانية",
+        budgetStatus: {
+          over: "لقد تجاوزت الميزانية بـ {{amount}}!",
+          under: "أنت أقل من الميزانية بـ {{amount}}.",
+          "on track": "أنت على الطريق الصحيح مع ميزانيتك.",
+        },
+        spentOfBudgeted: "من الميزانية المخصصة",
+        noBudgets: "لم يتم العثور على ميزانيات. قم بإنشاء واحدة لتتبع إنفاقك!",
+        recentLargeExpenses: "النفقات الكبيرة الأخيرة",
+        largeExpenseTip:
+          "يعرض هذا القسم الفواتير الفردية التي تزيد عن 500 دولار. أضف بعض الفواتير الكبيرة لرؤيتها هنا.",
+        noLargeExpenses: "لم يتم العثور على نفقات كبيرة في آخر 30 يومًا.",
+        save: "حفظ",
+        adviceNoData:
+          "لا توجد بيانات متاحة. أضف الفواتير والميزانيات للحصول على نصيحة شخصية!",
+        adviceSuggestion1:
+          "لقد قمت مؤخرًا بـ {{count}} عملية شراء من {{merchant}}. فكر في تحديد ميزانية لهذا التاجر.",
+        adviceSuggestion2:
+          "إنفاقك الأعلى في فئة '{{category}}'. راجع مشترياتك للعثور على مجالات للادخار.",
+        adviceNoSpecificData:
+          "لا يمكن إنشاء نصيحة محددة ببياناتك الحالية. استمر في تتبع نفقاتك!",
+        loginRequired: "يجب عليك تسجيل الدخول لعرض الرؤى المالية.",
+        refreshAdvice: "تحديث النصيحة",
       },
       appwriteErrors: {
         networkRequestFailed:
