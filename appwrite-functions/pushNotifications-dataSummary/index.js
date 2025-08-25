@@ -114,7 +114,7 @@ export default async ({ req, res, log, error }) => {
       const userProfile = await databases.listDocuments(
         DATABASE_ID,
         USER_PROFILES_COLLECTION_ID,
-        [Query.equal("accountId", userId), Query.limit(1)]
+        [Query.equal("accountid", userId), Query.limit(1)]
       );
 
       const pushToken = userProfile.documents[0]?.pushToken;
