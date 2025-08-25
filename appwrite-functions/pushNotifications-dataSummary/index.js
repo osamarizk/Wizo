@@ -10,7 +10,8 @@ const USER_PROFILES_COLLECTION_ID = process.env.USER_PROFILES_COLLECTION_ID;
 const RECEIPTS_COLLECTION_ID = process.env.RECEIPTS_COLLECTION_ID;
 const BUDGETS_COLLECTION_ID = process.env.BUDGETS_COLLECTION_ID;
 const CATEGORIES_COLLECTION_ID = process.env.CATEGORIES_COLLECTION_ID;
-const WALLET_TRANSACTIONS_COLLECTION_ID = process.env.WALLETS_COLLECTION_ID;
+const WALLET_TRANSACTIONS_COLLECTION_ID =
+  process.env.WALLET_TRANSACTIONS_COLLECTION_ID;
 
 // Replicate the client-side Appwrite functions here for server-side use.
 const getReceiptStats = async (databases, userId) => {
@@ -76,7 +77,11 @@ const getWalletTransactions = async (databases, userId) => {
     const response = await databases.listDocuments(
       DATABASE_ID,
       WALLET_TRANSACTIONS_COLLECTION_ID,
-      [Query.equal("user_id", userId), Query.limit(100)]
+      [
+        Query.equal("user_id", userId),
+        Query.orderDesc("datetime"),
+        Query.limit(100),
+      ]
     );
     return response.documents;
   } catch (error) {
