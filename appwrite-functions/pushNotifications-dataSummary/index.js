@@ -1,4 +1,4 @@
-import { Client, Databases, Users, Query } from "node-appwrite";
+import { Client, Databases, Users, Query, ID } from "node-appwrite";
 import fetch from "node-fetch";
 
 // Re-creating the necessary functions from your appwrite.js file for the server-side
@@ -12,6 +12,8 @@ const BUDGETS_COLLECTION_ID = process.env.BUDGETS_COLLECTION_ID;
 const CATEGORIES_COLLECTION_ID = process.env.CATEGORIES_COLLECTION_ID;
 const WALLET_TRANSACTIONS_COLLECTION_ID =
   process.env.WALLET_TRANSACTIONS_COLLECTION_ID;
+// Add the new collection ID for notifications
+const NOTIFICATIONS_COLLECTION_ID = process.env.NOTIFICATIONS_COLLECTION_ID;
 
 // Replicate the client-side Appwrite functions here for server-side use.
 const getReceiptStats = async (databases, userId) => {
@@ -92,6 +94,55 @@ const getWalletTransactions = async (databases, userId) => {
     return [];
   }
 };
+
+/**
+ * Creates a notification document in the database.
+ * @param {object} databases - The Appwrite Databases service instance.
+ * @param {string} user_id - The ID of the user the notification is for.
+ * @param {string} title - The notification title.
+ * @param {string} message - The notification message body.
+ * @param {string} [receipt_id=null] - Optional receipt ID to link to the notification.
+ * @param {string} [budget_id=null] - Optional budget ID to link to the notification.
+ * @param {string} [type="system"] - The type of notification (e.g., "system", "alert").
+ * @param {Date} [expiresAt=null] - Optional Date object for notification expiry.
+ */
+async function createNotification({
+  databases,
+  user_id,
+  title,
+  message,
+  receipt_id = null,
+  budget_id = null,
+  type = "system",
+  expiresAt = null,
+}) {
+  try {
+    const data = {
+      user_id,
+      title,
+      message,
+      read: false,
+      receipt_id,
+      budget_id,
+      type,
+    };
+
+    if (expiresAt instanceof Date) {
+      data.expiresAt = expiresAt.toISOString();
+    }
+
+    // Use the databases instance passed to the function
+    return await databases.createDocument(
+      DATABASE_ID,
+      NOTIFICATIONS_COLLECTION_ID,
+      ID.unique(),
+      data
+    );
+  } catch (error) {
+    console.error("Error creating notification:", error);
+    throw error;
+  }
+}
 
 /**
  * The core logic for processing a single user's data and sending a notification.
@@ -264,6 +315,11 @@ async function processUser(user, databases, log) {
 
     // Create a tailored notification message
     let notificationBody;
+    let title = "Financial Insight 📊";
+    let budget_id_for_notification = null;
+    let receipt_id_for_notification = null;
+    let type_for_notification = "system";
+
     const insights = [
       `You've spent a total of ${overallSpending.toFixed(2)}.`,
       `Your top spending category is ${
@@ -287,6 +343,10 @@ async function processUser(user, databases, log) {
       } by ${(overBudgetInsight.spent - overBudgetInsight.budgeted).toFixed(
         2
       )}!`;
+      title = "Budget Alert 💰";
+      type_for_notification = "alert";
+      // This part might need to be linked to a specific budget ID if you have it
+      // budget_id_for_notification = ... ;
     } else {
       notificationBody = insights[Math.floor(Math.random() * insights.length)];
     }
@@ -296,7 +356,7 @@ async function processUser(user, databases, log) {
     const message = {
       to: pushToken,
       sound: "default",
-      title: "Financial Insight 📊",
+      title: title,
       body: notificationBody,
       data: { page: "spending" },
       _displayInForeground: true,
@@ -318,6 +378,27 @@ async function processUser(user, databases, log) {
         sendResult
       )}`
     );
+
+    // --- Best Practice: Create the in-app notification after successful push notification send ---
+    if (sendResult?.data?.status === "ok") {
+      log(
+        `Push notification successfully sent for user ${userId}. Creating in-app notification.`
+      );
+      await createNotification({
+        databases: databases,
+        user_id: userId,
+        title: title,
+        message: notificationBody,
+        budget_id: budget_id_for_notification,
+        receipt_id: receipt_id_for_notification,
+        type: type_for_notification,
+      });
+      log(`In-app notification created for user ${userId}.`);
+    } else {
+      log(
+        `Failed to send push notification for user ${userId}. Skipping in-app notification creation.`
+      );
+    }
   } catch (err) {
     // Log the error for this specific user but don't stop the entire function
     log(`Error processing data for user ${user.$id}: ${err.message}`);
